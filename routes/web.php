@@ -35,8 +35,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('dashboard.exportarPdf');
 
     // ── Casos — lectura (todos los roles) ────────────────────────────────────
-    Route::get('/casos',          [CasoController::class, 'index'])->name('casos.index');
-    Route::get('/casos/{caso}',   [CasoController::class, 'show'])->name('casos.show');
+    Route::get('/casos', [CasoController::class, 'index'])->name('casos.index');
 
     // ── Casos — escritura (admin + abogado) ──────────────────────────────────
     Route::middleware('role:admin,abogado')->group(function () {
@@ -46,6 +45,9 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/casos/{caso}',       [CasoController::class, 'update'])->name('casos.update');
         Route::patch('/casos/{caso}',     [CasoController::class, 'update']);
     });
+
+    // ── Esta va DESPUÉS del create ────────────────────────────────────────────
+    Route::get('/casos/{caso}', [CasoController::class, 'show'])->name('casos.show');
 
     // ── Casos — eliminar (solo admin) ────────────────────────────────────────
     Route::delete('/casos/{caso}', [CasoController::class, 'destroy'])
