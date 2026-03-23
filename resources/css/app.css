@@ -673,11 +673,11 @@ input[type="checkbox"]:checked + .is-checkbox-box {
     scrollbar-color: rgba(27,79,255,0.45) transparent;
     transition: background 0.3s ease, border-color 0.3s ease;
 }
+
 .is-table-wrap::-webkit-scrollbar { height: 5px; }
 .is-table-wrap::-webkit-scrollbar-track { background: var(--border); border-radius: 3px; }
 .is-table-wrap::-webkit-scrollbar-thumb { background: rgba(27,79,255,0.45); border-radius: 3px; }
 .is-table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(27,79,255,0.7); }
-}
 
 .is-table-header {
     display: flex;
