@@ -1,279 +1,224 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>Editar Caso - INDEMNI SOAT</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+@extends('layouts.app')
+
+@section('title', 'Editar Caso')
+
+@section('content')
+
 <style>
-body{
-    font-family:Arial,Helvetica,sans-serif;
-    background:#f4f6f9;
-    padding:30px;
-    margin:0;
-    color:#111827;
-}
-.container{
-    max-width:1200px;
-    margin:auto;
-    background:white;
-    padding:25px;
-    border-radius:10px;
-    box-shadow:0 8px 24px rgba(0,0,0,.06);
-}
-.grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:18px;
-}
-input,select,textarea{
-    width:100%;
-    padding:10px;
-    margin-top:5px;
-    margin-bottom:15px;
-    border:1px solid #ccc;
-    border-radius:6px;
-    box-sizing:border-box;
-    font-family:inherit;
-    font-size:14px;
-}
-textarea{
-    min-height:120px;
-}
-button{
-    background:#0d6efd;
-    color:white;
-    border:none;
-    padding:12px 20px;
-    border-radius:6px;
-    cursor:pointer;
-    font-size:14px;
-}
-a{
-    text-decoration:none;
-}
-.full{
-    grid-column:1 / -1;
-}
-h2,h3{
-    margin-top:0;
-}
-.section{
-    background:#f8fafc;
-    padding:16px;
-    border-radius:8px;
-    border:1px solid #e2e8f0;
-}
-.finanzas{
-    background:#f8fafc;
-    padding:16px;
-    border-radius:8px;
-    border:1px solid #e2e8f0;
-}
-.finanzas div{
-    margin-bottom:10px;
-}
-.resultado{
-    font-weight:bold;
-    color:#198754;
-}
-.helper{
-    display:block;
-    margin-top:-8px;
-    margin-bottom:12px;
-    font-size:12px;
-    color:#64748b;
-    line-height:1.4;
-}
-.header-top{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap:16px;
-    flex-wrap:wrap;
-    margin-bottom:20px;
-}
-.badge{
-    display:inline-block;
-    padding:8px 12px;
-    border-radius:999px;
-    background:#e9ecef;
-    color:#374151;
-    font-size:13px;
-}
-.actions{
-    margin-top:20px;
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-}
-.btn-secondary{
-    background:#6c757d;
-    color:#fff;
-    padding:12px 20px;
-    border-radius:6px;
-    display:inline-block;
-}
-.alert-error{
-    background:#f8d7da;
-    color:#842029;
-    border:1px solid #f5c2c7;
-    padding:12px 14px;
-    border-radius:8px;
-    margin-bottom:18px;
-}
-.alert-error ul{
-    margin:0;
-    padding-left:18px;
-}
-.readonly-box{
-    background:#eef2f7;
+/* ── Sección activa al foco ── */
+.is-form-section { transition: box-shadow .2s; }
+.is-form-section:focus-within {
+    box-shadow: 0 0 0 2px rgba(27,79,255,0.15);
+    border-color: rgba(27,79,255,0.25) !important;
 }
 
-/* ── Estilos para bloques condicionales del flujo jurídico ── */
-.flujo-bloque{
-    background:#fff;
-    border:1px solid #e2e8f0;
-    border-radius:8px;
-    padding:14px 16px;
-    margin-bottom:4px;
+/* ── Bloques de flujo jurídico ── */
+.flujo-bloque {
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 4px;
+    border: 1px solid var(--border-2);
+    background: var(--bg-card);
+    transition: background .3s, border-color .3s;
 }
-.flujo-bloque.bloque-warn{
-    border-left:4px solid #f59e0b;
-    background:#fffbeb;
+.flujo-bloque.fl-info    {
+    border-left: 3px solid #1B4FFF;
+    background: rgba(27,79,255,0.04);
 }
-.flujo-bloque.bloque-info{
-    border-left:4px solid #3b82f6;
-    background:#eff6ff;
+.flujo-bloque.fl-warn    {
+    border-left: 3px solid #F59E0B;
+    background: rgba(245,158,11,0.04);
 }
-.flujo-bloque.bloque-danger{
-    border-left:4px solid #ef4444;
-    background:#fef2f2;
+.flujo-bloque.fl-danger  {
+    border-left: 3px solid #E53935;
+    background: rgba(229,57,53,0.04);
 }
-.flujo-bloque.bloque-success{
-    border-left:4px solid #10b981;
-    background:#f0fdf4;
+.flujo-bloque.fl-success {
+    border-left: 3px solid #059669;
+    background: rgba(5,150,105,0.04);
 }
-.flujo-bloque label{
-    font-weight:600;
-    font-size:13px;
-    display:block;
-    margin-bottom:4px;
-    color:#374151;
-}
-.flujo-bloque select,
-.flujo-bloque input{
-    margin-bottom:0;
-}
-.flujo-titulo{
-    font-size:12px;
-    font-weight:700;
-    text-transform:uppercase;
-    letter-spacing:.05em;
-    color:#6b7280;
-    margin-bottom:12px;
-    margin-top:0;
-}
-.campo-bloqueado{
-    opacity:.5;
-    pointer-events:none;
+.flujo-titulo {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-3);
+    margin: 0 0 14px 0;
 }
 
-@media (max-width:900px){
-    .grid{
-        grid-template-columns:1fr;
-    }
-    body{
-        padding:18px;
-    }
+/* ── Campo solo lectura ── */
+.is-input-readonly {
+    width: 100%;
+    padding: 11px 13px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-3);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: default;
+}
+
+/* ── Resumen financiero ── */
+.is-fin-card {
+    background: var(--bg-card-alt, rgba(27,79,255,0.04));
+    border: 1px solid var(--border-2);
+    border-radius: 10px;
+    padding: 18px 20px;
+    grid-column: 1 / -1;
+    transition: background .3s;
+}
+.is-fin-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+.is-fin-row:last-child { border-bottom: none; }
+.is-fin-val {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: #1DBD7F;
 }
 </style>
-</head>
-<body>
-<div class="container">
-    <div class="header-top">
-        <div>
-            <h2>Editar Caso</h2>
-            <div class="badge">{{ $caso->numero_caso }}</div>
-        </div>
-        <div>
-            <strong>Estado actual:</strong> {{ $caso->estado ?: 'N/A' }}<br>
-            <strong>Avance:</strong> {{ $caso->porcentaje_avance ?? 0 }}%
+
+{{-- ── Cabecera ── --}}
+<div class="is-animate-rise"
+     style="display:flex;align-items:center;gap:14px;margin-bottom:28px;
+            flex-wrap:wrap;">
+    <a href="{{ route('casos.index') }}"
+       style="width:38px;height:38px;border-radius:8px;
+              border:1px solid var(--border-2);background:var(--bg-input);
+              display:flex;align-items:center;justify-content:center;
+              color:var(--text-2);font-size:18px;text-decoration:none;
+              transition:all .2s;flex-shrink:0;"
+       onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--text-1)'"
+       onmouseout="this.style.background='var(--bg-input)';this.style.color='var(--text-2)'">
+        ←
+    </a>
+    <div style="flex:1;">
+        <div class="is-page-title">Editar Caso</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:5px;flex-wrap:wrap;">
+            <span class="is-badge is-badge-cobalt" style="font-size:12px;">
+                {{ $caso->numero_caso }}
+            </span>
+            <span style="font-size:12px;color:var(--text-2);">
+                Estado:
+                <strong style="color:var(--text-1);">
+                    {{ $caso->estado ?: 'N/A' }}
+                </strong>
+            </span>
+            <span style="font-size:12px;color:var(--text-2);">
+                Avance:
+                <strong style="color:var(--text-1);">
+                    {{ $caso->porcentaje_avance ?? 0 }}%
+                </strong>
+            </span>
         </div>
     </div>
+</div>
 
-    @if($errors->any())
-        <div class="alert-error">
-            <strong>Corrige los siguientes errores:</strong>
-            <ul>
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+{{-- ── Errores ── --}}
+@if($errors->any())
+    <div class="is-animate-rise"
+         style="background:rgba(229,57,53,0.08);
+                border:1px solid rgba(229,57,53,0.22);
+                border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+        <div style="font-size:13px;font-weight:700;
+                    color:#F26F6F;margin-bottom:8px;">
+            Corrige los siguientes errores:
         </div>
-    @endif
+        <ul style="margin:0;padding-left:18px;
+                   font-size:13px;color:#F26F6F;line-height:1.7;">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
 
-    <form method="POST" action="{{ route('casos.update', $caso) }}">
-        @csrf
-        @method('PUT')
+<form method="POST" action="{{ route('casos.update', $caso) }}">
+@csrf
+@method('PUT')
 
-        <div class="grid">
+{{-- ════════════════════════════════════════════
+     SECCIÓN 1 — Información general
+════════════════════════════════════════════ --}}
+<div class="is-form-section is-animate-rise is-stagger-1">
+    <div class="is-form-section-header">
+        <div class="is-section-num">1</div>
+        <div class="is-section-title">Información general de la víctima</div>
+    </div>
+    <div class="is-form-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
 
-            {{-- ================================================================ --}}
-            {{-- 1. INFORMACIÓN GENERAL                                           --}}
-            {{-- ================================================================ --}}
-            <div class="full section">
-                <h3>1. Información general de la víctima</h3>
+            <div>
+                <label class="is-form-label">Nombres *</label>
+                <input type="text" name="nombres" class="is-input"
+                       value="{{ old('nombres', $caso->nombres) }}"
+                       required placeholder="Ej. Carlos Andrés">
             </div>
 
             <div>
-                <label>Nombres</label>
-                <input type="text" name="nombres" value="{{ old('nombres', $caso->nombres) }}" required>
+                <label class="is-form-label">Apellidos *</label>
+                <input type="text" name="apellidos" class="is-input"
+                       value="{{ old('apellidos', $caso->apellidos) }}"
+                       required placeholder="Ej. Pérez García">
             </div>
 
             <div>
-                <label>Apellidos</label>
-                <input type="text" name="apellidos" value="{{ old('apellidos', $caso->apellidos) }}" required>
+                <label class="is-form-label">Cédula *</label>
+                <input type="text" name="cedula" class="is-input"
+                       value="{{ old('cedula', $caso->cedula) }}"
+                       required>
             </div>
 
             <div>
-                <label>Cédula</label>
-                <input type="text" name="cedula" value="{{ old('cedula', $caso->cedula) }}" required>
+                <label class="is-form-label">Teléfono / Celular</label>
+                <input type="text" name="telefono" class="is-input"
+                       value="{{ old('telefono', $caso->telefono) }}"
+                       placeholder="300 000 0000">
             </div>
 
             <div>
-                <label>Teléfono</label>
-                <input type="text" name="telefono" value="{{ old('telefono', $caso->telefono) }}">
+                <label class="is-form-label">Correo electrónico</label>
+                <input type="email" name="correo" class="is-input"
+                       value="{{ old('correo', $caso->correo) }}">
             </div>
 
             <div>
-                <label>Correo</label>
-                <input type="email" name="correo" value="{{ old('correo', $caso->correo) }}">
+                <label class="is-form-label">Departamento</label>
+                <input type="text" name="departamento" class="is-input"
+                       value="{{ old('departamento', $caso->departamento) }}">
             </div>
 
             <div>
-                <label>Departamento</label>
-                <input type="text" name="departamento" value="{{ old('departamento', $caso->departamento) }}">
+                <label class="is-form-label">Ciudad / Municipio</label>
+                <input type="text" name="ciudad" class="is-input"
+                       value="{{ old('ciudad', $caso->ciudad) }}">
             </div>
 
             <div>
-                <label>Ciudad</label>
-                <input type="text" name="ciudad" value="{{ old('ciudad', $caso->ciudad) }}">
+                <label class="is-form-label">Dirección</label>
+                <input type="text" name="direccion" class="is-input"
+                       value="{{ old('direccion', $caso->direccion) }}">
             </div>
 
             <div>
-                <label>Dirección</label>
-                <input type="text" name="direccion" value="{{ old('direccion', $caso->direccion) }}">
+                <label class="is-form-label">Fecha del accidente</label>
+                <input type="date" name="fecha_accidente" class="is-input"
+                       value="{{ old('fecha_accidente',
+                           $caso->fecha_accidente
+                               ? \Carbon\Carbon::parse($caso->fecha_accidente)->format('Y-m-d')
+                               : '') }}">
             </div>
 
             <div>
-                <label>Fecha del accidente</label>
-                <input type="date" name="fecha_accidente"
-                    value="{{ old('fecha_accidente', $caso->fecha_accidente ? \Carbon\Carbon::parse($caso->fecha_accidente)->format('Y-m-d') : '') }}">
-            </div>
-
-            <div>
-                <label>Aseguradora</label>
-                <select name="aseguradora" required>
+                <label class="is-form-label">Aseguradora *</label>
+                <select name="aseguradora" class="is-select" required>
                     @foreach($aseguradoras as $aseguradora)
                         <option value="{{ $aseguradora }}"
                             {{ old('aseguradora', $caso->aseguradora) == $aseguradora ? 'selected' : '' }}>
@@ -284,8 +229,8 @@ h2,h3{
             </div>
 
             <div>
-                <label>Junta asignada</label>
-                <select name="junta_asignada">
+                <label class="is-form-label">Junta asignada</label>
+                <select name="junta_asignada" class="is-select">
                     <option value="">Seleccionar</option>
                     @foreach($juntas as $junta)
                         <option value="{{ $junta }}"
@@ -297,8 +242,8 @@ h2,h3{
             </div>
 
             <div>
-                <label>Estado</label>
-                <select name="estado" required>
+                <label class="is-form-label">Estado *</label>
+                <select name="estado" class="is-select" required>
                     @foreach($estados as $estado)
                         <option value="{{ $estado }}"
                             {{ old('estado', $caso->estado) == $estado ? 'selected' : '' }}>
@@ -306,229 +251,365 @@ h2,h3{
                         </option>
                     @endforeach
                 </select>
-                <span class="helper">El sistema puede reajustar este estado según las fechas diligenciadas.</span>
+                <div class="is-field-hint">
+                    El sistema puede reajustar este estado según las fechas
+                    diligenciadas.
+                </div>
             </div>
 
-            {{-- ================================================================ --}}
-            {{-- 2. DOCUMENTACIÓN INICIAL                                         --}}
-            {{-- ================================================================ --}}
-            <div class="full section">
-                <h3>2. Documentación inicial del negocio</h3>
-            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ════════════════════════════════════════════
+     SECCIÓN 2 — Documentación inicial
+════════════════════════════════════════════ --}}
+<div class="is-form-section is-animate-rise is-stagger-2">
+    <div class="is-form-section-header">
+        <div class="is-section-num">2</div>
+        <div class="is-section-title">Documentación inicial del negocio</div>
+    </div>
+    <div class="is-form-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
 
             <div>
-                <label>¿Tiene poder firmado?</label>
-                <select name="tiene_poder">
-                    <option value="0" {{ old('tiene_poder', $caso->tiene_poder ?? 0) == 0 ? 'selected' : '' }}>No</option>
-                    <option value="1" {{ old('tiene_poder', $caso->tiene_poder ?? 0) == 1 ? 'selected' : '' }}>Sí</option>
+                <label class="is-form-label">¿Tiene poder firmado?</label>
+                <select name="tiene_poder" class="is-select">
+                    <option value="0"
+                        {{ old('tiene_poder', $caso->tiene_poder ?? 0) == 0 ? 'selected' : '' }}>
+                        No
+                    </option>
+                    <option value="1"
+                        {{ old('tiene_poder', $caso->tiene_poder ?? 0) == 1 ? 'selected' : '' }}>
+                        Sí
+                    </option>
                 </select>
-                <span class="helper">Marca si la víctima ya entregó el poder firmado ante notaría.</span>
+                <div class="is-field-hint">
+                    Marca si la víctima ya entregó el poder firmado ante notaría.
+                </div>
             </div>
 
             <div>
-                <label>Fecha entrega de poder</label>
-                <input type="date" name="fecha_entrega_poder"
-                    value="{{ old('fecha_entrega_poder', !empty($caso->fecha_entrega_poder) ? \Carbon\Carbon::parse($caso->fecha_entrega_poder)->format('Y-m-d') : '') }}">
+                <label class="is-form-label">Fecha entrega del poder</label>
+                <input type="date" name="fecha_entrega_poder" class="is-input"
+                       value="{{ old('fecha_entrega_poder',
+                           !empty($caso->fecha_entrega_poder)
+                               ? \Carbon\Carbon::parse($caso->fecha_entrega_poder)->format('Y-m-d')
+                               : '') }}">
             </div>
 
             <div>
-                <label>Fecha poder firmado</label>
-                <input type="date" name="fecha_poder_firmado"
-                    value="{{ old('fecha_poder_firmado', !empty($caso->fecha_poder_firmado) ? \Carbon\Carbon::parse($caso->fecha_poder_firmado)->format('Y-m-d') : '') }}">
+                <label class="is-form-label">Fecha poder firmado (real)</label>
+                <input type="date" name="fecha_poder_firmado" class="is-input"
+                       value="{{ old('fecha_poder_firmado',
+                           !empty($caso->fecha_poder_firmado)
+                               ? \Carbon\Carbon::parse($caso->fecha_poder_firmado)->format('Y-m-d')
+                               : '') }}">
             </div>
 
             <div>
-                <label>¿Tiene contrato firmado?</label>
-                <select name="tiene_contrato">
-                    <option value="0" {{ old('tiene_contrato', $caso->tiene_contrato ?? 0) == 0 ? 'selected' : '' }}>No</option>
-                    <option value="1" {{ old('tiene_contrato', $caso->tiene_contrato ?? 0) == 1 ? 'selected' : '' }}>Sí</option>
+                <label class="is-form-label">¿Tiene contrato firmado?</label>
+                <select name="tiene_contrato" class="is-select">
+                    <option value="0"
+                        {{ old('tiene_contrato', $caso->tiene_contrato ?? 0) == 0 ? 'selected' : '' }}>
+                        No
+                    </option>
+                    <option value="1"
+                        {{ old('tiene_contrato', $caso->tiene_contrato ?? 0) == 1 ? 'selected' : '' }}>
+                        Sí
+                    </option>
                 </select>
-                <span class="helper">Marca si la víctima ya entregó el contrato firmado.</span>
+                <div class="is-field-hint">
+                    Marca si la víctima ya entregó el contrato firmado.
+                </div>
             </div>
 
             <div>
-                <label>Fecha entrega de contrato</label>
-                <input type="date" name="fecha_entrega_contrato"
-                    value="{{ old('fecha_entrega_contrato', !empty($caso->fecha_entrega_contrato) ? \Carbon\Carbon::parse($caso->fecha_entrega_contrato)->format('Y-m-d') : '') }}">
+                <label class="is-form-label">Fecha entrega del contrato</label>
+                <input type="date" name="fecha_entrega_contrato" class="is-input"
+                       value="{{ old('fecha_entrega_contrato',
+                           !empty($caso->fecha_entrega_contrato)
+                               ? \Carbon\Carbon::parse($caso->fecha_entrega_contrato)->format('Y-m-d')
+                               : '') }}">
             </div>
 
             <div>
-                <label>Fecha contrato firmado</label>
-                <input type="date" name="fecha_contrato_firmado"
-                    value="{{ old('fecha_contrato_firmado', !empty($caso->fecha_contrato_firmado) ? \Carbon\Carbon::parse($caso->fecha_contrato_firmado)->format('Y-m-d') : '') }}">
+                <label class="is-form-label">Fecha contrato firmado (real)</label>
+                <input type="date" name="fecha_contrato_firmado" class="is-input"
+                       value="{{ old('fecha_contrato_firmado',
+                           !empty($caso->fecha_contrato_firmado)
+                               ? \Carbon\Carbon::parse($caso->fecha_contrato_firmado)->format('Y-m-d')
+                               : '') }}">
             </div>
 
-            {{-- ================================================================ --}}
-            {{-- 3. REQUISITOS MÉDICOS                                            --}}
-            {{-- ================================================================ --}}
-            <div class="full section">
-                <h3>3. Requisitos médicos y soportes previos</h3>
-            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ════════════════════════════════════════════
+     SECCIÓN 3 — Requisitos médicos
+════════════════════════════════════════════ --}}
+<div class="is-form-section is-animate-rise is-stagger-2">
+    <div class="is-form-section-header">
+        <div class="is-section-num">3</div>
+        <div class="is-section-title">Requisitos médicos y soportes previos</div>
+    </div>
+    <div class="is-form-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
 
             <div>
-                <label>¿Tiene alta por ortopedia?</label>
-                <select name="alta_ortopedia">
-                    <option value="0" {{ old('alta_ortopedia', $caso->alta_ortopedia ?? 0) == 0 ? 'selected' : '' }}>No</option>
-                    <option value="1" {{ old('alta_ortopedia', $caso->alta_ortopedia ?? 0) == 1 ? 'selected' : '' }}>Sí</option>
+                <label class="is-form-label">¿Tiene alta por ortopedia?</label>
+                <select name="alta_ortopedia" class="is-select">
+                    <option value="0"
+                        {{ old('alta_ortopedia', $caso->alta_ortopedia ?? 0) == 0 ? 'selected' : '' }}>
+                        No
+                    </option>
+                    <option value="1"
+                        {{ old('alta_ortopedia', $caso->alta_ortopedia ?? 0) == 1 ? 'selected' : '' }}>
+                        Sí
+                    </option>
                 </select>
-                <span class="helper">Esto es clave antes de enviar la solicitud a junta.</span>
+                <div class="is-field-hint">
+                    Clave antes de enviar la solicitud a junta.
+                </div>
             </div>
 
             <div>
-                <label>Fecha alta por ortopedia</label>
-                <input type="date" name="fecha_alta_ortopedia"
-                    value="{{ old('fecha_alta_ortopedia', !empty($caso->fecha_alta_ortopedia) ? \Carbon\Carbon::parse($caso->fecha_alta_ortopedia)->format('Y-m-d') : '') }}">
+                <label class="is-form-label">Fecha alta por ortopedia</label>
+                <input type="date" name="fecha_alta_ortopedia" class="is-input"
+                       value="{{ old('fecha_alta_ortopedia',
+                           !empty($caso->fecha_alta_ortopedia)
+                               ? \Carbon\Carbon::parse($caso->fecha_alta_ortopedia)->format('Y-m-d')
+                               : '') }}">
             </div>
 
-            <div class="full">
-                <label>Observación alta por ortopedia</label>
-                <textarea name="observacion_alta_ortopedia">{{ old('observacion_alta_ortopedia', $caso->observacion_alta_ortopedia ?? '') }}</textarea>
+            <div style="grid-column:1/-1;">
+                <label class="is-form-label">Observación alta por ortopedia</label>
+                <textarea name="observacion_alta_ortopedia" class="is-textarea">{{ old('observacion_alta_ortopedia', $caso->observacion_alta_ortopedia ?? '') }}</textarea>
             </div>
 
             <div>
-                <label>¿FURPEN completo?</label>
-                <select name="furpen_completo">
-                    <option value="0" {{ old('furpen_completo', $caso->furpen_completo ?? 0) == 0 ? 'selected' : '' }}>No</option>
-                    <option value="1" {{ old('furpen_completo', $caso->furpen_completo ?? 0) == 1 ? 'selected' : '' }}>Sí</option>
+                <label class="is-form-label">¿FURPEN completo?</label>
+                <select name="furpen_completo" class="is-select">
+                    <option value="0"
+                        {{ old('furpen_completo', $caso->furpen_completo ?? 0) == 0 ? 'selected' : '' }}>
+                        No
+                    </option>
+                    <option value="1"
+                        {{ old('furpen_completo', $caso->furpen_completo ?? 0) == 1 ? 'selected' : '' }}>
+                        Sí
+                    </option>
                 </select>
-                <span class="helper">Marca si la víctima ya entregó toda la información del FURPEN.</span>
+                <div class="is-field-hint">
+                    Marca si la víctima ya entregó toda la información del FURPEN.
+                </div>
             </div>
 
             <div>
-                <label>Fecha FURPEN recibido</label>
-                <input type="date" name="fecha_furpen_recibido"
-                    value="{{ old('fecha_furpen_recibido', !empty($caso->fecha_furpen_recibido) ? \Carbon\Carbon::parse($caso->fecha_furpen_recibido)->format('Y-m-d') : '') }}">
+                <label class="is-form-label">Fecha FURPEN recibido</label>
+                <input type="date" name="fecha_furpen_recibido" class="is-input"
+                       value="{{ old('fecha_furpen_recibido',
+                           !empty($caso->fecha_furpen_recibido)
+                               ? \Carbon\Carbon::parse($caso->fecha_furpen_recibido)->format('Y-m-d')
+                               : '') }}">
             </div>
 
-            <div class="full">
-                <label>Observación FURPEN</label>
-                <textarea name="observacion_furpen">{{ old('observacion_furpen', $caso->observacion_furpen ?? '') }}</textarea>
+            <div style="grid-column:1/-1;">
+                <label class="is-form-label">Observación FURPEN</label>
+                <textarea name="observacion_furpen" class="is-textarea">{{ old('observacion_furpen', $caso->observacion_furpen ?? '') }}</textarea>
             </div>
 
-            {{-- ================================================================ --}}
-            {{-- 4. FLUJO JURÍDICO COMPLETO                                       --}}
-            {{-- ================================================================ --}}
-            <div class="full section">
-                <h3>4. Flujo jurídico del caso</h3>
-            </div>
+        </div>
+    </div>
+</div>
 
-            {{-- ── PASO 1: Solicitud ─────────────────────────────────────────── --}}
-            <div class="full flujo-bloque bloque-info">
+{{-- ════════════════════════════════════════════
+     SECCIÓN 4 — Flujo jurídico
+════════════════════════════════════════════ --}}
+<div class="is-form-section is-animate-rise is-stagger-3">
+    <div class="is-form-section-header">
+        <div class="is-section-num">4</div>
+        <div class="is-section-title">Flujo jurídico completo del caso</div>
+    </div>
+    <div class="is-form-body">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+
+            {{-- Paso 1: Solicitud --}}
+            <div class="flujo-bloque fl-info">
                 <p class="flujo-titulo">Paso 1 — Solicitud a aseguradora</p>
-                <div class="grid" style="gap:12px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                     <div>
-                        <label>Fecha solicitud de calificación</label>
+                        <label class="is-form-label">
+                            Fecha solicitud de calificación
+                        </label>
                         <input type="date" name="fecha_solicitud_aseguradora"
-                            value="{{ old('fecha_solicitud_aseguradora', $caso->fecha_solicitud_aseguradora ? \Carbon\Carbon::parse($caso->fecha_solicitud_aseguradora)->format('Y-m-d') : '') }}">
-                        <span class="helper">Primer paso: cuando se radica la solicitud ante la aseguradora.</span>
+                               class="is-input"
+                               value="{{ old('fecha_solicitud_aseguradora',
+                                   $caso->fecha_solicitud_aseguradora
+                                       ? \Carbon\Carbon::parse($caso->fecha_solicitud_aseguradora)->format('Y-m-d')
+                                       : '') }}">
+                        <div class="is-field-hint">
+                            Primer paso: cuando se radica la solicitud ante la
+                            aseguradora.
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {{-- ── PASO 2: Respuesta aseguradora — CAMPO NUEVO ──────────────── --}}
-            <div class="full flujo-bloque bloque-info">
+            {{-- Paso 2: Respuesta aseguradora --}}
+            <div class="flujo-bloque fl-info">
                 <p class="flujo-titulo">Paso 2 — Respuesta de la aseguradora</p>
-                <div class="grid" style="gap:12px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                     <div>
-                        <label>Tipo de respuesta <span style="color:#ef4444">*</span></label>
-                        <select name="tipo_respuesta_aseguradora" id="tipo_respuesta_aseguradora"
-                            onchange="mostrarCamposRespuesta()">
+                        <label class="is-form-label">Tipo de respuesta</label>
+                        <select name="tipo_respuesta_aseguradora"
+                                id="tipo_respuesta_aseguradora"
+                                class="is-select"
+                                onchange="mostrarCamposRespuesta()">
                             <option value="">— Seleccionar —</option>
                             <option value="emitio_dictamen"
-                                {{ old('tipo_respuesta_aseguradora', $caso->tipo_respuesta_aseguradora ?? '') == 'emitio_dictamen' ? 'selected' : '' }}>
+                                {{ old('tipo_respuesta_aseguradora',
+                                    $caso->tipo_respuesta_aseguradora ?? '') == 'emitio_dictamen'
+                                    ? 'selected' : '' }}>
                                 Emitió dictamen (calificó)
                             </option>
                             <option value="nego"
-                                {{ old('tipo_respuesta_aseguradora', $caso->tipo_respuesta_aseguradora ?? '') == 'nego' ? 'selected' : '' }}>
+                                {{ old('tipo_respuesta_aseguradora',
+                                    $caso->tipo_respuesta_aseguradora ?? '') == 'nego'
+                                    ? 'selected' : '' }}>
                                 Negó la solicitud
                             </option>
                             <option value="no_respondio"
-                                {{ old('tipo_respuesta_aseguradora', $caso->tipo_respuesta_aseguradora ?? '') == 'no_respondio' ? 'selected' : '' }}>
+                                {{ old('tipo_respuesta_aseguradora',
+                                    $caso->tipo_respuesta_aseguradora ?? '') == 'no_respondio'
+                                    ? 'selected' : '' }}>
                                 No respondió (pasó 1 mes)
                             </option>
                         </select>
-                        <span class="helper">
-                            <strong>Emitió dictamen</strong> → flujo de apelación.<br>
-                            <strong>Negó / No respondió</strong> → flujo de tutela para calificación.
-                        </span>
+                        <div class="is-field-hint">
+                            <strong style="color:var(--text-1)">Emitió dictamen</strong>
+                            → flujo de apelación.<br>
+                            <strong style="color:var(--text-1)">Negó / No respondió</strong>
+                            → tutela para calificación.
+                        </div>
                     </div>
-
-                    {{-- Fecha solo aplica si emitió dictamen o negó --}}
                     <div id="bloque_fecha_respuesta">
-                        <label>Fecha respuesta / dictamen</label>
+                        <label class="is-form-label">
+                            Fecha respuesta / dictamen
+                        </label>
                         <input type="date" name="fecha_respuesta_aseguradora"
-                            value="{{ old('fecha_respuesta_aseguradora', $caso->fecha_respuesta_aseguradora ? \Carbon\Carbon::parse($caso->fecha_respuesta_aseguradora)->format('Y-m-d') : '') }}">
-                        <span class="helper">Dejar vacío si la respuesta fue "no respondió".</span>
+                               class="is-input"
+                               value="{{ old('fecha_respuesta_aseguradora',
+                                   $caso->fecha_respuesta_aseguradora
+                                       ? \Carbon\Carbon::parse($caso->fecha_respuesta_aseguradora)->format('Y-m-d')
+                                       : '') }}">
+                        <div class="is-field-hint">
+                            Dejar vacío si la respuesta fue "no respondió".
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {{-- ── PASO 3: Apelación — solo aplica si emitió dictamen ───────── --}}
-            <div class="full flujo-bloque" id="bloque_apelacion">
-                <p class="flujo-titulo">Paso 3 — Apelación del dictamen (solo si emitió dictamen)</p>
-                <div>
-                    <label>Fecha apelación del dictamen</label>
-                    <input type="date" name="fecha_apelacion"
-                        value="{{ old('fecha_apelacion', $caso->fecha_apelacion ? \Carbon\Carbon::parse($caso->fecha_apelacion)->format('Y-m-d') : '') }}">
-                    <span class="helper">Aplica cuando la aseguradora sí calificó y se decide apelar su dictamen.</span>
+            {{-- Paso 3: Apelación --}}
+            <div class="flujo-bloque fl-info" id="bloque_apelacion">
+                <p class="flujo-titulo">
+                    Paso 3 — Apelación del dictamen
+                    <span style="color:var(--text-3);font-weight:400;
+                                 text-transform:none;letter-spacing:0;">
+                        (solo si emitió dictamen)
+                    </span>
+                </p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div>
+                        <label class="is-form-label">Fecha apelación</label>
+                        <input type="date" name="fecha_apelacion"
+                               class="is-input"
+                               value="{{ old('fecha_apelacion',
+                                   $caso->fecha_apelacion
+                                       ? \Carbon\Carbon::parse($caso->fecha_apelacion)->format('Y-m-d')
+                                       : '') }}">
+                        <div class="is-field-hint">
+                            Aplica cuando la aseguradora calificó y se decide
+                            apelar su dictamen.
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {{-- ── PASO 4: Tutela — CAMPO NUEVO tipo_tutela ────────────────── --}}
-            <div class="full flujo-bloque bloque-warn">
+            {{-- Paso 4: Tutela --}}
+            <div class="flujo-bloque fl-warn">
                 <p class="flujo-titulo">Paso 4 — Tutela</p>
-                <div class="grid" style="gap:12px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                     <div>
-                        <label>Fecha tutela</label>
+                        <label class="is-form-label">Fecha tutela</label>
                         <input type="date" name="fecha_tutela"
-                            value="{{ old('fecha_tutela', $caso->fecha_tutela ? \Carbon\Carbon::parse($caso->fecha_tutela)->format('Y-m-d') : '') }}">
-                        <span class="helper">Registrar cuando se presente la tutela.</span>
+                               class="is-input"
+                               value="{{ old('fecha_tutela',
+                                   $caso->fecha_tutela
+                                       ? \Carbon\Carbon::parse($caso->fecha_tutela)->format('Y-m-d')
+                                       : '') }}">
                     </div>
                     <div>
-                        <label>Tipo de tutela <span style="color:#ef4444">*</span></label>
-                        <select name="tipo_tutela">
+                        <label class="is-form-label">Tipo de tutela</label>
+                        <select name="tipo_tutela" class="is-select">
                             <option value="">— Seleccionar —</option>
                             <option value="tutela_calificacion"
-                                {{ old('tipo_tutela', $caso->tipo_tutela ?? '') == 'tutela_calificacion' ? 'selected' : '' }}>
-                                Tutela para calificación (aseguradora negó o no respondió)
+                                {{ old('tipo_tutela', $caso->tipo_tutela ?? '') == 'tutela_calificacion'
+                                    ? 'selected' : '' }}>
+                                Para calificación (negó o no respondió)
                             </option>
                             <option value="tutela_debido_proceso"
-                                {{ old('tipo_tutela', $caso->tipo_tutela ?? '') == 'tutela_debido_proceso' ? 'selected' : '' }}>
-                                Tutela por debido proceso (no pagan honorarios tras apelación)
+                                {{ old('tipo_tutela', $caso->tipo_tutela ?? '') == 'tutela_debido_proceso'
+                                    ? 'selected' : '' }}>
+                                Por debido proceso (no pagan honorarios)
                             </option>
                         </select>
-                        <span class="helper">
-                            <strong>Calificación</strong>: la aseguradora negó o no respondió.<br>
-                            <strong>Debido proceso</strong>: apelaron pero no pagan honorarios después de 1 mes.
-                        </span>
+                        <div class="is-field-hint">
+                            <strong style="color:var(--text-1)">Calificación</strong>:
+                            aseguradora negó o no respondió.<br>
+                            <strong style="color:var(--text-1)">Debido proceso</strong>:
+                            apelaron pero no pagan honorarios.
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {{-- ── PASO 5: Fallo de tutela ──────────────────────────────────── --}}
-            <div class="full flujo-bloque bloque-warn">
+            {{-- Paso 5: Fallo de tutela --}}
+            <div class="flujo-bloque fl-warn">
                 <p class="flujo-titulo">Paso 5 — Fallo de tutela</p>
-                <div class="grid" style="gap:12px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                     <div>
-                        <label>Fecha fallo de tutela</label>
+                        <label class="is-form-label">Fecha fallo</label>
                         <input type="date" name="fecha_fallo_tutela"
-                            value="{{ old('fecha_fallo_tutela', !empty($caso->fecha_fallo_tutela) ? \Carbon\Carbon::parse($caso->fecha_fallo_tutela)->format('Y-m-d') : '') }}">
+                               class="is-input"
+                               value="{{ old('fecha_fallo_tutela',
+                                   !empty($caso->fecha_fallo_tutela)
+                                       ? \Carbon\Carbon::parse($caso->fecha_fallo_tutela)->format('Y-m-d')
+                                       : '') }}">
                     </div>
                     <div>
-                        <label>Resultado del fallo</label>
-                        <select name="resultado_fallo_tutela" id="resultado_fallo_tutela"
-                            onchange="mostrarCamposFallo()">
+                        <label class="is-form-label">Resultado del fallo</label>
+                        <select name="resultado_fallo_tutela"
+                                id="resultado_fallo_tutela"
+                                class="is-select"
+                                onchange="mostrarCamposFallo()">
                             <option value="">— Seleccionar —</option>
                             <option value="concedido"
-                                {{ old('resultado_fallo_tutela', $caso->resultado_fallo_tutela ?? '') == 'concedido' ? 'selected' : '' }}>
+                                {{ old('resultado_fallo_tutela',
+                                    $caso->resultado_fallo_tutela ?? '') == 'concedido'
+                                    ? 'selected' : '' }}>
                                 Concedido
                             </option>
                             <option value="negado"
-                                {{ old('resultado_fallo_tutela', $caso->resultado_fallo_tutela ?? '') == 'negado' ? 'selected' : '' }}>
+                                {{ old('resultado_fallo_tutela',
+                                    $caso->resultado_fallo_tutela ?? '') == 'negado'
+                                    ? 'selected' : '' }}>
                                 Negado
                             </option>
                             <option value="parcial"
-                                {{ old('resultado_fallo_tutela', $caso->resultado_fallo_tutela ?? '') == 'parcial' ? 'selected' : '' }}>
+                                {{ old('resultado_fallo_tutela',
+                                    $caso->resultado_fallo_tutela ?? '') == 'parcial'
+                                    ? 'selected' : '' }}>
                                 Parcial
                             </option>
                         </select>
@@ -536,255 +617,383 @@ h2,h3{
                 </div>
             </div>
 
-            {{-- ── PASO 5A: Si fallo CONCEDIDO → Cumplimiento — CAMPO NUEVO ── --}}
-            <div class="full flujo-bloque bloque-success" id="bloque_cumplimiento_tutela">
+            {{-- Paso 5A: Cumplimiento --}}
+            <div class="flujo-bloque fl-success" id="bloque_cumplimiento_tutela">
                 <p class="flujo-titulo">Paso 5A — Cumplimiento del fallo concedido</p>
-                <div class="grid" style="gap:12px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                     <div>
-                        <label>Fecha cumplimiento</label>
+                        <label class="is-form-label">Fecha cumplimiento</label>
                         <input type="date" name="fecha_cumplimiento_tutela"
-                            value="{{ old('fecha_cumplimiento_tutela', !empty($caso->fecha_cumplimiento_tutela) ? \Carbon\Carbon::parse($caso->fecha_cumplimiento_tutela)->format('Y-m-d') : '') }}">
-                        <span class="helper">Fecha en que la aseguradora acató el fallo.</span>
+                               class="is-input"
+                               value="{{ old('fecha_cumplimiento_tutela',
+                                   !empty($caso->fecha_cumplimiento_tutela)
+                                       ? \Carbon\Carbon::parse($caso->fecha_cumplimiento_tutela)->format('Y-m-d')
+                                       : '') }}">
+                        <div class="is-field-hint">
+                            Fecha en que la aseguradora acató el fallo.
+                        </div>
                     </div>
                     <div>
-                        <label>Tipo de cumplimiento</label>
-                        <select name="tipo_cumplimiento_tutela">
+                        <label class="is-form-label">Tipo de cumplimiento</label>
+                        <select name="tipo_cumplimiento_tutela" class="is-select">
                             <option value="">— Seleccionar —</option>
                             <option value="voluntario"
-                                {{ old('tipo_cumplimiento_tutela', $caso->tipo_cumplimiento_tutela ?? '') == 'voluntario' ? 'selected' : '' }}>
-                                Voluntario (cumplió dentro de las 2 semanas)
+                                {{ old('tipo_cumplimiento_tutela',
+                                    $caso->tipo_cumplimiento_tutela ?? '') == 'voluntario'
+                                    ? 'selected' : '' }}>
+                                Voluntario (dentro de 2 semanas)
                             </option>
                             <option value="desacato"
-                                {{ old('tipo_cumplimiento_tutela', $caso->tipo_cumplimiento_tutela ?? '') == 'desacato' ? 'selected' : '' }}>
+                                {{ old('tipo_cumplimiento_tutela',
+                                    $caso->tipo_cumplimiento_tutela ?? '') == 'desacato'
+                                    ? 'selected' : '' }}>
                                 Tras incidente de desacato
                             </option>
                         </select>
-                        <span class="helper">
-                            Luego de registrar el cumplimiento, registra el pago de honorarios
-                            (si tutela fue por debido proceso) o el dictamen de la aseguradora
-                            (si tutela fue para calificación).
-                        </span>
                     </div>
                 </div>
             </div>
 
-            {{-- ── PASO 5B: Si fallo CONCEDIDO pero NO cumple → Desacato ───── --}}
-            <div class="full flujo-bloque bloque-danger" id="bloque_desacato">
-                <p class="flujo-titulo">Paso 5B — Incidente de desacato (no cumplieron en 14 días)</p>
-                <div>
-                    <label>Fecha incidente de desacato</label>
-                    <input type="date" name="fecha_incidente_desacato"
-                        value="{{ old('fecha_incidente_desacato', !empty($caso->fecha_incidente_desacato) ? \Carbon\Carbon::parse($caso->fecha_incidente_desacato)->format('Y-m-d') : '') }}">
-                    <span class="helper">Se usa cuando existe fallo favorable pero no cumplen en el plazo de 14 días.</span>
-                </div>
-            </div>
-
-            {{-- ── PASO 5C: Si fallo NEGADO → Impugnación ─────────────────── --}}
-            <div class="full flujo-bloque bloque-danger" id="bloque_impugnacion">
-                <p class="flujo-titulo">Paso 5C — Impugnación (fallo negado)</p>
-                <div>
-                    <label>Fecha impugnación</label>
-                    <input type="date" name="fecha_impugnacion"
-                        value="{{ old('fecha_impugnacion', !empty($caso->fecha_impugnacion) ? \Carbon\Carbon::parse($caso->fecha_impugnacion)->format('Y-m-d') : '') }}">
-                    <span class="helper">Se usa cuando el fallo de tutela es desfavorable y se impugna ante segunda instancia.</span>
-                </div>
-            </div>
-
-            {{-- ── PASO 5D: Segunda instancia — CAMPO NUEVO ────────────────── --}}
-            <div class="full flujo-bloque bloque-danger" id="bloque_segunda_instancia">
-                <p class="flujo-titulo">Paso 5D — Fallo de segunda instancia (tras impugnación)</p>
-                <div class="grid" style="gap:12px">
+            {{-- Paso 5B: Desacato --}}
+            <div class="flujo-bloque fl-danger" id="bloque_desacato">
+                <p class="flujo-titulo">
+                    Paso 5B — Incidente de desacato
+                    <span style="color:var(--text-3);font-weight:400;
+                                 text-transform:none;letter-spacing:0;">
+                        (no cumplieron en 14 días)
+                    </span>
+                </p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                     <div>
-                        <label>Fecha fallo segunda instancia</label>
+                        <label class="is-form-label">Fecha desacato</label>
+                        <input type="date" name="fecha_incidente_desacato"
+                               class="is-input"
+                               value="{{ old('fecha_incidente_desacato',
+                                   !empty($caso->fecha_incidente_desacato)
+                                       ? \Carbon\Carbon::parse($caso->fecha_incidente_desacato)->format('Y-m-d')
+                                       : '') }}">
+                        <div class="is-field-hint">
+                            Fallo favorable pero no cumple en el plazo de 14 días.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Paso 5C: Impugnación --}}
+            <div class="flujo-bloque fl-danger" id="bloque_impugnacion">
+                <p class="flujo-titulo">
+                    Paso 5C — Impugnación
+                    <span style="color:var(--text-3);font-weight:400;
+                                 text-transform:none;letter-spacing:0;">
+                        (fallo negado)
+                    </span>
+                </p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div>
+                        <label class="is-form-label">Fecha impugnación</label>
+                        <input type="date" name="fecha_impugnacion"
+                               class="is-input"
+                               value="{{ old('fecha_impugnacion',
+                                   !empty($caso->fecha_impugnacion)
+                                       ? \Carbon\Carbon::parse($caso->fecha_impugnacion)->format('Y-m-d')
+                                       : '') }}">
+                        <div class="is-field-hint">
+                            Fallo desfavorable → se impugna ante segunda instancia.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Paso 5D: Segunda instancia --}}
+            <div class="flujo-bloque fl-danger" id="bloque_segunda_instancia">
+                <p class="flujo-titulo">Paso 5D — Fallo de segunda instancia</p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div>
+                        <label class="is-form-label">Fecha fallo 2ª instancia</label>
                         <input type="date" name="fecha_fallo_segunda_instancia"
-                            value="{{ old('fecha_fallo_segunda_instancia', !empty($caso->fecha_fallo_segunda_instancia) ? \Carbon\Carbon::parse($caso->fecha_fallo_segunda_instancia)->format('Y-m-d') : '') }}">
+                               class="is-input"
+                               value="{{ old('fecha_fallo_segunda_instancia',
+                                   !empty($caso->fecha_fallo_segunda_instancia)
+                                       ? \Carbon\Carbon::parse($caso->fecha_fallo_segunda_instancia)->format('Y-m-d')
+                                       : '') }}">
                     </div>
                     <div>
-                        <label>Resultado segunda instancia</label>
+                        <label class="is-form-label">Resultado</label>
                         <select name="resultado_fallo_segunda_instancia"
-                            id="resultado_segunda_instancia"
-                            onchange="mostrarResultadoSegundaInstancia()">
+                                id="resultado_segunda_instancia"
+                                class="is-select"
+                                onchange="mostrarResultadoSegundaInstancia()">
                             <option value="">— Seleccionar —</option>
                             <option value="confirma"
-                                {{ old('resultado_fallo_segunda_instancia', $caso->resultado_fallo_segunda_instancia ?? '') == 'confirma' ? 'selected' : '' }}>
+                                {{ old('resultado_fallo_segunda_instancia',
+                                    $caso->resultado_fallo_segunda_instancia ?? '') == 'confirma'
+                                    ? 'selected' : '' }}>
                                 Confirma — el caso se pierde
                             </option>
                             <option value="revoca"
-                                {{ old('resultado_fallo_segunda_instancia', $caso->resultado_fallo_segunda_instancia ?? '') == 'revoca' ? 'selected' : '' }}>
-                                Revoca — la aseguradora debe cumplir
+                                {{ old('resultado_fallo_segunda_instancia',
+                                    $caso->resultado_fallo_segunda_instancia ?? '') == 'revoca'
+                                    ? 'selected' : '' }}>
+                                Revoca — aseguradora debe cumplir
                             </option>
                         </select>
-                        <span class="helper" id="helper_segunda_instancia">
+                        <div class="is-field-hint" id="helper_segunda_instancia">
                             @if(($caso->resultado_fallo_segunda_instancia ?? '') == 'confirma')
-                                <strong style="color:#ef4444">Caso cerrado desfavorablemente.</strong>
+                                <strong style="color:#F26F6F">
+                                    Caso cerrado desfavorablemente.
+                                </strong>
                             @elseif(($caso->resultado_fallo_segunda_instancia ?? '') == 'revoca')
-                                <strong style="color:#10b981">La aseguradora debe cumplir — registrar cumplimiento y continuar flujo.</strong>
+                                <strong style="color:#1DBD7F">
+                                    La aseguradora debe cumplir — continuar flujo.
+                                </strong>
                             @else
-                                Confirma: el caso queda cerrado. Revoca: la aseguradora debe calificar o pagar honorarios.
+                                Confirma: caso cerrado.
+                                Revoca: aseguradora debe calificar o pagar honorarios.
                             @endif
-                        </span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {{-- ── PASO 6: Pago de honorarios ───────────────────────────────── --}}
-            <div class="full flujo-bloque bloque-info">
+            {{-- Paso 6: Honorarios --}}
+            <div class="flujo-bloque fl-info">
                 <p class="flujo-titulo">Paso 6 — Pago de honorarios a junta</p>
-                <div>
-                    <label>Fecha pago de honorarios</label>
-                    <input type="date" name="fecha_pago_honorarios"
-                        value="{{ old('fecha_pago_honorarios', $caso->fecha_pago_honorarios ? \Carbon\Carbon::parse($caso->fecha_pago_honorarios)->format('Y-m-d') : '') }}">
-                    <span class="helper">
-                        Se registra cuando la aseguradora paga los honorarios para acudir a la junta.<br>
-                        <strong>Nota:</strong> si la tutela fue por debido proceso, este campo se activa
-                        luego del cumplimiento del fallo.
-                    </span>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div>
+                        <label class="is-form-label">Fecha pago honorarios</label>
+                        <input type="date" name="fecha_pago_honorarios"
+                               class="is-input"
+                               value="{{ old('fecha_pago_honorarios',
+                                   $caso->fecha_pago_honorarios
+                                       ? \Carbon\Carbon::parse($caso->fecha_pago_honorarios)->format('Y-m-d')
+                                       : '') }}">
+                        <div class="is-field-hint">
+                            Cuando la aseguradora paga los honorarios para acudir
+                            a la junta.
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {{-- ── PASO 7-12: Flujo post-honorarios ────────────────────────── --}}
-            <div class="full flujo-bloque bloque-success">
-                <p class="flujo-titulo">Pasos 7-12 — Flujo post-honorarios (junta → pago final)</p>
-                <div class="grid" style="gap:12px">
+            {{-- Pasos 7-12 --}}
+            <div class="flujo-bloque fl-success">
+                <p class="flujo-titulo">
+                    Pasos 7–12 — Junta → Cobro → Pago final
+                </p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+
                     <div>
-                        <label>Fecha solicitud / envío a junta</label>
+                        <label class="is-form-label">Fecha envío a junta</label>
                         <input type="date" name="fecha_envio_junta"
-                            value="{{ old('fecha_envio_junta', $caso->fecha_envio_junta ? \Carbon\Carbon::parse($caso->fecha_envio_junta)->format('Y-m-d') : '') }}">
-                        <span class="helper">Solo con honorarios pagados y alta ortopedia confirmada.</span>
+                               class="is-input"
+                               value="{{ old('fecha_envio_junta',
+                                   $caso->fecha_envio_junta
+                                       ? \Carbon\Carbon::parse($caso->fecha_envio_junta)->format('Y-m-d')
+                                       : '') }}">
+                        <div class="is-field-hint">
+                            Solo con honorarios pagados y alta ortopedia confirmada.
+                        </div>
                     </div>
 
                     <div>
-                        <label>Fecha dictamen de junta</label>
+                        <label class="is-form-label">Fecha dictamen de junta</label>
                         <input type="date" name="fecha_dictamen_junta"
-                            value="{{ old('fecha_dictamen_junta', $caso->fecha_dictamen_junta ? \Carbon\Carbon::parse($caso->fecha_dictamen_junta)->format('Y-m-d') : '') }}">
-                        <span class="helper">Cuando la junta emita el dictamen definitivo.</span>
+                               class="is-input"
+                               value="{{ old('fecha_dictamen_junta',
+                                   $caso->fecha_dictamen_junta
+                                       ? \Carbon\Carbon::parse($caso->fecha_dictamen_junta)->format('Y-m-d')
+                                       : '') }}">
+                        <div class="is-field-hint">
+                            Cuando la junta emita el dictamen definitivo.
+                        </div>
                     </div>
 
                     <div>
-                        <label>Porcentaje PCL</label>
-                        <input type="number" step="0.01" min="0" name="porcentaje_pcl"
-                            value="{{ old('porcentaje_pcl', $caso->porcentaje_pcl) }}">
+                        <label class="is-form-label">Porcentaje PCL</label>
+                        <input type="number" step="0.01" min="0"
+                               name="porcentaje_pcl" class="is-input"
+                               value="{{ old('porcentaje_pcl', $caso->porcentaje_pcl) }}"
+                               placeholder="Ej. 35">
                     </div>
 
                     <div>
-                        <label>Valor reclamado</label>
-                        <input type="number" step="0.01" min="0" name="valor_reclamado"
-                            value="{{ old('valor_reclamado', $caso->valor_reclamado) }}">
+                        <label class="is-form-label">Valor reclamado</label>
+                        <input type="number" step="0.01" min="0"
+                               name="valor_reclamado" class="is-input"
+                               value="{{ old('valor_reclamado', $caso->valor_reclamado) }}">
                     </div>
 
                     <div>
-                        <label>Fecha cobro a aseguradora</label>
+                        <label class="is-form-label">Fecha cobro a aseguradora</label>
                         <input type="date" name="fecha_reclamacion_final"
-                            value="{{ old('fecha_reclamacion_final', $caso->fecha_reclamacion_final ? \Carbon\Carbon::parse($caso->fecha_reclamacion_final)->format('Y-m-d') : '') }}">
-                        <span class="helper">Envío del cobro con el dictamen de junta.</span>
+                               class="is-input"
+                               value="{{ old('fecha_reclamacion_final',
+                                   $caso->fecha_reclamacion_final
+                                       ? \Carbon\Carbon::parse($caso->fecha_reclamacion_final)->format('Y-m-d')
+                                       : '') }}">
+                        <div class="is-field-hint">
+                            Envío del cobro con el dictamen de junta.
+                        </div>
                     </div>
 
                     <div>
-                        <label>Fecha pago final</label>
+                        <label class="is-form-label">Fecha pago final</label>
                         <input type="date" name="fecha_pago_final"
-                            value="{{ old('fecha_pago_final', $caso->fecha_pago_final ? \Carbon\Carbon::parse($caso->fecha_pago_final)->format('Y-m-d') : '') }}">
-                        <span class="helper">Cuando la aseguradora efectivamente pague la indemnización.</span>
+                               class="is-input"
+                               value="{{ old('fecha_pago_final',
+                                   $caso->fecha_pago_final
+                                       ? \Carbon\Carbon::parse($caso->fecha_pago_final)->format('Y-m-d')
+                                       : '') }}">
+                        <div class="is-field-hint">
+                            Cuando la aseguradora pague la indemnización.
+                        </div>
                     </div>
+
                 </div>
             </div>
 
-            {{-- ================================================================ --}}
-            {{-- 5. DATOS FINANCIEROS                                             --}}
-            {{-- ================================================================ --}}
-            <div class="full section">
-                <h3>5. Datos financieros</h3>
+        </div>{{-- fin columna flujo --}}
+    </div>
+</div>
+
+{{-- ════════════════════════════════════════════
+     SECCIÓN 5 — Datos financieros
+════════════════════════════════════════════ --}}
+<div class="is-form-section is-animate-rise is-stagger-3">
+    <div class="is-form-section-header">
+        <div class="is-section-num">5</div>
+        <div class="is-section-title">Datos financieros</div>
+    </div>
+    <div class="is-form-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+
+            <div>
+                <label class="is-form-label">Valor estimado (calculado)</label>
+                <div class="is-input-readonly">
+                    {{ $caso->valor_estimado
+                        ? '$' . number_format($caso->valor_estimado, 0, ',', '.')
+                        : 'No calculado' }}
+                </div>
             </div>
 
             <div>
-                <label>Valor estimado</label>
-                <input type="text" class="readonly-box"
-                    value="{{ $caso->valor_estimado ? '$' . number_format($caso->valor_estimado, 0, ',', '.') : 'No calculado' }}"
-                    readonly>
+                <label class="is-form-label">SMLDV aplicados</label>
+                <div class="is-input-readonly">
+                    {{ $caso->smldv_aplicados ?? 'N/A' }}
+                </div>
             </div>
 
             <div>
-                <label>SMLDV aplicados</label>
-                <input type="text" class="readonly-box" value="{{ $caso->smldv_aplicados ?? 'N/A' }}" readonly>
+                <label class="is-form-label">Valor pagado</label>
+                <input type="number" step="0.01" min="0"
+                       id="valor_pagado" name="valor_pagado"
+                       class="is-input"
+                       value="{{ old('valor_pagado', $caso->valor_pagado) }}"
+                       placeholder="0">
             </div>
 
             <div>
-                <label>Valor pagado</label>
-                <input type="number" step="0.01" min="0" id="valor_pagado" name="valor_pagado"
-                    value="{{ old('valor_pagado', $caso->valor_pagado) }}">
-            </div>
-
-            <div>
-                <label>Porcentaje honorarios</label>
-                <select name="porcentaje_honorarios" id="porcentaje_honorarios">
+                <label class="is-form-label">% Honorarios</label>
+                <select name="porcentaje_honorarios"
+                        id="porcentaje_honorarios"
+                        class="is-select">
                     <option value="">Seleccionar</option>
                     <option value="40"
-                        {{ in_array(old('porcentaje_honorarios', (string)$caso->porcentaje_honorarios), ['40','40.00']) ? 'selected' : '' }}>
+                        {{ in_array(old('porcentaje_honorarios',
+                            (string)$caso->porcentaje_honorarios),
+                            ['40','40.00']) ? 'selected' : '' }}>
                         40%
                     </option>
                     <option value="50"
-                        {{ in_array(old('porcentaje_honorarios', (string)$caso->porcentaje_honorarios), ['50','50.00']) ? 'selected' : '' }}>
+                        {{ in_array(old('porcentaje_honorarios',
+                            (string)$caso->porcentaje_honorarios),
+                            ['50','50.00']) ? 'selected' : '' }}>
                         50%
                     </option>
                 </select>
             </div>
 
-            <div class="full finanzas">
-                <h3>Resumen financiero</h3>
-                <div>
-                    Ganancia equipo jurídico:
-                    <span class="resultado" id="ganancia_equipo">
+            {{-- Resumen financiero --}}
+            <div class="is-fin-card">
+                <div style="font-size:11px;font-weight:700;color:var(--text-3);
+                            letter-spacing:.8px;text-transform:uppercase;
+                            margin-bottom:12px;">
+                    Resumen financiero
+                </div>
+                <div class="is-fin-row">
+                    <span style="font-size:13px;color:var(--text-2);">
+                        Ganancia equipo jurídico
+                    </span>
+                    <span class="is-fin-val" id="ganancia_equipo">
                         ${{ number_format($caso->ganancia_equipo ?? 0, 0, ',', '.') }}
                     </span>
                 </div>
-                <div>
-                    Valor neto cliente:
-                    <span class="resultado" id="valor_cliente">
+                <div class="is-fin-row">
+                    <span style="font-size:13px;color:var(--text-2);">
+                        Valor neto cliente
+                    </span>
+                    <span class="is-fin-val" id="valor_cliente">
                         ${{ number_format($caso->valor_neto_cliente ?? 0, 0, ',', '.') }}
                     </span>
                 </div>
             </div>
 
-            <div class="full">
-                <label>Observaciones</label>
-                <textarea name="observaciones">{{ old('observaciones', $caso->observaciones) }}</textarea>
+            <div style="grid-column:1/-1;">
+                <label class="is-form-label">Observaciones</label>
+                <textarea name="observaciones" class="is-textarea"
+                          style="min-height:100px;"
+                          placeholder="Notas generales del caso...">{{ old('observaciones', $caso->observaciones) }}</textarea>
             </div>
 
-        </div>{{-- /grid --}}
-
-        <div class="actions">
-            <button type="submit">Actualizar Caso</button>
-            <a href="{{ route('casos.index') }}" class="btn-secondary">← Volver</a>
         </div>
-    </form>
+
+        {{-- Acciones --}}
+        <div style="display:flex;justify-content:flex-end;
+                    gap:10px;margin-top:24px;flex-wrap:wrap;">
+            <a href="{{ route('casos.index') }}" class="is-btn-ghost">
+                Cancelar
+            </a>
+            <button type="submit" class="is-btn-gold">
+                ✓ Actualizar Caso
+            </button>
+        </div>
+
+    </div>
 </div>
 
+</form>
+
+@endsection
+
+@push('scripts')
 <script>
-// ─── Finanzas ────────────────────────────────────────────────────────────────
+// ── Cálculo financiero en tiempo real ─────────────────────────────────────
 function calcularFinanzas() {
     const valor      = parseFloat(document.getElementById('valor_pagado').value) || 0;
     const porcentaje = parseFloat(document.getElementById('porcentaje_honorarios').value) || 0;
     const ganancia   = (valor * porcentaje) / 100;
     const cliente    = valor - ganancia;
-    document.getElementById('ganancia_equipo').innerText = '$' + Math.round(ganancia).toLocaleString('es-CO');
-    document.getElementById('valor_cliente').innerText   = '$' + Math.round(cliente).toLocaleString('es-CO');
+    document.getElementById('ganancia_equipo').textContent =
+        '$' + Math.round(ganancia).toLocaleString('es-CO');
+    document.getElementById('valor_cliente').textContent =
+        '$' + Math.round(cliente).toLocaleString('es-CO');
 }
-document.getElementById('valor_pagado').addEventListener('input', calcularFinanzas);
-document.getElementById('porcentaje_honorarios').addEventListener('change', calcularFinanzas);
+document.getElementById('valor_pagado')
+    .addEventListener('input', calcularFinanzas);
+document.getElementById('porcentaje_honorarios')
+    .addEventListener('change', calcularFinanzas);
 
-// ─── Visibilidad de bloques según tipo de respuesta ──────────────────────────
+// ── Visibilidad según tipo de respuesta ───────────────────────────────────
 function mostrarCamposRespuesta() {
-    const tipo          = document.getElementById('tipo_respuesta_aseguradora').value;
-    const bloqueApel    = document.getElementById('bloque_apelacion');
-    const bloqueFecha   = document.getElementById('bloque_fecha_respuesta');
+    const tipo        = document.getElementById('tipo_respuesta_aseguradora').value;
+    const bloqueApel  = document.getElementById('bloque_apelacion');
+    const bloqueFecha = document.getElementById('bloque_fecha_respuesta');
 
-    // Apelación solo aplica cuando emitió dictamen
-    bloqueApel.style.display = (tipo === 'emitio_dictamen') ? '' : 'none';
-
-    // Fecha de respuesta no aplica si no respondió
-    bloqueFecha.style.display = (tipo === 'no_respondio') ? 'none' : '';
+    bloqueApel.style.display  = (tipo === 'emitio_dictamen') ? '' : 'none';
+    bloqueFecha.style.display = (tipo === 'no_respondio')    ? 'none' : '';
 }
 
-// ─── Visibilidad de bloques según resultado del fallo de tutela ──────────────
+// ── Visibilidad según resultado del fallo ─────────────────────────────────
 function mostrarCamposFallo() {
     const resultado              = document.getElementById('resultado_fallo_tutela').value;
     const bloqueCumplimiento     = document.getElementById('bloque_cumplimiento_tutela');
@@ -792,34 +1001,33 @@ function mostrarCamposFallo() {
     const bloqueImpugnacion      = document.getElementById('bloque_impugnacion');
     const bloqueSegundaInstancia = document.getElementById('bloque_segunda_instancia');
 
-    // Concedido → cumplimiento + desacato (si no cumple)
     bloqueCumplimiento.style.display     = (resultado === 'concedido') ? '' : 'none';
     bloqueDesacato.style.display         = (resultado === 'concedido') ? '' : 'none';
-
-    // Negado/parcial → impugnación + segunda instancia
-    bloqueImpugnacion.style.display      = (resultado === 'negado' || resultado === 'parcial') ? '' : 'none';
-    bloqueSegundaInstancia.style.display = (resultado === 'negado' || resultado === 'parcial') ? '' : 'none';
+    bloqueImpugnacion.style.display      = (['negado','parcial'].includes(resultado)) ? '' : 'none';
+    bloqueSegundaInstancia.style.display = (['negado','parcial'].includes(resultado)) ? '' : 'none';
 }
 
-// ─── Mensaje dinámico segunda instancia ──────────────────────────────────────
+// ── Mensaje dinámico segunda instancia ───────────────────────────────────
 function mostrarResultadoSegundaInstancia() {
-    const resultado = document.getElementById('resultado_segunda_instancia').value;
-    const helper    = document.getElementById('helper_segunda_instancia');
-    if (resultado === 'confirma') {
-        helper.innerHTML = '<strong style="color:#ef4444">Caso cerrado desfavorablemente.</strong>';
-    } else if (resultado === 'revoca') {
-        helper.innerHTML = '<strong style="color:#10b981">La aseguradora debe cumplir — registrar cumplimiento y continuar flujo.</strong>';
+    const val    = document.getElementById('resultado_segunda_instancia').value;
+    const helper = document.getElementById('helper_segunda_instancia');
+    if (val === 'confirma') {
+        helper.innerHTML =
+            '<strong style="color:#F26F6F">Caso cerrado desfavorablemente — no hay más acciones jurídicas.</strong>';
+    } else if (val === 'revoca') {
+        helper.innerHTML =
+            '<strong style="color:#1DBD7F">La aseguradora debe cumplir — registrar cumplimiento y continuar flujo.</strong>';
     } else {
-        helper.innerHTML = 'Confirma: el caso queda cerrado. Revoca: la aseguradora debe calificar o pagar honorarios.';
+        helper.innerHTML =
+            'Confirma: caso cerrado. Revoca: aseguradora debe calificar o pagar honorarios.';
     }
 }
 
-// ─── Init: aplicar visibilidad según valores actuales al cargar la página ────
+// ── Init al cargar ────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
     mostrarCamposRespuesta();
     mostrarCamposFallo();
     mostrarResultadoSegundaInstancia();
 });
 </script>
-</body>
-</html>
+@endpush
