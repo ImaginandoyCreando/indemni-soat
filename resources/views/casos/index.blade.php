@@ -154,6 +154,30 @@
 .col-acc    { min-width:480px; }
 
 form.inline { display:inline; }
+
+/* ── SCROLLBAR HORIZONTAL TABLA ── */
+.tabla-scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(27,79,255,0.5) var(--border);
+}
+.tabla-scroll::-webkit-scrollbar {
+    height: 6px;
+}
+.tabla-scroll::-webkit-scrollbar-track {
+    background: var(--border);
+    border-radius: 0 0 8px 8px;
+}
+.tabla-scroll::-webkit-scrollbar-thumb {
+    background: rgba(27,79,255,0.5);
+    border-radius: 3px;
+}
+.tabla-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(27,79,255,0.8);
+}
 </style>
 
 {{-- ────────────────────────────────────────────────────
@@ -382,7 +406,7 @@ form.inline { display:inline; }
         </div>
     </div>
 
-    <div style="overflow-x:auto;">
+    <div class="tabla-scroll">
         <table>
             <thead>
                 <tr>
