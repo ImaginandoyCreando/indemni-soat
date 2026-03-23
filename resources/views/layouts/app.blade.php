@@ -9,6 +9,100 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
+    <style>
+    /* ── Scrollbar horizontal visible en tablas ── */
+    .is-table-wrap div[style*="overflow-x"],
+    .is-table-wrap > div {
+        overflow-x: auto !important;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(27,79,255,0.45) transparent;
+    }
+    .is-table-wrap div[style*="overflow-x"]::-webkit-scrollbar,
+    .is-table-wrap > div::-webkit-scrollbar {
+        height: 5px;
+    }
+    .is-table-wrap div[style*="overflow-x"]::-webkit-scrollbar-track,
+    .is-table-wrap > div::-webkit-scrollbar-track {
+        background: var(--border);
+        border-radius: 3px;
+    }
+    .is-table-wrap div[style*="overflow-x"]::-webkit-scrollbar-thumb,
+    .is-table-wrap > div::-webkit-scrollbar-thumb {
+        background: rgba(27,79,255,0.45);
+        border-radius: 3px;
+    }
+    .is-table-wrap div[style*="overflow-x"]::-webkit-scrollbar-thumb:hover,
+    .is-table-wrap > div::-webkit-scrollbar-thumb:hover {
+        background: rgba(27,79,255,0.7);
+    }
+
+    /* ── Avatar dropdown ── */
+    .is-avatar-wrap {
+        position: relative;
+    }
+    .is-avatar {
+        cursor: pointer;
+        user-select: none;
+    }
+    .is-avatar-menu {
+        position: absolute;
+        top: calc(100% + 10px);
+        right: 0;
+        width: 230px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-2);
+        border-radius: 14px;
+        box-shadow: var(--shadow-md);
+        z-index: 9999;
+        overflow: hidden;
+        opacity: 0;
+        transform: translateY(-8px) scale(0.97);
+        pointer-events: none;
+        transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+    .is-avatar-menu.open {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: all;
+    }
+    .is-avatar-menu-header {
+        padding: 14px 16px 12px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-input);
+    }
+    .is-avatar-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-2);
+        cursor: pointer;
+        transition: all 0.15s;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        font-family: 'DM Sans', sans-serif;
+        text-decoration: none;
+        line-height: 1;
+    }
+    .is-avatar-menu-item:hover {
+        background: var(--bg-hover);
+        color: var(--text-1);
+    }
+    .is-avatar-menu-item.danger { color: #E53935; }
+    .is-avatar-menu-item.danger:hover {
+        background: rgba(229,57,53,0.08);
+        color: #F26F6F;
+    }
+    .is-avatar-menu-divider {
+        height: 1px;
+        background: var(--border);
+        margin: 2px 0;
+    }
+    </style>
 </head>
 <body>
 
@@ -63,15 +157,11 @@
         @endif
     </div>
 
-    {{-- Derecha: tema + usuario --}}
+    {{-- Derecha: avatar con dropdown --}}
     <div style="display:flex; align-items:center; gap:10px;">
 
-        {{-- Toggle tema --}}
-        <button class="is-theme-btn" id="themeToggle" title="Cambiar tema" type="button">
-            <span id="themeIcon">☀️</span>
-        </button>
-
         @auth
+        {{-- Nombre y rol --}}
         <div style="text-align:right;">
             <div style="font-size:13px; font-weight:600; color:var(--text-1);">
                 {{ auth()->user()->name }}
@@ -81,10 +171,51 @@
                 <span class="is-notif-dot" style="margin-left:4px;"></span>
             </div>
         </div>
-        <div class="is-avatar">
-            {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
+
+        {{-- Avatar + dropdown --}}
+        <div class="is-avatar-wrap">
+            <div class="is-avatar" id="avatarBtn"
+                 title="Opciones de cuenta">
+                {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
+            </div>
+
+            <div class="is-avatar-menu" id="avatarMenu">
+
+                {{-- Header --}}
+                <div class="is-avatar-menu-header">
+                    <div style="font-size:13px; font-weight:700; color:var(--text-1);">
+                        {{ auth()->user()->name }}
+                    </div>
+                    <div style="font-size:11px; color:var(--text-3); margin-top:3px;">
+                        {{ auth()->user()->textoRol() }}
+                    </div>
+                </div>
+
+                {{-- Toggle tema --}}
+                <button class="is-avatar-menu-item" id="menuThemeBtn" type="button">
+                    <span id="menuThemeIcon" style="font-size:14px;">🌙</span>
+                    <span id="menuThemeLabel">Cambiar tema</span>
+                </button>
+
+                <div class="is-avatar-menu-divider"></div>
+
+                {{-- Cerrar sesión --}}
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="is-avatar-menu-item danger">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                             stroke="currentColor" stroke-width="1.5">
+                            <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3"/>
+                            <path d="M11 11l3-3-3-3M14 8H6"/>
+                        </svg>
+                        Cerrar sesión
+                    </button>
+                </form>
+
+            </div>
         </div>
         @endauth
+
     </div>
 </nav>
 
@@ -205,7 +336,7 @@
                         style="display:flex;align-items:center;gap:9px;width:100%;
                                padding:8px 11px;border-radius:8px;border:none;
                                background:transparent;cursor:pointer;
-                               font-size:12px;font-weight:500;color:var(--color-danger,#E53935);
+                               font-size:12px;font-weight:500;color:#E53935;
                                font-family:'DM Sans',sans-serif;transition:background .18s;"
                         onmouseover="this.style.background='rgba(229,57,53,0.08)'"
                         onmouseout="this.style.background='transparent'">
@@ -231,31 +362,71 @@
 {{-- ═══════════════════ SCRIPTS GLOBALES ═══════════════════ --}}
 <script>
 (function () {
-    // ── Tema persistente ──────────────────────────────────
-    const html      = document.documentElement;
-    const btn       = document.getElementById('themeToggle');
-    const icon      = document.getElementById('themeIcon');
-    const STORAGE   = 'is_theme';
+    const html    = document.documentElement;
+    const STORAGE = 'is_theme';
 
-    function applyTheme(t) {
+    // ── applyTheme global (usada también desde el dropdown) ──
+    window.applyTheme = function(t) {
         html.setAttribute('data-theme', t);
-        icon.textContent = t === 'dark' ? '☀️' : '🌙';
         localStorage.setItem(STORAGE, t);
-    }
+        updateMenuThemeLabel();
+    };
 
-    // Restaurar preferencia guardada
+    // ── Restaurar preferencia guardada ──
     const saved = localStorage.getItem(STORAGE) ||
                   (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    applyTheme(saved);
+    window.applyTheme(saved);
 
-    btn.addEventListener('click', function () {
-        applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-    });
-
-    // ── Fade-in de página ─────────────────────────────────
+    // ── Fade-in de página ──
     document.querySelectorAll('.is-animate-rise').forEach(function (el, i) {
         el.style.animationDelay = (i * 0.06) + 's';
     });
+
+    // ── Avatar dropdown ──
+    const avatarBtn  = document.getElementById('avatarBtn');
+    const avatarMenu = document.getElementById('avatarMenu');
+    const menuThemeBtn = document.getElementById('menuThemeBtn');
+
+    function updateMenuThemeLabel() {
+        const t     = html.getAttribute('data-theme');
+        const icon  = document.getElementById('menuThemeIcon');
+        const label = document.getElementById('menuThemeLabel');
+        if (!icon || !label) return;
+        if (t === 'dark') {
+            icon.textContent  = '☀️';
+            label.textContent = 'Cambiar a modo claro';
+        } else {
+            icon.textContent  = '🌙';
+            label.textContent = 'Cambiar a modo oscuro';
+        }
+    }
+
+    updateMenuThemeLabel();
+
+    if (avatarBtn && avatarMenu) {
+        avatarBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            avatarMenu.classList.toggle('open');
+            updateMenuThemeLabel();
+        });
+
+        document.addEventListener('click', function () {
+            avatarMenu.classList.remove('open');
+        });
+
+        avatarMenu.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+    }
+
+    if (menuThemeBtn) {
+        menuThemeBtn.addEventListener('click', function () {
+            const current = html.getAttribute('data-theme');
+            window.applyTheme(current === 'dark' ? 'light' : 'dark');
+            if (avatarMenu) avatarMenu.classList.remove('open');
+        });
+    }
+
 })();
 </script>
 
