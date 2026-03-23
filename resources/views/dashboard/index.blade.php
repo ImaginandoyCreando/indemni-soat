@@ -1,420 +1,827 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>Dashboard - INDEMNI SOAT</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+@extends('layouts.app')
+
+@section('title', 'Dashboard')
+
+@section('content')
+
 <style>
-*{box-sizing:border-box}
-body{font-family:Arial,Helvetica,sans-serif;background:#f4f6f9;margin:0;color:#111827}
-.layout{display:flex;min-height:100vh}
-.sidebar{width:260px;background:linear-gradient(180deg,#1f2937 0%,#172033 100%);color:#fff;padding:25px 18px;display:flex;flex-direction:column;flex-shrink:0}
-.brand{font-size:28px;font-weight:bold;margin-bottom:30px;line-height:1.2}
-.menu a{display:block;padding:12px 14px;margin-bottom:10px;text-decoration:none;color:#fff;background:#374151;border-radius:8px;transition:.2s ease}
-.menu a:hover{background:#2563eb}
-.menu a.active{background:#2563eb}
-.user-box{margin-top:auto;padding-top:16px;border-top:1px solid #374151}
-.user-name{font-size:13px;font-weight:bold;color:#fff;margin-bottom:2px}
-.user-role{font-size:11px;color:#9ca3af;margin-bottom:10px}
-.logout-btn{width:100%;padding:8px;background:#374151;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;transition:.2s}
-.logout-btn:hover{background:#dc3545}
-.content{flex:1;padding:30px}
-.container{max-width:1650px;margin:auto}
-.topbar{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-bottom:24px}
-.btn{display:inline-block;padding:10px 14px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;border:none;font-size:13px}
-.section{background:#fff;padding:20px;border-radius:12px;border:1px solid #ddd;margin-bottom:20px;box-shadow:0 8px 24px rgba(15,23,42,.04)}
-.section h2,.section h3{margin-top:0;margin-bottom:16px}
-.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
-.cards-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px}
-.cards-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:22px}
-.card{background:#fff;padding:18px;border-radius:12px;border:1px solid #ddd;box-shadow:0 8px 24px rgba(15,23,42,.04)}
-.card-title{font-size:13px;color:#6b7280;margin-bottom:8px}
-.card-value{font-size:28px;font-weight:bold}
-.card-sub{margin-top:8px;color:#6b7280;font-size:12px;line-height:1.4}
-.money{color:#198754}
-.money-blue{color:#1d4ed8}
-.money-orange{color:#c2410c}
-.gray{color:#374151}
-table{width:100%;border-collapse:collapse}
-th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}
-th{background:#f8f9fa;white-space:nowrap;font-size:13px}
-.alert-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
-.alert-box{background:#fff8e1;border:1px solid #ffe08a;border-radius:12px;padding:16px}
-.alert-box.alert-red{background:#fff5f5;border-color:#f5c2c7}
-.alert-box.alert-blue{background:#f3fbff;border-color:#b6effb}
-.alert-box.alert-green{background:#f3fff7;border-color:#badbcc}
-.alert-box.alert-purple{background:#faf5ff;border-color:#e9d5ff}
-.alert-box h4{margin:0 0 8px 0;font-size:14px}
-.alert-count{font-size:30px;font-weight:bold;color:#b26a00}
-.alert-count.red{color:#842029}
-.alert-count.blue{color:#055160}
-.alert-count.green{color:#0f5132}
-.alert-count.purple{color:#5b21b6}
-.small{color:#666;font-size:12px;line-height:1.4}
-.card-red{border-color:#f5c2c7;background:#fff5f5}
-.card-orange{border-color:#ffe69c;background:#fffaf0}
-.card-blue{border-color:#b6effb;background:#f3fbff}
-.card-green{border-color:#badbcc;background:#f3fff7}
-.card-purple{border-color:#e9d5ff;background:#faf5ff}
-.pill{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;background:#e5e7eb;color:#374151}
-.metric-chip{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:bold;background:#eef2ff;color:#3730a3}
-.vencimiento-chip{display:inline-block;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:bold}
-.vencimiento-red{background:#f8d7da;color:#842029}
-.vencimiento-orange{background:#fff3cd;color:#997404}
-.vencimiento-blue{background:#cff4fc;color:#055160}
-.mini-chip{display:inline-block;padding:3px 7px;border-radius:999px;font-size:11px;font-weight:bold}
-.chip-ok{background:#d1e7dd;color:#0f5132}
-.chip-warn{background:#fff3cd;color:#997404}
-.chip-danger{background:#f8d7da;color:#842029}
-.chip-purple{background:#ede9fe;color:#5b21b6}
-.chip-info{background:#cff4fc;color:#055160}
-.grid-2{display:grid;grid-template-columns:1.2fr 1fr;gap:20px}
-.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:20px}
-.chart-box{height:340px}
-.empty-state{padding:18px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:10px;color:#64748b}
-.table-link{color:#2563eb;text-decoration:none;font-weight:600}
-.table-link:hover{text-decoration:underline}
-.section-sub{font-size:12px;color:#6b7280;margin-top:-10px;margin-bottom:14px}
-@media (max-width:1400px){.alert-grid{grid-template-columns:repeat(3,1fr)}}
-@media (max-width:1200px){.cards{grid-template-columns:repeat(2,1fr)}.cards-3{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}.grid-3{grid-template-columns:1fr}.alert-grid{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:900px){.layout{flex-direction:column}.sidebar{width:100%}.cards{grid-template-columns:1fr}.cards-3{grid-template-columns:1fr}.cards-2{grid-template-columns:1fr}.alert-grid{grid-template-columns:1fr}.content{padding:18px}}
+/* ── Cards del dashboard ── */
+.is-dash-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    transition: all .2s, background .3s;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+}
+.is-dash-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--dc-accent, #1B4FFF);
+    opacity: .85;
+}
+.is-dash-card:hover {
+    border-color: var(--border-2);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+.dc-label {
+    font-size: 10px; font-weight: 700;
+    color: var(--text-3); text-transform: uppercase;
+    letter-spacing: .6px; margin-bottom: 9px;
+}
+.dc-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px; font-weight: 700;
+    color: var(--text-1); line-height: 1;
+    transition: color .3s;
+}
+.dc-sub {
+    font-size: 11px; color: var(--text-3);
+    margin-top: 6px; line-height: 1.4;
+}
+
+/* ── Sección panel ── */
+.is-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    transition: background .3s, border-color .3s;
+}
+.is-panel-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px; font-weight: 700;
+    color: var(--text-1); margin-bottom: 4px;
+    transition: color .3s;
+}
+.is-panel-sub {
+    font-size: 12px; color: var(--text-3);
+    margin-bottom: 16px; line-height: 1.4;
+}
+
+/* ── Alert boxes ── */
+.is-alert-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border-2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: background .3s;
+}
+.is-alert-box.ab-warn   {
+    background: rgba(245,158,11,0.06);
+    border-color: rgba(245,158,11,0.22);
+}
+.is-alert-box.ab-red    {
+    background: rgba(229,57,53,0.06);
+    border-color: rgba(229,57,53,0.22);
+}
+.is-alert-box.ab-blue   {
+    background: rgba(8,145,178,0.06);
+    border-color: rgba(8,145,178,0.22);
+}
+.is-alert-box.ab-green  {
+    background: rgba(5,150,105,0.06);
+    border-color: rgba(5,150,105,0.22);
+}
+.is-alert-box.ab-purple {
+    background: rgba(124,58,237,0.06);
+    border-color: rgba(124,58,237,0.22);
+}
+.is-alert-box h4 {
+    margin: 0 0 7px 0;
+    font-size: 12px; font-weight: 700;
+    color: var(--text-1);
+    transition: color .3s;
+}
+.is-alert-count {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px; font-weight: 700;
+    line-height: 1;
+}
+.is-alert-small {
+    font-size: 11px; color: var(--text-3);
+    margin-top: 5px; line-height: 1.4;
+}
+
+/* ── Vencimiento chips ── */
+.vc-red    { background: rgba(229,57,53,.12); color: #F26F6F; }
+.vc-orange { background: rgba(245,158,11,.12); color: #F5B942; }
+.vc-blue   { background: rgba(8,145,178,.12);  color: #22B8D4; }
+
+/* ── Metric chip ── */
+.mc {
+    display: inline-block; padding: 3px 8px;
+    border-radius: 20px; font-size: 11px; font-weight: 700;
+    background: var(--cobalt-glow, rgba(27,79,255,.12));
+    color: #4B78FF;
+}
+
+/* ── Mini chips ── */
+.mchip { display: inline-block; padding: 3px 7px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.mc-ok     { background: rgba(5,150,105,.12); color: #1DBD7F; }
+.mc-warn   { background: rgba(245,158,11,.12); color: #F5B942; }
+.mc-danger { background: rgba(229,57,53,.12);  color: #F26F6F; }
+.mc-info   { background: rgba(8,145,178,.12);  color: #22B8D4; }
+.mc-purple { background: rgba(124,58,237,.12); color: #A78BFA; }
+
+/* ── Tabla link ── */
+.is-tbl-link { color: #4B78FF; text-decoration: none; font-weight: 600; }
+.is-tbl-link:hover { text-decoration: underline; }
+
+/* ── Empty state ── */
+.is-empty {
+    padding: 18px; font-size: 13px; color: var(--text-3);
+    background: var(--bg-input); border: 1px dashed var(--border-2);
+    border-radius: 8px; text-align: center;
+}
+
+/* ── Alert group heading ── */
+.is-alert-group-label {
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-3); margin-bottom: 10px; margin-top: 18px;
+}
+.is-alert-group-label:first-child { margin-top: 0; }
+
+/* ── Chart box ── */
+.is-chart-box { height: 320px; position: relative; }
 </style>
-</head>
-<body>
 
-<div class="layout">
-    <aside class="sidebar">
-        <div class="brand">INDEMNI<br>SOAT</div>
-        <nav class="menu">
-            <a href="{{ route('casos.index') }}" class="{{ request()->routeIs('casos.*') ? 'active' : '' }}">Casos</a>
-            <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">Dashboard</a>
-            @if(auth()->user()->puedeGestionarUsuarios())
-                <a href="{{ route('users.index') }}" style="background:#4b5563" class="{{ request()->routeIs('users.*') ? 'active' : '' }}">Usuarios</a>
-            @endif
-        </nav>
-        <div style="flex:1"></div>
-        <div class="user-box">
-            <div class="user-name">{{ auth()->user()->name }}</div>
-            <div class="user-role">{{ auth()->user()->textoRol() }}</div>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="logout-btn">Cerrar sesión</button>
-            </form>
+{{-- ── Cabecera ── --}}
+<div class="is-animate-rise"
+     style="display:flex;justify-content:space-between;align-items:flex-start;
+            margin-bottom:24px;gap:14px;flex-wrap:wrap;">
+    <div>
+        <div class="is-page-title">Dashboard</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:4px;">
+            Resumen jurídico, operativo y financiero del sistema
         </div>
-    </aside>
-
-    <main class="content">
-        <div class="container">
-
-            <div class="topbar">
-                <div>
-                    <h1 style="margin:0;">Dashboard INDEMNI SOAT</h1>
-                    <div class="small" style="margin-top:6px;color:#6b7280;">Resumen jurídico, operativo y financiero del sistema</div>
-                </div>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                    <a href="{{ route('casos.index') }}" class="btn">Ver casos</a>
-                    @if(auth()->user()->puedeEditar())
-                        <a href="{{ route('dashboard.exportarExcel') }}" class="btn">Exportar Excel</a>
-                        <a href="{{ route('dashboard.exportarPdf') }}" class="btn">Exportar PDF</a>
-                    @endif
-                </div>
-            </div>
-
-            {{-- TARJETAS FINANCIERAS --}}
-            <div class="cards">
-                <div class="card">
-                    <div class="card-title">Total recuperado</div>
-                    <div class="card-value money">${{ number_format($totalRecuperado ?? 0,0,',','.') }}</div>
-                    <div class="card-sub">Suma de todos los pagos finales registrados</div>
-                </div>
-                <div class="card">
-                    <div class="card-title">Ganancia total equipo</div>
-                    <div class="card-value money-blue">${{ number_format($totalGananciaEquipo ?? 0,0,',','.') }}</div>
-                    <div class="card-sub">Honorarios acumulados del equipo jurídico</div>
-                </div>
-                <div class="card">
-                    <div class="card-title">Neto total clientes</div>
-                    <div class="card-value money">${{ number_format($totalNetoClientes ?? 0,0,',','.') }}</div>
-                    <div class="card-sub">Valor neto entregado a víctimas</div>
-                </div>
-                <div class="card">
-                    <div class="card-title">Promedio ganancia por caso pagado</div>
-                    <div class="card-value money-orange">${{ number_format($promedioGananciaEquipo ?? 0,0,',','.') }}</div>
-                    <div class="card-sub">Promedio sobre casos pagados</div>
-                </div>
-            </div>
-
-            <div class="cards">
-                <div class="card"><div class="card-title">Total casos</div><div class="card-value gray">{{ $totalCasos ?? 0 }}</div></div>
-                <div class="card"><div class="card-title">Casos pagados</div><div class="card-value money">{{ $casosPagados ?? 0 }}</div></div>
-                <div class="card"><div class="card-title">Casos activos</div><div class="card-value money-orange">{{ $casosActivos ?? 0 }}</div><div class="card-sub">Casos sin pago final</div></div>
-                <div class="card"><div class="card-title">Casos con tutela</div><div class="card-value money-blue">{{ $casosTutela ?? 0 }}</div></div>
-            </div>
-
-            <div class="cards">
-                <div class="card"><div class="card-title">Casos listos para cobrar</div><div class="card-value money-orange">{{ $casosListosReclamar ?? 0 }}</div><div class="card-sub">Con dictamen de junta y sin reclamación final</div></div>
-                <div class="card"><div class="card-title">Valor estimado total</div><div class="card-value money-blue">${{ number_format($valorEstimadoTotal ?? 0,0,',','.') }}</div></div>
-                <div class="card"><div class="card-title">Valor reclamado total</div><div class="card-value money">${{ number_format($valorReclamadoTotal ?? 0,0,',','.') }}</div></div>
-                <div class="card"><div class="card-title">Saldo pendiente estimado</div><div class="card-value money-orange">${{ number_format($saldoPendiente ?? 0,0,',','.') }}</div><div class="card-sub">Diferencia entre valor estimado y pagado</div></div>
-            </div>
-
-            {{-- PANEL DE VENCIMIENTOS --}}
-            <div class="section">
-                <h3>Panel de vencimientos jurídicos</h3>
-                <div class="cards">
-                    <div class="card card-red"><div class="card-title">Casos críticos</div><div class="card-value" style="color:#842029">{{ $casosCriticos ?? 0 }}</div><div class="card-sub">Mayor urgencia legal o financiera.</div></div>
-                    <div class="card card-orange"><div class="card-title">Casos urgentes</div><div class="card-value" style="color:#997404">{{ $casosUrgentes ?? 0 }}</div><div class="card-sub">Requieren actuación pronta.</div></div>
-                    <div class="card card-red"><div class="card-title">Pagos atrasados</div><div class="card-value" style="color:#842029">{{ $pagosAtrasados ?? 0 }}</div><div class="card-sub">Reclamados y aún sin pago final.</div></div>
-                    <div class="card card-orange"><div class="card-title">Tutelas en seguimiento</div><div class="card-value" style="color:#997404">{{ $tutelasPendientesSeguimiento ?? 0 }}</div><div class="card-sub">Requieren revisión o impulso.</div></div>
-                </div>
-                @if(($vencimientos ?? collect())->count())
-                    <table>
-                        <tr><th>Prioridad</th><th>Caso</th><th>Víctima</th><th>Aseguradora</th><th>Evento</th><th>Fecha base</th><th>Días</th></tr>
-                        @foreach($vencimientos->take(25) as $item)
-                            <tr>
-                                <td><span class="vencimiento-chip vencimiento-{{ $item['color'] }}">{{ $item['prioridad'] }}</span></td>
-                                <td><a href="{{ route('casos.show', $item['caso_id']) }}" class="table-link">{{ $item['numero_caso'] }}</a></td>
-                                <td>{{ $item['victima'] }}</td>
-                                <td>{{ $item['aseguradora'] ?: 'N/A' }}</td>
-                                <td>{{ $item['evento'] }}</td>
-                                <td>{{ $item['fecha_base'] ?: 'N/A' }}</td>
-                                <td><strong>{{ $item['dias'] }}</strong></td>
-                            </tr>
-                        @endforeach
-                    </table>
-                @else
-                    <div class="empty-state">No hay vencimientos jurídicos detectados.</div>
-                @endif
-            </div>
-
-            {{-- ALERTAS --}}
-            <div class="section">
-                <h3>Alertas automáticas del sistema</h3>
-                <p class="section-sub">Acciones pendientes detectadas automáticamente por el motor jurídico.</p>
-
-                <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin-bottom:10px;">Solicitud y respuesta</div>
-                <div class="alert-grid" style="margin-bottom:20px;">
-                    <div class="alert-box"><h4>Sin respuesta de aseguradora</h4><div class="alert-count">{{ ($alertasSinRespuesta ?? collect())->count() }}</div><div class="small">Casos con 30 días o más sin respuesta registrada.</div></div>
-                    <div class="alert-box"><h4>Apelar dictamen</h4><div class="alert-count">{{ ($alertasApelarDictamen ?? collect())->count() }}</div><div class="small">Aseguradora emitió dictamen y no se ha apelado.</div></div>
-                    <div class="alert-box"><h4>Presentar tutela</h4><div class="alert-count">{{ ($alertasTutela ?? collect())->count() }}</div><div class="small">Procede tutela para calificación o por debido proceso.</div></div>
-                    <div class="alert-box"><h4>Pagar honorarios junta</h4><div class="alert-count">{{ ($alertasHonorariosJunta ?? collect())->count() }}</div><div class="small">Apelación registrada, pendiente pago de honorarios.</div></div>
-                </div>
-
-                <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin-bottom:10px;">Tutela, fallo y cumplimiento</div>
-                <div class="alert-grid" style="margin-bottom:20px;">
-                    <div class="alert-box"><h4>Esperando fallo tutela</h4><div class="alert-count blue">{{ ($alertasEsperandoFalloTutela ?? collect())->count() }}</div><div class="small">Tutela presentada, dentro del tiempo normal de espera.</div></div>
-                    <div class="alert-box"><h4>Revisar fallo tutela</h4><div class="alert-count" style="color:#b26a00">{{ ($alertasSeguimientoTutela ?? collect())->count() }}</div><div class="small">Pasó 1 mes desde la tutela — revisar fallo o impulsar.</div></div>
-                    <div class="alert-box alert-green"><h4>Esperando cumplimiento fallo</h4><div class="alert-count green">{{ $casosCumplimientoTutela ?? 0 }}</div><div class="small">Fallo concedido — aseguradora tiene 14 días para cumplir.</div></div>
-                    <div class="alert-box alert-red"><h4>Incidente de desacato</h4><div class="alert-count red">{{ $casosDesacatoPendiente ?? 0 }}</div><div class="small">Fallo concedido, pasaron 14 días y no han cumplido.</div></div>
-                </div>
-
-                <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin-bottom:10px;">Impugnación y segunda instancia</div>
-                <div class="alert-grid" style="margin-bottom:20px;">
-                    <div class="alert-box alert-red"><h4>Impugnación pendiente</h4><div class="alert-count red">{{ ($alertasImpugnacion ?? collect())->count() }}</div><div class="small">Fallo negado o parcial — pendiente de impugnar.</div></div>
-                    <div class="alert-box alert-purple"><h4>Pendiente segunda instancia</h4><div class="alert-count purple">{{ $casosSegundaInstancia ?? 0 }}</div><div class="small">Se impugnó y se espera fallo de segunda instancia.</div></div>
-                    <div class="alert-box alert-red"><h4>2ª instancia revocó — cumplir</h4><div class="alert-count red">{{ $casosCumplimientoSegunda ?? 0 }}</div><div class="small">Segunda instancia revocó y la aseguradora aún no ha cumplido.</div></div>
-                    <div class="alert-box"><h4>Casos cerrados (2ª instancia)</h4><div class="alert-count" style="color:#41464b">{{ $casosCerradosSegundaInstancia ?? 0 }}</div><div class="small">Segunda instancia confirmó el fallo negado — sin más acciones.</div></div>
-                </div>
-
-                <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin-bottom:10px;">Junta, cobro y pago final</div>
-                <div class="alert-grid">
-                    <div class="alert-box alert-blue"><h4>Solicitar a junta</h4><div class="alert-count blue">{{ ($alertasSolicitudJunta ?? collect())->count() }}</div><div class="small">Honorarios pagados y sin solicitud a junta.</div></div>
-                    <div class="alert-box alert-blue"><h4>Cobrar a aseguradora</h4><div class="alert-count blue">{{ ($alertasReclamacion ?? collect())->count() }}</div><div class="small">Dictamen de junta listo y sin reclamación final.</div></div>
-                    <div class="alert-box"><h4>Pago final pendiente</h4><div class="alert-count" style="color:#b26a00">{{ ($alertasPagoPendiente ?? collect())->count() }}</div><div class="small">Reclamados pero aún sin pago final.</div></div>
-                    <div class="alert-box alert-red"><h4>Hacer queja</h4><div class="alert-count red">{{ ($alertasQuejaNoPago ?? collect())->count() }}</div><div class="small">Pasó 1 mes desde la reclamación y no han pagado.</div></div>
-                </div>
-            </div>
-
-            {{-- ANÁLISIS ESTRATÉGICO --}}
-            <div class="section">
-                <h3>Análisis estratégico de aseguradoras</h3>
-                <div class="cards">
-                    <div class="card card-green">
-                        <div class="card-title">Aseguradora con mayor pago</div>
-                        <div class="card-value money">{{ $topAseguradoraPagos['aseguradora'] ?? 'N/A' }}</div>
-                        <div class="card-sub">Total pagado: <strong>${{ number_format($topAseguradoraPagos['total_pagado'] ?? 0,0,',','.') }}</strong></div>
-                    </div>
-                    <div class="card card-orange">
-                        <div class="card-title">Aseguradora con más tutela</div>
-                        <div class="card-value money-orange">{{ $aseguradoraMayorTutela['aseguradora'] ?? 'N/A' }}</div>
-                        <div class="card-sub">Tasa de tutela: <strong>{{ number_format($aseguradoraMayorTutela['tasa_tutela'] ?? 0,1,',','.') }}%</strong></div>
-                    </div>
-                    <div class="card card-red">
-                        <div class="card-title">Aseguradora más lenta pagando</div>
-                        <div class="card-value" style="color:#842029">{{ $aseguradoraMasLentaPago['aseguradora'] ?? 'N/A' }}</div>
-                        <div class="card-sub">Promedio: <strong>{{ number_format($aseguradoraMasLentaPago['tiempo_promedio_pago_dias'] ?? 0,1,',','.') }} días</strong></div>
-                    </div>
-                    <div class="card card-purple">
-                        <div class="card-title">Aseguradora con más negaciones</div>
-                        <div class="card-value" style="color:#5b21b6">{{ $aseguradoraMasNegaciones['aseguradora'] ?? 'N/A' }}</div>
-                        <div class="card-sub">Negaciones registradas: <strong>{{ $aseguradoraMasNegaciones['casos_nego'] ?? 0 }}</strong></div>
-                    </div>
-                </div>
-
-                @if(($aseguradorasEstrategicas ?? collect())->count())
-                    <div style="overflow-x:auto">
-                        <table>
-                            <tr>
-                                <th>Aseguradora</th><th>Casos</th><th>Pagados</th><th>Tasa pago</th><th>Tasa tutela</th><th>Tasa apelación</th>
-                                <th>Emitió dictamen</th><th>Negó</th><th>No respondió</th><th>2ª revoca</th><th>2ª confirma</th>
-                                <th>T. respuesta</th><th>T. pago</th><th>Total pagado</th><th>Prom. por caso</th>
-                            </tr>
-                            @foreach($aseguradorasEstrategicas as $item)
-                                <tr>
-                                    <td><strong>{{ $item['aseguradora'] }}</strong></td>
-                                    <td>{{ $item['total_casos'] }}</td>
-                                    <td>{{ $item['casos_pagados'] }}</td>
-                                    <td><span class="metric-chip">{{ number_format($item['tasa_pago'],1,',','.') }}%</span></td>
-                                    <td><span class="metric-chip">{{ number_format($item['tasa_tutela'],1,',','.') }}%</span></td>
-                                    <td><span class="metric-chip">{{ number_format($item['tasa_apelacion'],1,',','.') }}%</span></td>
-                                    <td><span class="mini-chip chip-ok">{{ $item['casos_emitio_dictamen'] ?? 0 }}</span></td>
-                                    <td><span class="mini-chip chip-danger">{{ $item['casos_nego'] ?? 0 }}</span></td>
-                                    <td><span class="mini-chip chip-warn">{{ $item['casos_no_respondio'] ?? 0 }}</span></td>
-                                    <td><span class="mini-chip chip-ok">{{ $item['casos_segunda_revoca'] ?? 0 }}</span></td>
-                                    <td><span class="mini-chip chip-danger">{{ $item['casos_segunda_confirma'] ?? 0 }}</span></td>
-                                    <td>{{ number_format($item['tiempo_promedio_respuesta_dias'],1,',','.') }} días</td>
-                                    <td>{{ number_format($item['tiempo_promedio_pago_dias'],1,',','.') }} días</td>
-                                    <td class="money">${{ number_format($item['total_pagado'],0,',','.') }}</td>
-                                    <td class="money-blue">${{ number_format($item['promedio_pagado_por_caso'],0,',','.') }}</td>
-                                </tr>
-                            @endforeach
-                        </table>
-                    </div>
-                @else
-                    <div class="empty-state">No hay suficiente información para generar análisis estratégico.</div>
-                @endif
-            </div>
-
-            {{-- GRÁFICAS --}}
-            <div class="grid-3">
-                <div class="section">
-                    <h3>Pagado vs ganancia por aseguradora</h3>
-                    <div class="chart-box"><canvas id="chartAseguradoras"></canvas></div>
-                </div>
-                <div class="section">
-                    <h3>Casos por estado</h3>
-                    <div class="chart-box"><canvas id="chartEstados"></canvas></div>
-                </div>
-                <div class="section">
-                    <h3>Pagos y ganancia por mes</h3>
-                    <div class="chart-box"><canvas id="chartMensual"></canvas></div>
-                </div>
-            </div>
-
-            <div class="cards-2" style="margin-bottom:20px;">
-                <div class="section" style="margin-bottom:0">
-                    <h3>Distribución de respuestas de aseguradora</h3>
-                    <div class="chart-box"><canvas id="chartRespuestas"></canvas></div>
-                </div>
-                <div class="section" style="margin-bottom:0">
-                    <h3>Tipos de tutela presentadas</h3>
-                    <div class="chart-box"><canvas id="chartTutelas"></canvas></div>
-                </div>
-            </div>
-
-            {{-- TABLAS --}}
-            <div class="grid-2">
-                <div class="section">
-                    <h3>Resumen financiero por aseguradora</h3>
-                    @if(($porAseguradora ?? collect())->count())
-                        <table>
-                            <tr><th>Aseguradora</th><th>Total casos</th><th>Total pagado</th><th>Ganancia equipo</th></tr>
-                            @foreach($porAseguradora as $item)
-                                <tr>
-                                    <td>{{ $item->aseguradora ?: 'N/A' }}</td>
-                                    <td>{{ $item->total_casos }}</td>
-                                    <td class="money">${{ number_format($item->total_pagado,0,',','.') }}</td>
-                                    <td class="money-blue">${{ number_format($item->total_equipo,0,',','.') }}</td>
-                                </tr>
-                            @endforeach
-                        </table>
-                    @else
-                        <div class="empty-state">No hay información disponible.</div>
-                    @endif
-                </div>
-
-                <div class="section">
-                    <h3>Últimos casos pagados</h3>
-                    @if(($ultimosPagados ?? collect())->count())
-                        <table>
-                            <tr><th>Caso</th><th>Víctima</th><th>Pago</th><th>Honor.</th></tr>
-                            @foreach($ultimosPagados as $caso)
-                                <tr>
-                                    <td><a href="{{ route('casos.show', $caso) }}" class="table-link">{{ $caso->numero_caso }}</a></td>
-                                    <td>{{ $caso->nombres }} {{ $caso->apellidos }}</td>
-                                    <td class="money">${{ number_format($caso->valor_pagado ?? 0,0,',','.') }}</td>
-                                    <td><span class="pill">{{ $caso->porcentaje_honorarios ? number_format($caso->porcentaje_honorarios,0,',','.').'%' : 'N/A' }}</span></td>
-                                </tr>
-                            @endforeach
-                        </table>
-                    @else
-                        <div class="empty-state">No hay pagos registrados.</div>
-                    @endif
-                </div>
-            </div>
-
-            <div class="section">
-                <h3>Casos por aseguradora</h3>
-                @if(($casosPorAseguradora ?? collect())->count())
-                    <table>
-                        <tr><th>Aseguradora</th><th>Total casos</th><th>Valor estimado total</th><th>Valor pagado total</th><th>Ganancia equipo</th><th>Neto clientes</th></tr>
-                        @foreach($casosPorAseguradora as $item)
-                            <tr>
-                                <td>{{ $item->aseguradora ?: 'N/A' }}</td>
-                                <td>{{ $item->total }}</td>
-                                <td class="money-blue">${{ number_format($item->valor_estimado_total,0,',','.') }}</td>
-                                <td class="money">${{ number_format($item->valor_pagado_total,0,',','.') }}</td>
-                                <td class="money-blue">${{ number_format($item->ganancia_equipo_total,0,',','.') }}</td>
-                                <td class="money">${{ number_format($item->valor_neto_cliente_total,0,',','.') }}</td>
-                            </tr>
-                        @endforeach
-                    </table>
-                @else
-                    <div class="empty-state">No hay casos agrupados por aseguradora.</div>
-                @endif
-            </div>
-
-            <div class="section">
-                <h3>Casos por estado</h3>
-                @if(($casosPorEstado ?? collect())->count())
-                    <table>
-                        <tr><th>Estado</th><th>Total casos</th></tr>
-                        @foreach($casosPorEstado as $item)
-                            <tr><td>{{ $item->estado ?: 'Sin estado' }}</td><td>{{ $item->total }}</td></tr>
-                        @endforeach
-                    </table>
-                @else
-                    <div class="empty-state">No hay estados registrados.</div>
-                @endif
-            </div>
-
-            <div class="section">
-                <h3>Últimos movimientos de bitácora</h3>
-                @if(($ultimosMovimientos ?? collect())->count())
-                    <table>
-                        <tr><th>Fecha</th><th>Caso</th><th>Movimiento</th><th>Descripción</th></tr>
-                        @foreach($ultimosMovimientos as $movimiento)
-                            <tr>
-                                <td>{{ $movimiento->fecha_evento ?: optional($movimiento->created_at)->format('Y-m-d') }}</td>
-                                <td>
-                                    @if($movimiento->caso)
-                                        <a href="{{ route('casos.show', $movimiento->caso) }}" class="table-link">{{ $movimiento->caso->numero_caso }}</a>
-                                    @else N/A @endif
-                                </td>
-                                <td>{{ $movimiento->titulo }}</td>
-                                <td>{{ $movimiento->descripcion }}</td>
-                            </tr>
-                        @endforeach
-                    </table>
-                @else
-                    <div class="empty-state">No hay movimientos registrados.</div>
-                @endif
-            </div>
-
-        </div>
-    </main>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="{{ route('casos.index') }}" class="is-btn-ghost">
+            Ver casos
+        </a>
+        @if(auth()->user()->puedeEditar())
+            <a href="{{ route('dashboard.exportarExcel') }}" class="is-btn-ghost">
+                ↓ Excel
+            </a>
+            <a href="{{ route('dashboard.exportarPdf') }}" class="is-btn-ghost">
+                ↓ PDF
+            </a>
+        @endif
+    </div>
 </div>
 
+{{-- ════════════════════════════════════════════
+     TARJETAS FINANCIERAS — Fila 1
+════════════════════════════════════════════ --}}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;"
+     class="is-animate-rise is-stagger-1">
+    <div class="is-dash-card" style="--dc-accent:#1DBD7F;">
+        <div class="dc-label">Total recuperado</div>
+        <div class="dc-value" style="color:#1DBD7F;">
+            ${{ number_format($totalRecuperado ?? 0,0,',','.') }}
+        </div>
+        <div class="dc-sub">Suma de todos los pagos finales</div>
+    </div>
+    <div class="is-dash-card" style="--dc-accent:#4B78FF;">
+        <div class="dc-label">Ganancia total equipo</div>
+        <div class="dc-value" style="color:#4B78FF;">
+            ${{ number_format($totalGananciaEquipo ?? 0,0,',','.') }}
+        </div>
+        <div class="dc-sub">Honorarios acumulados</div>
+    </div>
+    <div class="is-dash-card" style="--dc-accent:#D4AA48;">
+        <div class="dc-label">Neto total clientes</div>
+        <div class="dc-value" style="color:#D4AA48;">
+            ${{ number_format($totalNetoClientes ?? 0,0,',','.') }}
+        </div>
+        <div class="dc-sub">Valor neto entregado a víctimas</div>
+    </div>
+    <div class="is-dash-card" style="--dc-accent:#F59E0B;">
+        <div class="dc-label">Promedio ganancia / caso pagado</div>
+        <div class="dc-value" style="color:#F5B942;">
+            ${{ number_format($promedioGananciaEquipo ?? 0,0,',','.') }}
+        </div>
+        <div class="dc-sub">Promedio sobre casos pagados</div>
+    </div>
+</div>
+
+{{-- Fila 2 --}}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;"
+     class="is-animate-rise is-stagger-1">
+    <div class="is-dash-card" style="--dc-accent:#4B78FF;">
+        <div class="dc-label">Total casos</div>
+        <div class="dc-value">{{ $totalCasos ?? 0 }}</div>
+    </div>
+    <div class="is-dash-card" style="--dc-accent:#1DBD7F;">
+        <div class="dc-label">Casos pagados</div>
+        <div class="dc-value" style="color:#1DBD7F;">{{ $casosPagados ?? 0 }}</div>
+    </div>
+    <div class="is-dash-card" style="--dc-accent:#F59E0B;">
+        <div class="dc-label">Casos activos</div>
+        <div class="dc-value" style="color:#F5B942;">{{ $casosActivos ?? 0 }}</div>
+        <div class="dc-sub">Sin pago final</div>
+    </div>
+    <div class="is-dash-card" style="--dc-accent:#A78BFA;">
+        <div class="dc-label">Casos con tutela</div>
+        <div class="dc-value" style="color:#A78BFA;">{{ $casosTutela ?? 0 }}</div>
+    </div>
+</div>
+
+{{-- Fila 3 --}}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;"
+     class="is-animate-rise is-stagger-2">
+    <div class="is-dash-card" style="--dc-accent:#F59E0B;">
+        <div class="dc-label">Listos para cobrar</div>
+        <div class="dc-value" style="color:#F5B942;">{{ $casosListosReclamar ?? 0 }}</div>
+        <div class="dc-sub">Con dictamen y sin reclamación final</div>
+    </div>
+    <div class="is-dash-card" style="--dc-accent:#4B78FF;">
+        <div class="dc-label">Valor estimado total</div>
+        <div class="dc-value" style="font-size:20px;color:#4B78FF;">
+            ${{ number_format($valorEstimadoTotal ?? 0,0,',','.') }}
+        </div>
+    </div>
+    <div class="is-dash-card" style="--dc-accent:#1DBD7F;">
+        <div class="dc-label">Valor reclamado total</div>
+        <div class="dc-value" style="font-size:20px;color:#1DBD7F;">
+            ${{ number_format($valorReclamadoTotal ?? 0,0,',','.') }}
+        </div>
+    </div>
+    <div class="is-dash-card" style="--dc-accent:#E53935;">
+        <div class="dc-label">Saldo pendiente estimado</div>
+        <div class="dc-value" style="font-size:20px;color:#F26F6F;">
+            ${{ number_format($saldoPendiente ?? 0,0,',','.') }}
+        </div>
+        <div class="dc-sub">Diferencia estimado — pagado</div>
+    </div>
+</div>
+
+{{-- ════════════════════════════════════════════
+     PANEL DE VENCIMIENTOS
+════════════════════════════════════════════ --}}
+<div class="is-panel is-animate-rise is-stagger-2">
+    <div class="is-panel-title">Panel de vencimientos jurídicos</div>
+    <div class="is-panel-sub"></div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;">
+        <div class="is-dash-card" style="--dc-accent:#E53935;">
+            <div class="dc-label">Casos críticos</div>
+            <div class="dc-value" style="color:#F26F6F;">
+                {{ $casosCriticos ?? 0 }}
+            </div>
+            <div class="dc-sub">Mayor urgencia legal o financiera</div>
+        </div>
+        <div class="is-dash-card" style="--dc-accent:#F59E0B;">
+            <div class="dc-label">Casos urgentes</div>
+            <div class="dc-value" style="color:#F5B942;">
+                {{ $casosUrgentes ?? 0 }}
+            </div>
+            <div class="dc-sub">Requieren actuación pronta</div>
+        </div>
+        <div class="is-dash-card" style="--dc-accent:#E53935;">
+            <div class="dc-label">Pagos atrasados</div>
+            <div class="dc-value" style="color:#F26F6F;">
+                {{ $pagosAtrasados ?? 0 }}
+            </div>
+            <div class="dc-sub">Reclamados y sin pago final</div>
+        </div>
+        <div class="is-dash-card" style="--dc-accent:#F59E0B;">
+            <div class="dc-label">Tutelas en seguimiento</div>
+            <div class="dc-value" style="color:#F5B942;">
+                {{ $tutelasPendientesSeguimiento ?? 0 }}
+            </div>
+            <div class="dc-sub">Requieren revisión o impulso</div>
+        </div>
+    </div>
+
+    @if(($vencimientos ?? collect())->count())
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Prioridad</th><th>Caso</th><th>Víctima</th>
+                        <th>Aseguradora</th><th>Evento</th>
+                        <th>Fecha base</th><th>Días</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($vencimientos->take(25) as $item)
+                        <tr>
+                            <td>
+                                <span class="is-badge vc-{{ $item['color'] }}"
+                                      style="font-size:10px;padding:3px 9px;
+                                             border-radius:20px;font-weight:700;">
+                                    {{ $item['prioridad'] }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ route('casos.show', $item['caso_id']) }}"
+                                   class="is-tbl-link">
+                                    {{ $item['numero_caso'] }}
+                                </a>
+                            </td>
+                            <td>{{ $item['victima'] }}</td>
+                            <td>{{ $item['aseguradora'] ?: '—' }}</td>
+                            <td style="font-size:12px;">{{ $item['evento'] }}</td>
+                            <td style="font-size:12px;color:var(--text-2);">
+                                {{ $item['fecha_base'] ?: '—' }}
+                            </td>
+                            <td>
+                                <strong style="font-family:'Playfair Display',serif;">
+                                    {{ $item['dias'] }}
+                                </strong>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @else
+        <div class="is-empty">No hay vencimientos jurídicos detectados.</div>
+    @endif
+</div>
+
+{{-- ════════════════════════════════════════════
+     ALERTAS AUTOMÁTICAS
+════════════════════════════════════════════ --}}
+<div class="is-panel is-animate-rise is-stagger-3">
+    <div class="is-panel-title">Alertas automáticas del sistema</div>
+    <div class="is-panel-sub">
+        Acciones pendientes detectadas por el motor jurídico.
+    </div>
+
+    <div class="is-alert-group-label">Solicitud y respuesta</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:6px;">
+        <div class="is-alert-box ab-warn">
+            <h4>Sin respuesta de aseguradora</h4>
+            <div class="is-alert-count" style="color:#F5B942;">
+                {{ ($alertasSinRespuesta ?? collect())->count() }}
+            </div>
+            <div class="is-alert-small">30+ días sin respuesta registrada.</div>
+        </div>
+        <div class="is-alert-box ab-warn">
+            <h4>Apelar dictamen</h4>
+            <div class="is-alert-count" style="color:#F5B942;">
+                {{ ($alertasApelarDictamen ?? collect())->count() }}
+            </div>
+            <div class="is-alert-small">Aseguradora emitió dictamen sin apelar.</div>
+        </div>
+        <div class="is-alert-box ab-red">
+            <h4>Presentar tutela</h4>
+            <div class="is-alert-count" style="color:#F26F6F;">
+                {{ ($alertasTutela ?? collect())->count() }}
+            </div>
+            <div class="is-alert-small">Procede tutela para calificación o por debido proceso.</div>
+        </div>
+        <div class="is-alert-box">
+            <h4>Pagar honorarios junta</h4>
+            <div class="is-alert-count" style="color:var(--text-1);">
+                {{ ($alertasHonorariosJunta ?? collect())->count() }}
+            </div>
+            <div class="is-alert-small">Apelación registrada, pendiente honorarios.</div>
+        </div>
+    </div>
+
+    <div class="is-alert-group-label">Tutela, fallo y cumplimiento</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:6px;">
+        <div class="is-alert-box ab-blue">
+            <h4>Esperando fallo tutela</h4>
+            <div class="is-alert-count" style="color:#22B8D4;">
+                {{ ($alertasEsperandoFalloTutela ?? collect())->count() }}
+            </div>
+            <div class="is-alert-small">Tutela presentada, en tiempo normal de espera.</div>
+        </div>
+        <div class="is-alert-box ab-warn">
+            <h4>Revisar fallo tutela</h4>
+            <div class="is-alert-count" style="color:#F5B942;">
+                {{ ($alertasSeguimientoTutela ?? collect())->count() }}
+            </div>
+            <div class="is-alert-small">Pasó 1 mes — revisar fallo o impulsar.</div>
+        </div>
+        <div class="is-alert-box ab-green">
+            <h4>Esperando cumplimiento</h4>
+            <div class="is-alert-count" style="color:#1DBD7F;">
+                {{ $casosCumplimientoTutela ?? 0 }}
+            </div>
+            <div class="is-alert-small">Fallo concedido — 14 días para cumplir.</div>
+        </div>
+        <div class="is-alert-box ab-red">
+            <h4>Incidente de desacato</h4>
+            <div class="is-alert-count" style="color:#F26F6F;">
+                {{ $casosDesacatoPendiente ?? 0 }}
+            </div>
+            <div class="is-alert-small">Pasaron 14 días y no han cumplido.</div>
+        </div>
+    </div>
+
+    <div class="is-alert-group-label">Impugnación y segunda instancia</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:6px;">
+        <div class="is-alert-box ab-red">
+            <h4>Impugnación pendiente</h4>
+            <div class="is-alert-count" style="color:#F26F6F;">
+                {{ ($alertasImpugnacion ?? collect())->count() }}
+            </div>
+            <div class="is-alert-small">Fallo negado o parcial — pendiente impugnar.</div>
+        </div>
+        <div class="is-alert-box ab-purple">
+            <h4>Pendiente segunda instancia</h4>
+            <div class="is-alert-count" style="color:#A78BFA;">
+                {{ $casosSegundaInstancia ?? 0 }}
+            </div>
+            <div class="is-alert-small">Impugnado, esperando fallo segunda instancia.</div>
+        </div>
+        <div class="is-alert-box ab-red">
+            <h4>2ª instancia revocó — cumplir</h4>
+            <div class="is-alert-count" style="color:#F26F6F;">
+                {{ $casosCumplimientoSegunda ?? 0 }}
+            </div>
+            <div class="is-alert-small">Segunda instancia revocó, aseguradora no ha cumplido.</div>
+        </div>
+        <div class="is-alert-box">
+            <h4>Casos cerrados (2ª inst.)</h4>
+            <div class="is-alert-count" style="color:var(--text-2);">
+                {{ $casosCerradosSegundaInstancia ?? 0 }}
+            </div>
+            <div class="is-alert-small">Confirmó fallo negado — sin más acciones.</div>
+        </div>
+    </div>
+
+    <div class="is-alert-group-label">Junta, cobro y pago final</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+        <div class="is-alert-box ab-blue">
+            <h4>Solicitar a junta</h4>
+            <div class="is-alert-count" style="color:#22B8D4;">
+                {{ ($alertasSolicitudJunta ?? collect())->count() }}
+            </div>
+            <div class="is-alert-small">Honorarios pagados y sin solicitud a junta.</div>
+        </div>
+        <div class="is-alert-box ab-blue">
+            <h4>Cobrar a aseguradora</h4>
+            <div class="is-alert-count" style="color:#22B8D4;">
+                {{ ($alertasReclamacion ?? collect())->count() }}
+            </div>
+            <div class="is-alert-small">Dictamen listo y sin reclamación final.</div>
+        </div>
+        <div class="is-alert-box ab-warn">
+            <h4>Pago final pendiente</h4>
+            <div class="is-alert-count" style="color:#F5B942;">
+                {{ ($alertasPagoPendiente ?? collect())->count() }}
+            </div>
+            <div class="is-alert-small">Reclamados pero sin pago final.</div>
+        </div>
+        <div class="is-alert-box ab-red">
+            <h4>Hacer queja</h4>
+            <div class="is-alert-count" style="color:#F26F6F;">
+                {{ ($alertasQuejaNoPago ?? collect())->count() }}
+            </div>
+            <div class="is-alert-small">+1 mes desde reclamación y no han pagado.</div>
+        </div>
+    </div>
+</div>
+
+{{-- ════════════════════════════════════════════
+     ANÁLISIS ESTRATÉGICO
+════════════════════════════════════════════ --}}
+<div class="is-panel is-animate-rise is-stagger-3">
+    <div class="is-panel-title">Análisis estratégico de aseguradoras</div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);
+                gap:12px;margin-bottom:18px;">
+        <div class="is-dash-card" style="--dc-accent:#1DBD7F;">
+            <div class="dc-label">Aseguradora mayor pago</div>
+            <div class="dc-value" style="font-size:18px;color:#1DBD7F;">
+                {{ $topAseguradoraPagos['aseguradora'] ?? 'N/A' }}
+            </div>
+            <div class="dc-sub">
+                Total:
+                <strong style="color:#D4AA48;">
+                    ${{ number_format($topAseguradoraPagos['total_pagado'] ?? 0,0,',','.') }}
+                </strong>
+            </div>
+        </div>
+        <div class="is-dash-card" style="--dc-accent:#F59E0B;">
+            <div class="dc-label">Mayor tasa de tutela</div>
+            <div class="dc-value" style="font-size:18px;color:#F5B942;">
+                {{ $aseguradoraMayorTutela['aseguradora'] ?? 'N/A' }}
+            </div>
+            <div class="dc-sub">
+                Tasa:
+                <strong>
+                    {{ number_format($aseguradoraMayorTutela['tasa_tutela'] ?? 0,1,',','.') }}%
+                </strong>
+            </div>
+        </div>
+        <div class="is-dash-card" style="--dc-accent:#E53935;">
+            <div class="dc-label">Más lenta pagando</div>
+            <div class="dc-value" style="font-size:18px;color:#F26F6F;">
+                {{ $aseguradoraMasLentaPago['aseguradora'] ?? 'N/A' }}
+            </div>
+            <div class="dc-sub">
+                Promedio:
+                <strong>
+                    {{ number_format($aseguradoraMasLentaPago['tiempo_promedio_pago_dias'] ?? 0,1,',','.') }} días
+                </strong>
+            </div>
+        </div>
+        <div class="is-dash-card" style="--dc-accent:#A78BFA;">
+            <div class="dc-label">Más negaciones</div>
+            <div class="dc-value" style="font-size:18px;color:#A78BFA;">
+                {{ $aseguradoraMasNegaciones['aseguradora'] ?? 'N/A' }}
+            </div>
+            <div class="dc-sub">
+                Negaciones:
+                <strong>{{ $aseguradoraMasNegaciones['casos_nego'] ?? 0 }}</strong>
+            </div>
+        </div>
+    </div>
+
+    @if(($aseguradorasEstrategicas ?? collect())->count())
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Aseguradora</th><th>Casos</th><th>Pagados</th>
+                        <th>Tasa pago</th><th>Tasa tutela</th>
+                        <th>Tasa apelación</th><th>Dictamen</th>
+                        <th>Negó</th><th>No resp.</th>
+                        <th>2ª revoca</th><th>2ª confirma</th>
+                        <th>T. resp.</th><th>T. pago</th>
+                        <th>Total pagado</th><th>Prom. caso</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($aseguradorasEstrategicas as $item)
+                        <tr>
+                            <td><strong style="color:var(--text-1);">{{ $item['aseguradora'] }}</strong></td>
+                            <td>{{ $item['total_casos'] }}</td>
+                            <td>{{ $item['casos_pagados'] }}</td>
+                            <td><span class="mc">{{ number_format($item['tasa_pago'],1,',','.') }}%</span></td>
+                            <td><span class="mc">{{ number_format($item['tasa_tutela'],1,',','.') }}%</span></td>
+                            <td><span class="mc">{{ number_format($item['tasa_apelacion'],1,',','.') }}%</span></td>
+                            <td><span class="mchip mc-ok">{{ $item['casos_emitio_dictamen'] ?? 0 }}</span></td>
+                            <td><span class="mchip mc-danger">{{ $item['casos_nego'] ?? 0 }}</span></td>
+                            <td><span class="mchip mc-warn">{{ $item['casos_no_respondio'] ?? 0 }}</span></td>
+                            <td><span class="mchip mc-ok">{{ $item['casos_segunda_revoca'] ?? 0 }}</span></td>
+                            <td><span class="mchip mc-danger">{{ $item['casos_segunda_confirma'] ?? 0 }}</span></td>
+                            <td style="font-size:12px;color:var(--text-2);">{{ number_format($item['tiempo_promedio_respuesta_dias'],1,',','.') }}d</td>
+                            <td style="font-size:12px;color:var(--text-2);">{{ number_format($item['tiempo_promedio_pago_dias'],1,',','.') }}d</td>
+                            <td style="font-family:'Playfair Display',serif;font-weight:700;color:#D4AA48;">
+                                ${{ number_format($item['total_pagado'],0,',','.') }}
+                            </td>
+                            <td style="font-family:'Playfair Display',serif;font-weight:700;color:#4B78FF;">
+                                ${{ number_format($item['promedio_pagado_por_caso'],0,',','.') }}
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @else
+        <div class="is-empty">No hay suficiente información para generar análisis estratégico.</div>
+    @endif
+</div>
+
+{{-- ════════════════════════════════════════════
+     GRÁFICAS
+════════════════════════════════════════════ --}}
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;"
+     class="is-animate-rise is-stagger-3">
+    <div class="is-panel" style="margin-bottom:0;">
+        <div class="is-panel-title" style="margin-bottom:14px;">
+            Pagado vs ganancia por aseguradora
+        </div>
+        <div class="is-chart-box">
+            <canvas id="chartAseguradoras"></canvas>
+        </div>
+    </div>
+    <div class="is-panel" style="margin-bottom:0;">
+        <div class="is-panel-title" style="margin-bottom:14px;">Casos por estado</div>
+        <div class="is-chart-box">
+            <canvas id="chartEstados"></canvas>
+        </div>
+    </div>
+    <div class="is-panel" style="margin-bottom:0;">
+        <div class="is-panel-title" style="margin-bottom:14px;">Pagos y ganancia por mes</div>
+        <div class="is-chart-box">
+            <canvas id="chartMensual"></canvas>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;"
+     class="is-animate-rise is-stagger-3">
+    <div class="is-panel" style="margin-bottom:0;">
+        <div class="is-panel-title" style="margin-bottom:14px;">
+            Distribución de respuestas de aseguradora
+        </div>
+        <div class="is-chart-box">
+            <canvas id="chartRespuestas"></canvas>
+        </div>
+    </div>
+    <div class="is-panel" style="margin-bottom:0;">
+        <div class="is-panel-title" style="margin-bottom:14px;">
+            Tipos de tutela presentadas
+        </div>
+        <div class="is-chart-box">
+            <canvas id="chartTutelas"></canvas>
+        </div>
+    </div>
+</div>
+
+{{-- ════════════════════════════════════════════
+     TABLAS RESUMENES
+════════════════════════════════════════════ --}}
+<div style="display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin-bottom:16px;"
+     class="is-animate-rise is-stagger-3">
+    <div class="is-panel" style="margin-bottom:0;">
+        <div class="is-panel-title" style="margin-bottom:14px;">
+            Resumen financiero por aseguradora
+        </div>
+        @if(($porAseguradora ?? collect())->count())
+            <table>
+                <thead>
+                    <tr>
+                        <th>Aseguradora</th><th>Casos</th>
+                        <th>Total pagado</th><th>Ganancia equipo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($porAseguradora as $item)
+                        <tr>
+                            <td>{{ $item->aseguradora ?: '—' }}</td>
+                            <td>{{ $item->total_casos }}</td>
+                            <td style="font-family:'Playfair Display',serif;font-weight:700;color:#D4AA48;">
+                                ${{ number_format($item->total_pagado,0,',','.') }}
+                            </td>
+                            <td style="font-family:'Playfair Display',serif;font-weight:700;color:#4B78FF;">
+                                ${{ number_format($item->total_equipo,0,',','.') }}
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @else
+            <div class="is-empty">No hay información disponible.</div>
+        @endif
+    </div>
+
+    <div class="is-panel" style="margin-bottom:0;">
+        <div class="is-panel-title" style="margin-bottom:14px;">Últimos casos pagados</div>
+        @if(($ultimosPagados ?? collect())->count())
+            <table>
+                <thead>
+                    <tr><th>Caso</th><th>Víctima</th><th>Pago</th><th>Honor.</th></tr>
+                </thead>
+                <tbody>
+                    @foreach($ultimosPagados as $caso)
+                        <tr>
+                            <td>
+                                <a href="{{ route('casos.show', $caso) }}"
+                                   class="is-tbl-link">
+                                    {{ $caso->numero_caso }}
+                                </a>
+                            </td>
+                            <td style="font-size:12px;">
+                                {{ $caso->nombres }} {{ $caso->apellidos }}
+                            </td>
+                            <td style="font-family:'Playfair Display',serif;font-weight:700;color:#D4AA48;">
+                                ${{ number_format($caso->valor_pagado ?? 0,0,',','.') }}
+                            </td>
+                            <td>
+                                <span class="is-badge is-badge-cobalt" style="font-size:10px;">
+                                    {{ $caso->porcentaje_honorarios
+                                        ? number_format($caso->porcentaje_honorarios,0,',','.').'%'
+                                        : 'N/A' }}
+                                </span>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @else
+            <div class="is-empty">No hay pagos registrados.</div>
+        @endif
+    </div>
+</div>
+
+<div class="is-panel is-animate-rise is-stagger-3">
+    <div class="is-panel-title" style="margin-bottom:14px;">Casos por aseguradora</div>
+    @if(($casosPorAseguradora ?? collect())->count())
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Aseguradora</th><th>Casos</th>
+                        <th>V. Estimado total</th><th>V. Pagado total</th>
+                        <th>Ganancia equipo</th><th>Neto clientes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($casosPorAseguradora as $item)
+                        <tr>
+                            <td style="font-weight:600;color:var(--text-1);">
+                                {{ $item->aseguradora ?: '—' }}
+                            </td>
+                            <td>{{ $item->total }}</td>
+                            <td style="font-family:'Playfair Display',serif;font-weight:700;color:#4B78FF;">
+                                ${{ number_format($item->valor_estimado_total,0,',','.') }}
+                            </td>
+                            <td style="font-family:'Playfair Display',serif;font-weight:700;color:#D4AA48;">
+                                ${{ number_format($item->valor_pagado_total,0,',','.') }}
+                            </td>
+                            <td style="font-family:'Playfair Display',serif;font-weight:700;color:#4B78FF;">
+                                ${{ number_format($item->ganancia_equipo_total,0,',','.') }}
+                            </td>
+                            <td style="font-family:'Playfair Display',serif;font-weight:700;color:#1DBD7F;">
+                                ${{ number_format($item->valor_neto_cliente_total,0,',','.') }}
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @else
+        <div class="is-empty">No hay casos agrupados por aseguradora.</div>
+    @endif
+</div>
+
+<div class="is-panel is-animate-rise is-stagger-3">
+    <div class="is-panel-title" style="margin-bottom:14px;">Casos por estado</div>
+    @if(($casosPorEstado ?? collect())->count())
+        <table>
+            <thead>
+                <tr><th>Estado</th><th>Total casos</th></tr>
+            </thead>
+            <tbody>
+                @foreach($casosPorEstado as $item)
+                    <tr>
+                        <td>{{ $item->estado ?: 'Sin estado' }}</td>
+                        <td>
+                            <span class="is-badge is-badge-cobalt" style="font-size:11px;">
+                                {{ $item->total }}
+                            </span>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @else
+        <div class="is-empty">No hay estados registrados.</div>
+    @endif
+</div>
+
+<div class="is-panel is-animate-rise is-stagger-3">
+    <div class="is-panel-title" style="margin-bottom:14px;">
+        Últimos movimientos de bitácora
+    </div>
+    @if(($ultimosMovimientos ?? collect())->count())
+        <table>
+            <thead>
+                <tr><th>Fecha</th><th>Caso</th><th>Movimiento</th><th>Descripción</th></tr>
+            </thead>
+            <tbody>
+                @foreach($ultimosMovimientos as $movimiento)
+                    <tr>
+                        <td style="font-size:12px;color:var(--text-2);white-space:nowrap;">
+                            {{ $movimiento->fecha_evento
+                                ?: optional($movimiento->created_at)->format('Y-m-d') }}
+                        </td>
+                        <td>
+                            @if($movimiento->caso)
+                                <a href="{{ route('casos.show', $movimiento->caso) }}"
+                                   class="is-tbl-link">
+                                    {{ $movimiento->caso->numero_caso }}
+                                </a>
+                            @else
+                                —
+                            @endif
+                        </td>
+                        <td style="font-size:13px;font-weight:600;color:var(--text-1);">
+                            {{ $movimiento->titulo }}
+                        </td>
+                        <td style="font-size:12px;color:var(--text-2);">
+                            {{ $movimiento->descripcion }}
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @else
+        <div class="is-empty">No hay movimientos registrados.</div>
+    @endif
+</div>
+
+@endsection
+
+@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const labelsAseguradoras     = @json($labelsAseguradoras ?? []);
@@ -428,7 +835,25 @@ const dataEquipoMensual      = @json($dataEquipoMensual ?? []);
 const distribucionRespuestas = @json($distribucionRespuestas ?? []);
 const distribucionTutelas    = @json($distribucionTutelas ?? []);
 
-const chartDefaults = { responsive: true, maintainAspectRatio: false };
+// Detectar tema para Chart.js
+const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+const gridColor  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+const tickColor  = isDark ? '#4E6A8A' : '#8FA5C0';
+const legendColor= isDark ? '#8EA9CC' : '#445C7A';
+
+const baseOpts = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            labels: { color: legendColor, font: { family: "'DM Sans',sans-serif", size: 11 } }
+        }
+    },
+    scales: {
+        x: { ticks: { color: tickColor, font: { size: 11 } }, grid: { color: gridColor } },
+        y: { ticks: { color: tickColor, font: { size: 11 } }, grid: { color: gridColor } }
+    }
+};
 
 if (document.getElementById('chartAseguradoras')) {
     new Chart(document.getElementById('chartAseguradoras'), {
@@ -436,11 +861,23 @@ if (document.getElementById('chartAseguradoras')) {
         data: {
             labels: labelsAseguradoras,
             datasets: [
-                { label: 'Total pagado',    data: dataPagadoAseguradoras, backgroundColor: 'rgba(25,135,84,.7)',  borderColor: 'rgba(25,135,84,1)',  borderWidth: 1 },
-                { label: 'Ganancia equipo', data: dataEquipoAseguradoras, backgroundColor: 'rgba(29,78,216,.7)',  borderColor: 'rgba(29,78,216,1)',  borderWidth: 1 }
+                {
+                    label: 'Total pagado',
+                    data: dataPagadoAseguradoras,
+                    backgroundColor: 'rgba(29,189,127,.7)',
+                    borderColor: '#1DBD7F', borderWidth: 1,
+                    borderRadius: 4
+                },
+                {
+                    label: 'Ganancia equipo',
+                    data: dataEquipoAseguradoras,
+                    backgroundColor: 'rgba(75,120,255,.7)',
+                    borderColor: '#4B78FF', borderWidth: 1,
+                    borderRadius: 4
+                }
             ]
         },
-        options: chartDefaults
+        options: baseOpts
     });
 }
 
@@ -451,10 +888,29 @@ if (document.getElementById('chartEstados')) {
             labels: labelsEstados,
             datasets: [{
                 data: dataEstados,
-                backgroundColor: ['#2563eb','#198754','#f59e0b','#dc3545','#6b7280','#0ea5e9','#8b5cf6','#14b8a6','#f97316','#84cc16','#e11d48','#a855f7']
+                backgroundColor: [
+                    '#1B4FFF','#1DBD7F','#F59E0B','#E53935',
+                    '#4E6A8A','#0891B2','#7C3AED','#059669',
+                    '#F97316','#84CC16','#E11D48','#A855F7'
+                ],
+                borderWidth: 2,
+                borderColor: isDark ? '#0F1E35' : '#fff'
             }]
         },
-        options: chartDefaults
+        options: {
+            ...baseOpts,
+            scales: {},
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: legendColor,
+                        font: { family: "'DM Sans',sans-serif", size: 11 },
+                        padding: 12, boxWidth: 12
+                    }
+                }
+            }
+        }
     });
 }
 
@@ -464,11 +920,25 @@ if (document.getElementById('chartMensual')) {
         data: {
             labels: labelsPagosMensuales,
             datasets: [
-                { label: 'Pagado mensual',          data: dataPagosMensuales, borderColor: 'rgba(25,135,84,1)',  backgroundColor: 'rgba(25,135,84,.12)', tension: .25, fill: true },
-                { label: 'Ganancia equipo mensual', data: dataEquipoMensual,  borderColor: 'rgba(29,78,216,1)',  backgroundColor: 'rgba(29,78,216,.10)', tension: .25, fill: true }
+                {
+                    label: 'Pagado mensual',
+                    data: dataPagosMensuales,
+                    borderColor: '#1DBD7F',
+                    backgroundColor: 'rgba(29,189,127,.1)',
+                    tension: .3, fill: true,
+                    pointBackgroundColor: '#1DBD7F', pointRadius: 3
+                },
+                {
+                    label: 'Ganancia equipo',
+                    data: dataEquipoMensual,
+                    borderColor: '#4B78FF',
+                    backgroundColor: 'rgba(75,120,255,.08)',
+                    tension: .3, fill: true,
+                    pointBackgroundColor: '#4B78FF', pointRadius: 3
+                }
             ]
         },
-        options: chartDefaults
+        options: baseOpts
     });
 }
 
@@ -476,7 +946,7 @@ if (document.getElementById('chartRespuestas')) {
     new Chart(document.getElementById('chartRespuestas'), {
         type: 'doughnut',
         data: {
-            labels: ['Emitió dictamen', 'Negó la solicitud', 'No respondió', 'Sin respuesta aún'],
+            labels: ['Emitió dictamen','Negó la solicitud','No respondió','Sin respuesta aún'],
             datasets: [{
                 data: [
                     distribucionRespuestas.emitio_dictamen ?? 0,
@@ -484,10 +954,20 @@ if (document.getElementById('chartRespuestas')) {
                     distribucionRespuestas.no_respondio    ?? 0,
                     distribucionRespuestas.sin_respuesta   ?? 0
                 ],
-                backgroundColor: ['#198754','#dc3545','#f59e0b','#9ca3af']
+                backgroundColor: ['#1DBD7F','#F26F6F','#F5B942','#4E6A8A'],
+                borderWidth: 2,
+                borderColor: isDark ? '#0F1E35' : '#fff'
             }]
         },
-        options: { ...chartDefaults, plugins: { legend: { position: 'bottom' } } }
+        options: {
+            ...baseOpts, scales: {},
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: legendColor, font: { family: "'DM Sans',sans-serif", size: 11 }, padding: 10, boxWidth: 12 }
+                }
+            }
+        }
     });
 }
 
@@ -495,22 +975,24 @@ if (document.getElementById('chartTutelas')) {
     new Chart(document.getElementById('chartTutelas'), {
         type: 'bar',
         data: {
-            labels: ['Para calificación', 'Por debido proceso'],
+            labels: ['Para calificación','Por debido proceso'],
             datasets: [{
                 label: 'Tutelas',
                 data: [
                     distribucionTutelas.calificacion   ?? 0,
                     distribucionTutelas.debido_proceso ?? 0
                 ],
-                backgroundColor: ['rgba(14,165,233,.75)', 'rgba(124,58,237,.75)'],
-                borderColor:     ['rgba(14,165,233,1)',    'rgba(124,58,237,1)'],
-                borderWidth: 1
+                backgroundColor: ['rgba(8,145,178,.75)','rgba(124,58,237,.75)'],
+                borderColor:     ['#0891B2','#7C3AED'],
+                borderWidth: 1, borderRadius: 4
             }]
         },
-        options: { ...chartDefaults, indexAxis: 'y', plugins: { legend: { display: false } } }
+        options: {
+            ...baseOpts,
+            indexAxis: 'y',
+            plugins: { legend: { display: false } }
+        }
     });
 }
 </script>
-
-</body>
-</html>
+@endpush
