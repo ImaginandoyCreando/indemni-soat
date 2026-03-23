@@ -178,6 +178,9 @@ form.inline { display:inline; }
 .tabla-scroll::-webkit-scrollbar-thumb:hover {
     background: rgba(27,79,255,0.8);
 }
+    
+/* ── Fix: permitir scroll horizontal dentro del wrap ── */
+.is-table-wrap { overflow: visible !important; }
 </style>
 
 {{-- ────────────────────────────────────────────────────
