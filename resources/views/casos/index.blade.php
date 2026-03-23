@@ -180,7 +180,8 @@ form.inline { display:inline; }
 }
     
 /* ── Fix: permitir scroll horizontal dentro del wrap ── */
-.is-table-wrap { overflow: visible !important; }
+.is-table-wrap { overflow-x: auto !important; overflow-y: visible !important; }
+.tabla-scroll  { overflow-x: unset !important; }
 </style>
 
 {{-- ────────────────────────────────────────────────────
