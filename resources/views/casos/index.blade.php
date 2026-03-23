@@ -179,9 +179,17 @@ form.inline { display:inline; }
     background: rgba(27,79,255,0.8);
 }
     
-/* ── Fix: permitir scroll horizontal dentro del wrap ── */
-.is-table-wrap { overflow-x: auto !important; overflow-y: visible !important; }
-.tabla-scroll  { overflow-x: unset !important; }
+/* ── Fix: scroll horizontal tabla ── */
+.is-table-wrap {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+}
+.is-table-wrap table {
+    min-width: 1600px !important;
+}
+.tabla-scroll {
+    overflow-x: unset !important;
+}
 </style>
 
 {{-- ────────────────────────────────────────────────────
