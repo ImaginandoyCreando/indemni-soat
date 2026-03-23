@@ -4,7 +4,6 @@
 
 @section('content')
 
-{{-- ── Estilos específicos de esta vista ── --}}
 <style>
 /* ── Colores de fila por prioridad ── */
 [data-theme="dark"]  tr.row-red    { background: rgba(229,57,53,0.06); }
@@ -41,40 +40,22 @@
     line-height:1.3;
 }
 .is-act-btn:disabled,
-.is-act-btn[disabled] {
-    opacity:0.45; cursor:not-allowed; pointer-events:none;
-}
-/* Variantes */
-.act-default  { background:rgba(27,79,255,0.12);  color:#4B78FF;
-                border-color:rgba(27,79,255,0.2); }
-.act-default:hover  { background:rgba(27,79,255,0.22); color:#4B78FF; }
-
-.act-gray    { background:var(--bg-input); color:var(--text-2);
-               border-color:var(--border-2); }
+.is-act-btn[disabled] { opacity:0.45; cursor:not-allowed; pointer-events:none; }
+.act-default { background:rgba(27,79,255,0.12); color:#4B78FF; border-color:rgba(27,79,255,0.2); }
+.act-default:hover { background:rgba(27,79,255,0.22); color:#4B78FF; }
+.act-gray    { background:var(--bg-input); color:var(--text-2); border-color:var(--border-2); }
 .act-gray:hover { background:var(--bg-hover); color:var(--text-1); }
-
-.act-warn    { background:rgba(245,158,11,0.12); color:#F5B942;
-               border-color:rgba(245,158,11,0.25); }
+.act-warn    { background:rgba(245,158,11,0.12); color:#F5B942; border-color:rgba(245,158,11,0.25); }
 .act-warn:hover { background:rgba(245,158,11,0.22); }
-
-.act-danger  { background:rgba(229,57,53,0.1);  color:#F26F6F;
-               border-color:rgba(229,57,53,0.22); }
+.act-danger  { background:rgba(229,57,53,0.1); color:#F26F6F; border-color:rgba(229,57,53,0.22); }
 .act-danger:hover { background:rgba(229,57,53,0.2); }
-
-.act-success { background:rgba(5,150,105,0.1);  color:#1DBD7F;
-               border-color:rgba(5,150,105,0.22); }
+.act-success { background:rgba(5,150,105,0.1); color:#1DBD7F; border-color:rgba(5,150,105,0.22); }
 .act-success:hover { background:rgba(5,150,105,0.2); }
-
-.act-teal    { background:rgba(8,145,178,0.1);  color:#22B8D4;
-               border-color:rgba(8,145,178,0.22); }
+.act-teal    { background:rgba(8,145,178,0.1); color:#22B8D4; border-color:rgba(8,145,178,0.22); }
 .act-teal:hover { background:rgba(8,145,178,0.2); }
-
-.act-purple  { background:rgba(124,58,237,0.1); color:#A78BFA;
-               border-color:rgba(124,58,237,0.22); }
+.act-purple  { background:rgba(124,58,237,0.1); color:#A78BFA; border-color:rgba(124,58,237,0.22); }
 .act-purple:hover { background:rgba(124,58,237,0.2); }
-
-.act-done    { background:var(--bg-input); color:var(--text-3);
-               border-color:var(--border); cursor:default; }
+.act-done    { background:var(--bg-input); color:var(--text-3); border-color:var(--border); cursor:default; }
 
 /* ── Modales ── */
 .is-modal-overlay {
@@ -85,7 +66,6 @@
     z-index:10000; padding:20px;
 }
 .is-modal-overlay.active { display:flex; }
-
 .is-modal {
     width:100%; max-width:540px;
     background:var(--bg-card);
@@ -104,36 +84,25 @@
 .is-modal-title {
     font-family:'Playfair Display',serif;
     font-size:20px; font-weight:700;
-    color:var(--text-1); margin-bottom:4px;
-    transition:color .3s;
+    color:var(--text-1); margin-bottom:4px; transition:color .3s;
 }
-.is-modal-sub {
-    font-size:12px; color:var(--text-2);
-    margin-bottom:20px; line-height:1.5;
-}
+.is-modal-sub { font-size:12px; color:var(--text-2); margin-bottom:20px; line-height:1.5; }
 .is-modal-grid { display:grid; gap:14px; }
 .is-modal label {
     display:block; font-size:10px; font-weight:700;
     color:var(--text-3); letter-spacing:.7px;
     text-transform:uppercase; margin-bottom:6px;
 }
-.is-modal-hint {
-    font-size:11px; color:var(--text-3);
-    margin-top:5px; line-height:1.4;
-}
-.is-modal-actions {
-    margin-top:22px; display:flex;
-    justify-content:flex-end; gap:10px; flex-wrap:wrap;
-}
+.is-modal-hint { font-size:11px; color:var(--text-3); margin-top:5px; line-height:1.4; }
+.is-modal-actions { margin-top:22px; display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
 
-/* ── Paginación override ── */
+/* ── Paginación ── */
 .is-pagination nav { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
 .is-pagination nav a,
 .is-pagination nav span {
     padding:6px 11px; border-radius:7px; font-size:12px; font-weight:600;
     color:var(--text-2); transition:all .18s; text-decoration:none;
-    border:1px solid var(--border);
-    background:var(--bg-input);
+    border:1px solid var(--border); background:var(--bg-input);
 }
 .is-pagination nav a:hover { color:var(--text-1); background:var(--bg-hover); }
 .is-pagination nav [aria-current="page"] span,
@@ -142,62 +111,52 @@
     color:#4B78FF; border-color:rgba(27,79,255,.25);
 }
 
-/* ── Tabla col widths ── */
-.col-prio   { width:100px; }
-.col-num    { min-width:130px; }
-.col-vic    { min-width:200px; }
-.col-doc    { min-width:80px; }
-.col-aseg   { min-width:120px; }
-.col-est    { min-width:110px; }
-.col-pcl    { min-width:60px; }
-.col-val    { min-width:110px; white-space:nowrap; }
-.col-acc    { min-width:480px; }
+/* ── Columnas tabla ── */
+.col-prio { width:100px; }
+.col-num  { min-width:130px; }
+.col-vic  { min-width:200px; }
+.col-doc  { min-width:80px; }
+.col-aseg { min-width:120px; }
+.col-est  { min-width:110px; }
+.col-pcl  { min-width:60px; }
+.col-val  { min-width:110px; white-space:nowrap; }
+.col-acc  { min-width:480px; }
 
 form.inline { display:inline; }
 
-/* ── SCROLLBAR HORIZONTAL TABLA ── */
+/* ════════════════════════════════════
+   SCROLL HORIZONTAL — VERSIÓN LIMPIA
+   El scroll lo gestiona .tabla-scroll
+   El wrapper .is-table-wrap no interfiere
+════════════════════════════════════ */
+.is-table-wrap {
+    overflow: visible !important;
+}
 .tabla-scroll {
     overflow-x: auto;
     overflow-y: visible;
-    padding-bottom: 4px;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
-    scrollbar-color: rgba(27,79,255,0.5) var(--border);
+    scrollbar-color: rgba(27,79,255,0.45) var(--border);
 }
-.tabla-scroll::-webkit-scrollbar {
-    height: 6px;
+.tabla-scroll table {
+    min-width: 1600px;
 }
-.tabla-scroll::-webkit-scrollbar-track {
-    background: var(--border);
-    border-radius: 0 0 8px 8px;
-}
+.tabla-scroll::-webkit-scrollbar       { height: 5px; }
+.tabla-scroll::-webkit-scrollbar-track { background: var(--border); }
 .tabla-scroll::-webkit-scrollbar-thumb {
-    background: rgba(27,79,255,0.5);
+    background: rgba(27,79,255,0.45);
     border-radius: 3px;
 }
 .tabla-scroll::-webkit-scrollbar-thumb:hover {
-    background: rgba(27,79,255,0.8);
-}
-    
-/* ── Fix: scroll horizontal tabla ── */
-.is-table-wrap {
-    overflow-x: auto !important;
-    overflow-y: visible !important;
-}
-.is-table-wrap table {
-    min-width: 1600px !important;
-}
-.tabla-scroll {
-    overflow-x: unset !important;
+    background: rgba(27,79,255,0.75);
 }
 </style>
 
-{{-- ────────────────────────────────────────────────────
-     CABECERA DE PÁGINA
-──────────────────────────────────────────────────── --}}
+{{-- ── Cabecera ── --}}
 <div class="is-animate-rise"
-     style="display:flex;align-items:flex-start;
-            justify-content:space-between;margin-bottom:22px;gap:14px;flex-wrap:wrap;">
+     style="display:flex;align-items:flex-start;justify-content:space-between;
+            margin-bottom:22px;gap:14px;flex-wrap:wrap;">
     <div>
         <div class="is-page-title">Casos SOAT</div>
         <div style="font-size:12px;color:var(--text-2);margin-top:4px;">
@@ -218,7 +177,6 @@ form.inline { display:inline; }
     @endif
 </div>
 
-{{-- Alertas de sesión --}}
 @if(session('success'))
     <div class="is-animate-rise is-stagger-1"
          style="background:rgba(5,150,105,0.08);border:1px solid rgba(5,150,105,0.22);
@@ -236,13 +194,9 @@ form.inline { display:inline; }
     </div>
 @endif
 
-{{-- ────────────────────────────────────────────────────
-     FILTROS
-──────────────────────────────────────────────────── --}}
+{{-- ── Filtros ── --}}
 <div class="is-filter-panel is-animate-rise is-stagger-1" style="margin-bottom:16px;">
     <form method="GET" action="{{ route('casos.index') }}">
-
-        {{-- Fila 1 --}}
         <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;
                     gap:12px;align-items:end;margin-bottom:12px;">
             <div>
@@ -256,8 +210,7 @@ form.inline { display:inline; }
                 <select name="aseguradora" class="is-select">
                     <option value="">Todas</option>
                     @foreach($aseguradoras as $aseg)
-                        <option value="{{ $aseg }}"
-                            {{ request('aseguradora') == $aseg ? 'selected' : '' }}>
+                        <option value="{{ $aseg }}" {{ request('aseguradora')==$aseg?'selected':'' }}>
                             {{ $aseg }}
                         </option>
                     @endforeach
@@ -268,8 +221,7 @@ form.inline { display:inline; }
                 <select name="estado" class="is-select">
                     <option value="">Todos</option>
                     @foreach($estados as $est)
-                        <option value="{{ $est }}"
-                            {{ request('estado') == $est ? 'selected' : '' }}>
+                        <option value="{{ $est }}" {{ request('estado')==$est?'selected':'' }}>
                             {{ $est }}
                         </option>
                     @endforeach
@@ -281,7 +233,7 @@ form.inline { display:inline; }
                     <option value="">Todas</option>
                     @foreach($alertasDisponibles as $al)
                         <option value="{{ $al['valor'] }}"
-                            {{ request('alerta') == $al['valor'] ? 'selected' : '' }}>
+                            {{ request('alerta')==$al['valor']?'selected':'' }}>
                             {{ $al['texto'] }}
                         </option>
                     @endforeach
@@ -289,15 +241,12 @@ form.inline { display:inline; }
             </div>
             <div style="display:flex;gap:8px;align-items:flex-end;">
                 <button type="submit" class="is-btn-primary"
-                        style="padding:10px 18px;font-size:12px;">
-                    Filtrar
-                </button>
+                        style="padding:10px 18px;font-size:12px;">Filtrar</button>
                 <a href="{{ route('casos.index') }}" class="is-btn-ghost"
                    style="padding:10px 12px;font-size:12px;">✕</a>
             </div>
         </div>
 
-        {{-- Fila 2 --}}
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;
                     gap:12px;align-items:end;">
             <div>
@@ -314,36 +263,35 @@ form.inline { display:inline; }
                 <div class="is-form-label">Poder firmado</div>
                 <select name="tiene_poder" class="is-select">
                     <option value="">Todos</option>
-                    <option value="1" {{ request('tiene_poder')==='1' ? 'selected':'' }}>Sí</option>
-                    <option value="0" {{ request('tiene_poder')==='0' ? 'selected':'' }}>No</option>
+                    <option value="1" {{ request('tiene_poder')==='1'?'selected':'' }}>Sí</option>
+                    <option value="0" {{ request('tiene_poder')==='0'?'selected':'' }}>No</option>
                 </select>
             </div>
             <div>
                 <div class="is-form-label">Contrato firmado</div>
                 <select name="tiene_contrato" class="is-select">
                     <option value="">Todos</option>
-                    <option value="1" {{ request('tiene_contrato')==='1' ? 'selected':'' }}>Sí</option>
-                    <option value="0" {{ request('tiene_contrato')==='0' ? 'selected':'' }}>No</option>
+                    <option value="1" {{ request('tiene_contrato')==='1'?'selected':'' }}>Sí</option>
+                    <option value="0" {{ request('tiene_contrato')==='0'?'selected':'' }}>No</option>
                 </select>
             </div>
             <div>
                 <div class="is-form-label">Alta ortopedia</div>
                 <select name="alta_ortopedia" class="is-select">
                     <option value="">Todos</option>
-                    <option value="1" {{ request('alta_ortopedia')==='1' ? 'selected':'' }}>Sí</option>
-                    <option value="0" {{ request('alta_ortopedia')==='0' ? 'selected':'' }}>No</option>
+                    <option value="1" {{ request('alta_ortopedia')==='1'?'selected':'' }}>Sí</option>
+                    <option value="0" {{ request('alta_ortopedia')==='0'?'selected':'' }}>No</option>
                 </select>
             </div>
         </div>
 
-        {{-- Fila 3 --}}
         <div style="display:grid;grid-template-columns:1fr 4fr;gap:12px;margin-top:12px;">
             <div>
                 <div class="is-form-label">FURPEN</div>
                 <select name="furpen_completo" class="is-select">
                     <option value="">Todos</option>
-                    <option value="1" {{ request('furpen_completo')==='1' ? 'selected':'' }}>Completo</option>
-                    <option value="0" {{ request('furpen_completo')==='0' ? 'selected':'' }}>Pendiente</option>
+                    <option value="1" {{ request('furpen_completo')==='1'?'selected':'' }}>Completo</option>
+                    <option value="0" {{ request('furpen_completo')==='0'?'selected':'' }}>Pendiente</option>
                 </select>
             </div>
             <div></div>
@@ -354,57 +302,49 @@ form.inline { display:inline; }
     </form>
 </div>
 
-{{-- ── Leyenda de prioridades ── --}}
+{{-- ── Prioridades ── --}}
 <div class="is-priority-row is-animate-rise is-stagger-2"
      style="margin-bottom:16px;padding:12px 16px;
-            background:var(--bg-card);border:1px solid var(--border);
-            border-radius:10px;">
+            background:var(--bg-card);border:1px solid var(--border);border-radius:10px;">
     <span style="font-size:10px;font-weight:700;color:var(--text-3);
                  letter-spacing:.8px;text-transform:uppercase;margin-right:4px;">
         Prioridades:
     </span>
     <span class="is-pill is-pill-red">
-        <span style="width:6px;height:6px;border-radius:50%;
-                     background:#E53935;flex-shrink:0;display:inline-block;
-                     box-shadow:0 0 5px #E53935;"></span>
+        <span style="width:6px;height:6px;border-radius:50%;background:#E53935;
+                     flex-shrink:0;display:inline-block;box-shadow:0 0 5px #E53935;"></span>
         Crítica / Tutela / Prescripción
     </span>
     <span class="is-pill is-pill-amber">
-        <span style="width:6px;height:6px;border-radius:50%;
-                     background:#F59E0B;flex-shrink:0;display:inline-block;"></span>
+        <span style="width:6px;height:6px;border-radius:50%;background:#F59E0B;
+                     flex-shrink:0;display:inline-block;"></span>
         Documentos pendientes
     </span>
     <span class="is-pill is-pill-teal">
-        <span style="width:6px;height:6px;border-radius:50%;
-                     background:#0891B2;flex-shrink:0;display:inline-block;"></span>
+        <span style="width:6px;height:6px;border-radius:50%;background:#0891B2;
+                     flex-shrink:0;display:inline-block;"></span>
         Seguimiento / Junta / Cobro
     </span>
     <span class="is-pill is-pill-green">
-        <span style="width:6px;height:6px;border-radius:50%;
-                     background:#059669;flex-shrink:0;display:inline-block;"></span>
+        <span style="width:6px;height:6px;border-radius:50%;background:#059669;
+                     flex-shrink:0;display:inline-block;"></span>
         Pagado
     </span>
     <span class="is-pill"
-          style="background:var(--bg-input);color:var(--text-2);
-                 border:1.5px solid var(--border-2);">
-        <span style="width:6px;height:6px;border-radius:50%;
-                     background:var(--text-3);flex-shrink:0;display:inline-block;"></span>
+          style="background:var(--bg-input);color:var(--text-2);border:1.5px solid var(--border-2);">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--text-3);
+                     flex-shrink:0;display:inline-block;"></span>
         Normal
     </span>
 </div>
 
-{{-- ────────────────────────────────────────────────────
-     TABLA
-──────────────────────────────────────────────────── --}}
+{{-- ── Tabla ── --}}
 <div class="is-table-wrap is-table is-animate-rise is-stagger-3">
 
-    {{-- Toolbar --}}
     <div class="is-table-header">
         <div style="font-size:13px;color:var(--text-2);">
             Mostrando
-            <strong style="color:var(--text-1);font-weight:600;">
-                {{ $casos->total() }}
-            </strong>
+            <strong style="color:var(--text-1);font-weight:600;">{{ $casos->total() }}</strong>
             casos
         </div>
         <div style="display:flex;gap:6px;">
@@ -412,12 +352,11 @@ form.inline { display:inline; }
                         border:1px solid var(--border-2);background:var(--bg-input);
                         display:flex;align-items:center;justify-content:center;
                         cursor:pointer;color:var(--text-2);font-size:12px;"
-                 title="Exportar">
-                ↓
-            </div>
+                 title="Exportar">↓</div>
         </div>
     </div>
 
+    {{-- ← Este div es el que maneja el scroll ── --}}
     <div class="tabla-scroll">
         <table>
             <thead>
@@ -425,49 +364,37 @@ form.inline { display:inline; }
                     <th class="col-prio">Prioridad</th>
                     <th class="col-num">
                         <a href="{{ route('casos.index', array_merge(request()->query(),
-                            ['sort'=>'numero_caso',
-                             'direction'=>(($sort==='numero_caso'&&$direction==='asc')?'desc':'asc')])) }}"
+                            ['sort'=>'numero_caso','direction'=>(($sort==='numero_caso'&&$direction==='asc')?'desc':'asc')])) }}"
                            style="color:var(--text-3);text-decoration:none;">
-                            Número
-                            @if($sort==='numero_caso')
-                                {{ $direction==='asc' ? '↑' : '↓' }}
-                            @endif
+                            Número @if($sort==='numero_caso'){{ $direction==='asc'?'↑':'↓' }}@endif
                         </a>
                     </th>
                     <th class="col-vic">
                         <a href="{{ route('casos.index', array_merge(request()->query(),
-                            ['sort'=>'nombres',
-                             'direction'=>(($sort==='nombres'&&$direction==='asc')?'desc':'asc')])) }}"
+                            ['sort'=>'nombres','direction'=>(($sort==='nombres'&&$direction==='asc')?'desc':'asc')])) }}"
                            style="color:var(--text-3);text-decoration:none;">
-                            Víctima
-                            @if($sort==='nombres'){{ $direction==='asc' ? '↑' : '↓' }}@endif
+                            Víctima @if($sort==='nombres'){{ $direction==='asc'?'↑':'↓' }}@endif
                         </a>
                     </th>
                     <th class="col-doc">
                         <a href="{{ route('casos.index', array_merge(request()->query(),
-                            ['sort'=>'cedula',
-                             'direction'=>(($sort==='cedula'&&$direction==='asc')?'desc':'asc')])) }}"
+                            ['sort'=>'cedula','direction'=>(($sort==='cedula'&&$direction==='asc')?'desc':'asc')])) }}"
                            style="color:var(--text-3);text-decoration:none;">
-                            Cédula
-                            @if($sort==='cedula'){{ $direction==='asc' ? '↑' : '↓' }}@endif
+                            Cédula @if($sort==='cedula'){{ $direction==='asc'?'↑':'↓' }}@endif
                         </a>
                     </th>
                     <th class="col-aseg">
                         <a href="{{ route('casos.index', array_merge(request()->query(),
-                            ['sort'=>'aseguradora',
-                             'direction'=>(($sort==='aseguradora'&&$direction==='asc')?'desc':'asc')])) }}"
+                            ['sort'=>'aseguradora','direction'=>(($sort==='aseguradora'&&$direction==='asc')?'desc':'asc')])) }}"
                            style="color:var(--text-3);text-decoration:none;">
-                            Aseguradora
-                            @if($sort==='aseguradora'){{ $direction==='asc' ? '↑' : '↓' }}@endif
+                            Aseguradora @if($sort==='aseguradora'){{ $direction==='asc'?'↑':'↓' }}@endif
                         </a>
                     </th>
                     <th class="col-est">
                         <a href="{{ route('casos.index', array_merge(request()->query(),
-                            ['sort'=>'estado',
-                             'direction'=>(($sort==='estado'&&$direction==='asc')?'desc':'asc')])) }}"
+                            ['sort'=>'estado','direction'=>(($sort==='estado'&&$direction==='asc')?'desc':'asc')])) }}"
                            style="color:var(--text-3);text-decoration:none;">
-                            Estado
-                            @if($sort==='estado'){{ $direction==='asc' ? '↑' : '↓' }}@endif
+                            Estado @if($sort==='estado'){{ $direction==='asc'?'↑':'↓' }}@endif
                         </a>
                     </th>
                     <th class="col-pcl">PCL</th>
@@ -479,11 +406,9 @@ form.inline { display:inline; }
                     <th>Avance</th>
                     <th>
                         <a href="{{ route('casos.index', array_merge(request()->query(),
-                            ['sort'=>'junta_asignada',
-                             'direction'=>(($sort==='junta_asignada'&&$direction==='asc')?'desc':'asc')])) }}"
+                            ['sort'=>'junta_asignada','direction'=>(($sort==='junta_asignada'&&$direction==='asc')?'desc':'asc')])) }}"
                            style="color:var(--text-3);text-decoration:none;">
-                            Junta
-                            @if($sort==='junta_asignada'){{ $direction==='asc' ? '↑' : '↓' }}@endif
+                            Junta @if($sort==='junta_asignada'){{ $direction==='asc'?'↑':'↓' }}@endif
                         </a>
                     </th>
                     <th class="col-acc">Acciones</th>
@@ -509,17 +434,14 @@ form.inline { display:inline; }
                     $diasPrescripcion = method_exists($caso,'diasParaPrescripcion')
                         ? $caso->diasParaPrescripcion() : null;
                 @endphp
-
                 <tr class="{{ $rowClass }}">
 
-                    {{-- Prioridad --}}
                     <td>
                         <span class="{{ $badgeClass }}" style="font-size:10px;">
                             {{ $caso->texto_alerta }}
                         </span>
                     </td>
 
-                    {{-- Número --}}
                     <td>
                         <strong style="font-family:'Playfair Display',serif;
                                        color:var(--text-1);font-size:13px;">
@@ -536,7 +458,6 @@ form.inline { display:inline; }
                         </div>
                     </td>
 
-                    {{-- Víctima --}}
                     <td style="line-height:1.5;">
                         <strong style="display:block;color:var(--text-1);font-size:13px;">
                             {{ $caso->nombres }} {{ $caso->apellidos }}
@@ -574,8 +495,7 @@ form.inline { display:inline; }
                             <div style="margin-top:2px;">
                                 <span class="mini mini-purple">
                                     {{ $caso->tipo_tutela === 'tutela_calificacion'
-                                        ? 'Tutela calificación'
-                                        : 'Tutela debido proceso' }}
+                                        ? 'Tutela calificación' : 'Tutela debido proceso' }}
                                 </span>
                             </div>
                         @endif
@@ -595,33 +515,22 @@ form.inline { display:inline; }
                         @endif
                     </td>
 
-                    {{-- Cédula --}}
-                    <td style="font-size:12px;color:var(--text-3);">
-                        {{ $caso->cedula }}
-                    </td>
+                    <td style="font-size:12px;color:var(--text-3);">{{ $caso->cedula }}</td>
+                    <td style="font-size:13px;font-weight:500;color:var(--text-1);">{{ $caso->aseguradora ?: '—' }}</td>
 
-                    {{-- Aseguradora --}}
-                    <td style="font-size:13px;font-weight:500;color:var(--text-1);">
-                        {{ $caso->aseguradora ?: '—' }}
-                    </td>
-
-                    {{-- Estado --}}
                     <td>
-                        <span class="is-badge is-badge-cobalt"
-                              style="font-size:10px;white-space:nowrap;">
+                        <span class="is-badge is-badge-cobalt" style="font-size:10px;white-space:nowrap;">
                             {{ $caso->estado ?: 'N/A' }}
                         </span>
                     </td>
 
-                    {{-- PCL --}}
                     <td>
                         @if($caso->porcentaje_pcl)
                             <div class="is-pcl-wrap">
                                 {{ $caso->porcentaje_pcl }}%
                                 <div class="is-pcl-track">
                                     <div class="is-pcl-fill"
-                                         style="width:{{ min($caso->porcentaje_pcl,100) }}%;
-                                                background:#1B4FFF;">
+                                         style="width:{{ min($caso->porcentaje_pcl,100) }}%;background:#1B4FFF;">
                                     </div>
                                 </div>
                             </div>
@@ -630,88 +539,52 @@ form.inline { display:inline; }
                         @endif
                     </td>
 
-                    {{-- Valor estimado --}}
-                    <td style="font-family:'Playfair Display',serif;font-weight:700;
-                               color:#D4AA48;font-size:13px;white-space:nowrap;">
-                        {{ $caso->valor_estimado
-                            ? '$'.number_format($caso->valor_estimado,0,',','.')
-                            : '—' }}
+                    <td style="font-family:'Playfair Display',serif;font-weight:700;color:#D4AA48;font-size:13px;white-space:nowrap;">
+                        {{ $caso->valor_estimado ? '$'.number_format($caso->valor_estimado,0,',','.') : '—' }}
                     </td>
-
-                    {{-- Valor pagado --}}
-                    <td style="font-family:'Playfair Display',serif;font-weight:700;
-                               color:#1DBD7F;font-size:13px;white-space:nowrap;">
-                        {{ $caso->valor_pagado
-                            ? '$'.number_format($caso->valor_pagado,0,',','.')
-                            : '—' }}
+                    <td style="font-family:'Playfair Display',serif;font-weight:700;color:#1DBD7F;font-size:13px;white-space:nowrap;">
+                        {{ $caso->valor_pagado ? '$'.number_format($caso->valor_pagado,0,',','.') : '—' }}
                     </td>
-
-                    {{-- % Honorarios --}}
                     <td style="font-weight:600;color:var(--text-1);font-size:13px;">
-                        {{ $caso->porcentaje_honorarios
-                            ? number_format($caso->porcentaje_honorarios,0,',','.').'%'
-                            : '—' }}
+                        {{ $caso->porcentaje_honorarios ? number_format($caso->porcentaje_honorarios,0,',','.').'%' : '—' }}
+                    </td>
+                    <td style="font-family:'Playfair Display',serif;font-weight:700;color:#4B78FF;font-size:13px;white-space:nowrap;">
+                        {{ $caso->ganancia_equipo ? '$'.number_format($caso->ganancia_equipo,0,',','.') : '—' }}
+                    </td>
+                    <td style="font-family:'Playfair Display',serif;font-weight:700;color:#D4AA48;font-size:13px;white-space:nowrap;">
+                        {{ $caso->valor_neto_cliente ? '$'.number_format($caso->valor_neto_cliente,0,',','.') : '—' }}
                     </td>
 
-                    {{-- Ganancia equipo --}}
-                    <td style="font-family:'Playfair Display',serif;font-weight:700;
-                               color:#4B78FF;font-size:13px;white-space:nowrap;">
-                        {{ $caso->ganancia_equipo
-                            ? '$'.number_format($caso->ganancia_equipo,0,',','.')
-                            : '—' }}
-                    </td>
-
-                    {{-- Neto cliente --}}
-                    <td style="font-family:'Playfair Display',serif;font-weight:700;
-                               color:#D4AA48;font-size:13px;white-space:nowrap;">
-                        {{ $caso->valor_neto_cliente
-                            ? '$'.number_format($caso->valor_neto_cliente,0,',','.')
-                            : '—' }}
-                    </td>
-
-                    {{-- Avance --}}
                     <td>
                         <div class="is-pcl-wrap">
                             {{ $caso->porcentaje_avance ?? 0 }}%
                             <div class="is-pcl-track">
                                 <div class="is-pcl-fill"
-                                     style="width:{{ $caso->porcentaje_avance ?? 0 }}%;
-                                            background:#059669;">
+                                     style="width:{{ $caso->porcentaje_avance ?? 0 }}%;background:#059669;">
                                 </div>
                             </div>
                         </div>
                     </td>
 
-                    {{-- Junta --}}
-                    <td style="font-size:12px;color:var(--text-2);
-                               max-width:220px;line-height:1.35;">
+                    <td style="font-size:12px;color:var(--text-2);max-width:220px;line-height:1.35;">
                         {{ $caso->junta_asignada ?: '—' }}
                     </td>
 
-                    {{-- ── ACCIONES ── --}}
                     <td>
                         <div style="display:flex;flex-wrap:wrap;gap:5px;">
-
-                            <a href="{{ route('casos.show', $caso) }}"
-                               class="is-act-btn act-gray">Ver</a>
+                            <a href="{{ route('casos.show', $caso) }}" class="is-act-btn act-gray">Ver</a>
 
                             @if(auth()->user()->puedeEditar())
-                                <a href="{{ route('casos.edit', $caso) }}"
-                                   class="is-act-btn act-warn">Editar</a>
+                                <a href="{{ route('casos.edit', $caso) }}" class="is-act-btn act-warn">Editar</a>
                             @endif
 
-                            <a href="{{ route('casos.documentos.index', $caso) }}"
-                               class="is-act-btn act-default">Expediente</a>
-
-                            <a href="{{ route('casos.bitacoras.index', $caso) }}"
-                               class="is-act-btn act-gray">Bitácora</a>
+                            <a href="{{ route('casos.documentos.index', $caso) }}" class="is-act-btn act-default">Expediente</a>
+                            <a href="{{ route('casos.bitacoras.index', $caso) }}" class="is-act-btn act-gray">Bitácora</a>
 
                             @if(auth()->user()->puedeAccionarFlujo())
 
-                                {{-- Solicitud aseguradora --}}
                                 @if(empty($caso->fecha_solicitud_aseguradora) && !$caso->requierePoderContrato() && !$caso->estaPrescrito())
-                                    <button type="button"
-                                            class="is-act-btn act-default btn-abrir-modal-fecha"
+                                    <button type="button" class="is-act-btn act-default btn-abrir-modal-fecha"
                                             data-action="{{ route('casos.marcarSolicitudAseguradora', $caso) }}"
                                             data-campo="fecha_solicitud_aseguradora"
                                             data-label="Fecha de solicitud"
@@ -723,19 +596,13 @@ form.inline { display:inline; }
                                         Solicitud
                                     </button>
                                 @elseif(!empty($caso->fecha_solicitud_aseguradora))
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        Solicitud ✓
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>Solicitud ✓</button>
                                 @else
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        Falta poder/contrato
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>Falta poder/contrato</button>
                                 @endif
 
-                                {{-- Respuesta aseguradora --}}
                                 @if(!empty($caso->fecha_solicitud_aseguradora) && empty($caso->tipo_respuesta_aseguradora))
-                                    <button type="button"
-                                            class="is-act-btn act-default btn-abrir-modal-respuesta"
+                                    <button type="button" class="is-act-btn act-default btn-abrir-modal-respuesta"
                                             data-action="{{ route('casos.marcarRespuestaAseguradora', $caso) }}"
                                             data-caso="{{ $caso->numero_caso }}"
                                             data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
@@ -743,15 +610,11 @@ form.inline { display:inline; }
                                         Respuesta
                                     </button>
                                 @elseif(!empty($caso->tipo_respuesta_aseguradora))
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        Respuesta ✓
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>Respuesta ✓</button>
                                 @endif
 
-                                {{-- Apelación --}}
                                 @if($caso->tipo_respuesta_aseguradora === 'emitio_dictamen' && empty($caso->fecha_apelacion))
-                                    <button type="button"
-                                            class="is-act-btn act-warn btn-abrir-modal-fecha"
+                                    <button type="button" class="is-act-btn act-warn btn-abrir-modal-fecha"
                                             data-action="{{ route('casos.marcarApelacion', $caso) }}"
                                             data-campo="fecha_apelacion"
                                             data-label="Fecha de apelación"
@@ -763,15 +626,11 @@ form.inline { display:inline; }
                                         Apelar
                                     </button>
                                 @elseif(!empty($caso->fecha_apelacion))
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        Apelación ✓
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>Apelación ✓</button>
                                 @endif
 
-                                {{-- Tutela --}}
                                 @if($caso->requiereTutela())
-                                    <button type="button"
-                                            class="is-act-btn act-warn btn-abrir-modal-tutela"
+                                    <button type="button" class="is-act-btn act-warn btn-abrir-modal-tutela"
                                             data-action="{{ route('casos.marcarTutela', $caso) }}"
                                             data-caso="{{ $caso->numero_caso }}"
                                             data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
@@ -780,15 +639,11 @@ form.inline { display:inline; }
                                         Tutela
                                     </button>
                                 @elseif(!empty($caso->fecha_tutela))
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        Tutela ✓
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>Tutela ✓</button>
                                 @endif
 
-                                {{-- Fallo tutela --}}
                                 @if(!empty($caso->fecha_tutela) && empty($caso->fecha_fallo_tutela))
-                                    <button type="button"
-                                            class="is-act-btn act-danger btn-abrir-modal-fallo"
+                                    <button type="button" class="is-act-btn act-danger btn-abrir-modal-fallo"
                                             data-action="{{ route('casos.marcarFalloTutela', $caso) }}"
                                             data-caso="{{ $caso->numero_caso }}"
                                             data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
@@ -797,15 +652,11 @@ form.inline { display:inline; }
                                         Fallo tutela
                                     </button>
                                 @elseif(!empty($caso->fecha_fallo_tutela))
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        Fallo tutela ✓
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>Fallo tutela ✓</button>
                                 @endif
 
-                                {{-- Cumplimiento tutela --}}
                                 @if($caso->requiereCumplimientoTutela())
-                                    <button type="button"
-                                            class="is-act-btn act-success btn-abrir-modal-cumplimiento"
+                                    <button type="button" class="is-act-btn act-success btn-abrir-modal-cumplimiento"
                                             data-action="{{ route('casos.marcarCumplimientoTutela', $caso) }}"
                                             data-caso="{{ $caso->numero_caso }}"
                                             data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
@@ -814,15 +665,11 @@ form.inline { display:inline; }
                                         Cumplimiento
                                     </button>
                                 @elseif(!empty($caso->fecha_cumplimiento_tutela))
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        Cumplimiento ✓
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>Cumplimiento ✓</button>
                                 @endif
 
-                                {{-- Desacato --}}
                                 @if($caso->requiereIncidenteDesacato())
-                                    <button type="button"
-                                            class="is-act-btn act-danger btn-abrir-modal-fecha"
+                                    <button type="button" class="is-act-btn act-danger btn-abrir-modal-fecha"
                                             data-action="{{ route('casos.marcarIncidenteDesacato', $caso) }}"
                                             data-campo="fecha_incidente_desacato"
                                             data-label="Fecha del incidente de desacato"
@@ -834,15 +681,11 @@ form.inline { display:inline; }
                                         Desacato
                                     </button>
                                 @elseif(!empty($caso->fecha_incidente_desacato))
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        Desacato ✓
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>Desacato ✓</button>
                                 @endif
 
-                                {{-- Impugnación --}}
                                 @if($caso->requiereImpugnacion())
-                                    <button type="button"
-                                            class="is-act-btn act-warn btn-abrir-modal-fecha"
+                                    <button type="button" class="is-act-btn act-warn btn-abrir-modal-fecha"
                                             data-action="{{ route('casos.marcarImpugnacion', $caso) }}"
                                             data-campo="fecha_impugnacion"
                                             data-label="Fecha de impugnación"
@@ -854,15 +697,11 @@ form.inline { display:inline; }
                                         Impugnación
                                     </button>
                                 @elseif(!empty($caso->fecha_impugnacion))
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        Impugnación ✓
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>Impugnación ✓</button>
                                 @endif
 
-                                {{-- Segunda instancia --}}
                                 @if($caso->requiereSegundaInstancia())
-                                    <button type="button"
-                                            class="is-act-btn act-purple btn-abrir-modal-segunda"
+                                    <button type="button" class="is-act-btn act-purple btn-abrir-modal-segunda"
                                             data-action="{{ route('casos.marcarFalloSegundaInstancia', $caso) }}"
                                             data-caso="{{ $caso->numero_caso }}"
                                             data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
@@ -870,15 +709,11 @@ form.inline { display:inline; }
                                         2ª instancia
                                     </button>
                                 @elseif(!empty($caso->fecha_fallo_segunda_instancia))
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        2ª instancia ✓
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>2ª instancia ✓</button>
                                 @endif
 
-                                {{-- Honorarios --}}
                                 @if(!empty($caso->fecha_apelacion) && empty($caso->fecha_pago_honorarios))
-                                    <button type="button"
-                                            class="is-act-btn act-default btn-abrir-modal-fecha"
+                                    <button type="button" class="is-act-btn act-default btn-abrir-modal-fecha"
                                             data-action="{{ route('casos.marcarPagoHonorarios', $caso) }}"
                                             data-campo="fecha_pago_honorarios"
                                             data-label="Fecha de pago honorarios"
@@ -890,15 +725,11 @@ form.inline { display:inline; }
                                         Honorarios
                                     </button>
                                 @elseif(!empty($caso->fecha_pago_honorarios))
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        Honorarios ✓
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>Honorarios ✓</button>
                                 @endif
 
-                                {{-- Alta ortopedia --}}
                                 @if($caso->requiereAltaOrtopedia())
-                                    <button type="button"
-                                            class="is-act-btn act-teal btn-abrir-modal-alta"
+                                    <button type="button" class="is-act-btn act-teal btn-abrir-modal-alta"
                                             data-action="{{ route('casos.marcarAltaOrtopedia', $caso) }}"
                                             data-caso="{{ $caso->numero_caso }}"
                                             data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
@@ -906,15 +737,11 @@ form.inline { display:inline; }
                                         Alta ortopedia
                                     </button>
                                 @elseif($caso->alta_ortopedia)
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        Alta ortopedia ✓
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>Alta ortopedia ✓</button>
                                 @endif
 
-                                {{-- Junta --}}
                                 @if($caso->requiereSolicitudJunta())
-                                    <button type="button"
-                                            class="is-act-btn act-gray btn-abrir-modal-fecha"
+                                    <button type="button" class="is-act-btn act-gray btn-abrir-modal-fecha"
                                             data-action="{{ route('casos.marcarSolicitudJunta', $caso) }}"
                                             data-campo="fecha_envio_junta"
                                             data-label="Fecha de envío a junta"
@@ -926,15 +753,11 @@ form.inline { display:inline; }
                                         Junta
                                     </button>
                                 @elseif(!empty($caso->fecha_envio_junta))
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        Junta ✓
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>Junta ✓</button>
                                 @endif
 
-                                {{-- Dictamen junta --}}
                                 @if(!empty($caso->fecha_envio_junta) && empty($caso->fecha_dictamen_junta))
-                                    <button type="button"
-                                            class="is-act-btn act-default btn-abrir-modal-fecha"
+                                    <button type="button" class="is-act-btn act-default btn-abrir-modal-fecha"
                                             data-action="{{ route('casos.marcarDictamenJunta', $caso) }}"
                                             data-campo="fecha_dictamen_junta"
                                             data-label="Fecha de dictamen"
@@ -946,15 +769,11 @@ form.inline { display:inline; }
                                         Dictamen junta
                                     </button>
                                 @elseif(!empty($caso->fecha_dictamen_junta))
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        Dictamen ✓
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>Dictamen ✓</button>
                                 @endif
 
-                                {{-- FURPEN --}}
                                 @if($caso->requiereFurpen())
-                                    <button type="button"
-                                            class="is-act-btn act-teal btn-abrir-modal-furpen"
+                                    <button type="button" class="is-act-btn act-teal btn-abrir-modal-furpen"
                                             data-action="{{ route('casos.marcarFurpen', $caso) }}"
                                             data-caso="{{ $caso->numero_caso }}"
                                             data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
@@ -962,15 +781,11 @@ form.inline { display:inline; }
                                         FURPEN
                                     </button>
                                 @elseif($caso->furpen_completo)
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        FURPEN ✓
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>FURPEN ✓</button>
                                 @endif
 
-                                {{-- Reclamación --}}
                                 @if($caso->requiereCobroAseguradora())
-                                    <button type="button"
-                                            class="is-act-btn act-default btn-abrir-modal-reclamacion"
+                                    <button type="button" class="is-act-btn act-default btn-abrir-modal-reclamacion"
                                             data-action="{{ route('casos.marcarReclamacion', $caso) }}"
                                             data-caso="{{ $caso->numero_caso }}"
                                             data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
@@ -978,15 +793,11 @@ form.inline { display:inline; }
                                         Reclamar
                                     </button>
                                 @elseif(!empty($caso->fecha_reclamacion_final))
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        Reclamación ✓
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>Reclamación ✓</button>
                                 @endif
 
-                                {{-- Pago --}}
                                 @if($caso->requierePagoPendiente())
-                                    <button type="button"
-                                            class="is-act-btn act-success btn-abrir-modal-pago"
+                                    <button type="button" class="is-act-btn act-success btn-abrir-modal-pago"
                                             data-action="{{ route('casos.marcarPago', $caso) }}"
                                             data-caso="{{ $caso->numero_caso }}"
                                             data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
@@ -995,12 +806,10 @@ form.inline { display:inline; }
                                         Pago
                                     </button>
                                 @elseif(!empty($caso->fecha_pago_final))
-                                    <button type="button" class="is-act-btn act-done" disabled>
-                                        Pago ✓
-                                    </button>
+                                    <button type="button" class="is-act-btn act-done" disabled>Pago ✓</button>
                                 @endif
 
-                            @endif {{-- fin puedeAccionarFlujo --}}
+                            @endif
 
                             @if(auth()->user()->puedeEliminar())
                                 <form class="inline"
@@ -1009,15 +818,11 @@ form.inline { display:inline; }
                                       onsubmit="return confirm('¿Eliminar este caso permanentemente?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="is-act-btn act-danger">
-                                        Eliminar
-                                    </button>
+                                    <button type="submit" class="is-act-btn act-danger">Eliminar</button>
                                 </form>
                             @endif
-
                         </div>
                     </td>
-
                 </tr>
             @empty
                 <tr>
@@ -1033,22 +838,16 @@ form.inline { display:inline; }
     </div>
 </div>
 
-{{-- Paginación --}}
 <div class="is-pagination"
      style="margin-top:16px;padding:14px 18px;
-            background:var(--bg-card);border:1px solid var(--border);
-            border-radius:10px;">
+            background:var(--bg-card);border:1px solid var(--border);border-radius:10px;">
     {{ $casos->links() }}
 </div>
 
 @endsection
 
-{{-- ════════════════════════════════════════════════════════
-     MODALES — lógica 100% intacta, solo estilos nuevos
-════════════════════════════════════════════════════════ --}}
 @push('scripts')
 
-{{-- ── Modal: Fecha genérica ── --}}
 <div class="is-modal-overlay" id="modalFechaOverlay">
     <div class="is-modal">
         <div class="is-modal-title" id="modalFechaTitulo">Registrar fecha</div>
@@ -1061,23 +860,17 @@ form.inline { display:inline; }
             <div class="is-modal-grid">
                 <div>
                     <label id="modalFechaLabel">Fecha</label>
-                    <input type="date" id="modal_fecha_generica"
-                           class="is-input" required>
+                    <input type="date" id="modal_fecha_generica" class="is-input" required>
                 </div>
             </div>
             <div class="is-modal-actions">
-                <button type="button" class="is-btn-ghost" id="cerrarModalFecha">
-                    Cancelar
-                </button>
-                <button type="submit" class="is-btn-primary" id="modalFechaBoton">
-                    Guardar
-                </button>
+                <button type="button" class="is-btn-ghost" id="cerrarModalFecha">Cancelar</button>
+                <button type="submit" class="is-btn-primary" id="modalFechaBoton">Guardar</button>
             </div>
         </form>
     </div>
 </div>
 
-{{-- ── Modal: Respuesta aseguradora ── --}}
 <div class="is-modal-overlay" id="modalRespuestaOverlay">
     <div class="is-modal">
         <div class="is-modal-title">Registrar respuesta de aseguradora</div>
@@ -1106,24 +899,17 @@ form.inline { display:inline; }
                     <label>Fecha de respuesta / dictamen</label>
                     <input type="date" name="fecha_respuesta_aseguradora"
                            id="modal_fecha_respuesta" class="is-input">
-                    <p class="is-modal-hint">
-                        Dejar vacío si la respuesta fue "no respondió".
-                    </p>
+                    <p class="is-modal-hint">Dejar vacío si la respuesta fue "no respondió".</p>
                 </div>
             </div>
             <div class="is-modal-actions">
-                <button type="button" class="is-btn-ghost" id="cerrarModalRespuesta">
-                    Cancelar
-                </button>
-                <button type="submit" class="is-btn-primary">
-                    Guardar respuesta
-                </button>
+                <button type="button" class="is-btn-ghost" id="cerrarModalRespuesta">Cancelar</button>
+                <button type="submit" class="is-btn-primary">Guardar respuesta</button>
             </div>
         </form>
     </div>
 </div>
 
-{{-- ── Modal: Tutela ── --}}
 <div class="is-modal-overlay" id="modalTutelaOverlay">
     <div class="is-modal">
         <div class="is-modal-title">Registrar tutela</div>
@@ -1141,35 +927,25 @@ form.inline { display:inline; }
                 </div>
                 <div>
                     <label>Tipo de tutela <span style="color:#F26F6F">*</span></label>
-                    <select name="tipo_tutela" id="modal_tipo_tutela"
-                            class="is-select" required>
+                    <select name="tipo_tutela" id="modal_tipo_tutela" class="is-select" required>
                         <option value="">— Seleccionar —</option>
-                        <option value="tutela_calificacion">
-                            Para calificación (aseguradora negó o no respondió)
-                        </option>
-                        <option value="tutela_debido_proceso">
-                            Por debido proceso (no pagan honorarios)
-                        </option>
+                        <option value="tutela_calificacion">Para calificación (negó o no respondió)</option>
+                        <option value="tutela_debido_proceso">Por debido proceso (no pagan honorarios)</option>
                     </select>
                     <p class="is-modal-hint">
-                        <strong style="color:var(--text-1)">Calificación</strong>:
-                        aseguradora negó o no respondió.<br>
-                        <strong style="color:var(--text-1)">Debido proceso</strong>:
-                        apelaron pero no pagan honorarios.
+                        <strong style="color:var(--text-1)">Calificación</strong>: aseguradora negó o no respondió.<br>
+                        <strong style="color:var(--text-1)">Debido proceso</strong>: apelaron pero no pagan honorarios.
                     </p>
                 </div>
             </div>
             <div class="is-modal-actions">
-                <button type="button" class="is-btn-ghost" id="cerrarModalTutela">
-                    Cancelar
-                </button>
+                <button type="button" class="is-btn-ghost" id="cerrarModalTutela">Cancelar</button>
                 <button type="submit" class="is-btn-primary">Guardar tutela</button>
             </div>
         </form>
     </div>
 </div>
 
-{{-- ── Modal: Fallo tutela ── --}}
 <div class="is-modal-overlay" id="modalFalloOverlay">
     <div class="is-modal">
         <div class="is-modal-title">Registrar fallo de tutela</div>
@@ -1197,16 +973,13 @@ form.inline { display:inline; }
                 </div>
             </div>
             <div class="is-modal-actions">
-                <button type="button" class="is-btn-ghost" id="cerrarModalFallo">
-                    Cancelar
-                </button>
+                <button type="button" class="is-btn-ghost" id="cerrarModalFallo">Cancelar</button>
                 <button type="submit" class="is-btn-primary">Guardar fallo</button>
             </div>
         </form>
     </div>
 </div>
 
-{{-- ── Modal: Cumplimiento tutela ── --}}
 <div class="is-modal-overlay" id="modalCumplimientoOverlay">
     <div class="is-modal">
         <div class="is-modal-title">Registrar cumplimiento del fallo</div>
@@ -1227,24 +1000,19 @@ form.inline { display:inline; }
                     <select name="tipo_cumplimiento_tutela" id="modal_tipo_cumplimiento"
                             class="is-select" required>
                         <option value="">— Seleccionar —</option>
-                        <option value="voluntario">
-                            Voluntario (cumplió dentro de las 2 semanas)
-                        </option>
+                        <option value="voluntario">Voluntario (cumplió dentro de las 2 semanas)</option>
                         <option value="desacato">Tras incidente de desacato</option>
                     </select>
                 </div>
             </div>
             <div class="is-modal-actions">
-                <button type="button" class="is-btn-ghost" id="cerrarModalCumplimiento">
-                    Cancelar
-                </button>
+                <button type="button" class="is-btn-ghost" id="cerrarModalCumplimiento">Cancelar</button>
                 <button type="submit" class="is-btn-primary">Guardar cumplimiento</button>
             </div>
         </form>
     </div>
 </div>
 
-{{-- ── Modal: Segunda instancia ── --}}
 <div class="is-modal-overlay" id="modalSegundaOverlay">
     <div class="is-modal">
         <div class="is-modal-title">Registrar fallo de segunda instancia</div>
@@ -1275,16 +1043,13 @@ form.inline { display:inline; }
                 </div>
             </div>
             <div class="is-modal-actions">
-                <button type="button" class="is-btn-ghost" id="cerrarModalSegunda">
-                    Cancelar
-                </button>
+                <button type="button" class="is-btn-ghost" id="cerrarModalSegunda">Cancelar</button>
                 <button type="submit" class="is-btn-primary">Guardar fallo</button>
             </div>
         </form>
     </div>
 </div>
 
-{{-- ── Modal: Pago final ── --}}
 <div class="is-modal-overlay" id="modalPagoOverlay">
     <div class="is-modal">
         <div class="is-modal-title">Registrar pago final</div>
@@ -1322,16 +1087,13 @@ form.inline { display:inline; }
                 </div>
             </div>
             <div class="is-modal-actions">
-                <button type="button" class="is-btn-ghost" id="cerrarModalPago">
-                    Cancelar
-                </button>
+                <button type="button" class="is-btn-ghost" id="cerrarModalPago">Cancelar</button>
                 <button type="submit" class="is-btn-gold">Guardar pago</button>
             </div>
         </form>
     </div>
 </div>
 
-{{-- ── Modal: Reclamación ── --}}
 <div class="is-modal-overlay" id="modalReclamacionOverlay">
     <div class="is-modal">
         <div class="is-modal-title">Registrar reclamación final</div>
@@ -1360,16 +1122,13 @@ form.inline { display:inline; }
                 </div>
             </div>
             <div class="is-modal-actions">
-                <button type="button" class="is-btn-ghost" id="cerrarModalReclamacion">
-                    Cancelar
-                </button>
+                <button type="button" class="is-btn-ghost" id="cerrarModalReclamacion">Cancelar</button>
                 <button type="submit" class="is-btn-primary">Guardar reclamación</button>
             </div>
         </form>
     </div>
 </div>
 
-{{-- ── Modal: Alta ortopedia ── --}}
 <div class="is-modal-overlay" id="modalAltaOverlay">
     <div class="is-modal">
         <div class="is-modal-title">Registrar alta por ortopedia</div>
@@ -1393,16 +1152,13 @@ form.inline { display:inline; }
                 </div>
             </div>
             <div class="is-modal-actions">
-                <button type="button" class="is-btn-ghost" id="cerrarModalAlta">
-                    Cancelar
-                </button>
+                <button type="button" class="is-btn-ghost" id="cerrarModalAlta">Cancelar</button>
                 <button type="submit" class="is-btn-primary">Guardar alta</button>
             </div>
         </form>
     </div>
 </div>
 
-{{-- ── Modal: FURPEN ── --}}
 <div class="is-modal-overlay" id="modalFurpenOverlay">
     <div class="is-modal">
         <div class="is-modal-title">Registrar FURPEN completo</div>
@@ -1426,39 +1182,26 @@ form.inline { display:inline; }
                 </div>
             </div>
             <div class="is-modal-actions">
-                <button type="button" class="is-btn-ghost" id="cerrarModalFurpen">
-                    Cancelar
-                </button>
+                <button type="button" class="is-btn-ghost" id="cerrarModalFurpen">Cancelar</button>
                 <button type="submit" class="is-btn-primary">Guardar FURPEN</button>
             </div>
         </form>
     </div>
 </div>
 
-{{-- ════════════════════════════════════════════════════════
-     JAVASCRIPT — 100% intacto del original
-════════════════════════════════════════════════════════ --}}
 <script>
 function initModal(overlayId, cerrarId) {
     const overlay = document.getElementById(overlayId);
     const cerrar  = document.getElementById(cerrarId);
     if (!overlay || !cerrar) return;
-    function cerrar_() {
-        overlay.classList.remove('active');
-        document.body.style.overflow = '';
-    }
+    function cerrar_() { overlay.classList.remove('active'); document.body.style.overflow = ''; }
     cerrar.addEventListener('click', cerrar_);
-    overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) cerrar_();
-    });
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && overlay.classList.contains('active')) cerrar_();
-    });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) cerrar_(); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && overlay.classList.contains('active')) cerrar_(); });
     return { cerrar: cerrar_ };
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-
     (function () {
         const overlay = document.getElementById('modalFechaOverlay');
         const form    = document.getElementById('modalFechaForm');
@@ -1476,14 +1219,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 form.querySelectorAll('input.hidden-dynamic').forEach(el => el.remove());
                 const campo  = btn.dataset.campo || 'fecha';
                 const hidden = document.createElement('input');
-                hidden.type  = 'hidden';
-                hidden.name  = campo;
+                hidden.type  = 'hidden'; hidden.name = campo;
                 hidden.classList.add('hidden-dynamic');
                 hidden.value = inputFecha.value;
                 form.appendChild(hidden);
                 inputFecha.oninput = () => hidden.value = inputFecha.value;
-                overlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
+                overlay.classList.add('active'); document.body.style.overflow = 'hidden';
                 setTimeout(() => inputFecha.focus(), 50);
             });
         });
@@ -1501,8 +1242,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('modal_tipo_respuesta').value        = '';
                 document.getElementById('modal_fecha_respuesta').value       = btn.dataset.fecha || '';
                 toggleFechaRespuesta();
-                overlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
+                overlay.classList.add('active'); document.body.style.overflow = 'hidden';
                 setTimeout(() => document.getElementById('modal_tipo_respuesta').focus(), 50);
             });
         });
@@ -1523,8 +1263,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (tipoR === 'nego' || tipoR === 'no_respondio') sel.value = 'tutela_calificacion';
                 else if (tipoR === 'emitio_dictamen')             sel.value = 'tutela_debido_proceso';
                 else                                              sel.value = '';
-                overlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
+                overlay.classList.add('active'); document.body.style.overflow = 'hidden';
                 setTimeout(() => document.getElementById('modal_fecha_tutela').focus(), 50);
             });
         });
@@ -1537,12 +1276,11 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.btn-abrir-modal-fallo').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 form.action = btn.dataset.action;
-                document.getElementById('modalFalloCaso').textContent            = btn.dataset.caso      || '';
-                document.getElementById('modalFalloVictima').textContent          = btn.dataset.victima   || '';
-                document.getElementById('modal_fecha_fallo_tutela').value         = btn.dataset.fecha     || '';
-                document.getElementById('modal_resultado_fallo_tutela').value     = btn.dataset.resultado || '';
-                overlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
+                document.getElementById('modalFalloCaso').textContent        = btn.dataset.caso      || '';
+                document.getElementById('modalFalloVictima').textContent      = btn.dataset.victima   || '';
+                document.getElementById('modal_fecha_fallo_tutela').value     = btn.dataset.fecha     || '';
+                document.getElementById('modal_resultado_fallo_tutela').value = btn.dataset.resultado || '';
+                overlay.classList.add('active'); document.body.style.overflow = 'hidden';
                 setTimeout(() => document.getElementById('modal_fecha_fallo_tutela').focus(), 50);
             });
         });
@@ -1559,8 +1297,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('modalCumplimientoVictima').textContent = btn.dataset.victima || '';
                 document.getElementById('modal_fecha_cumplimiento').value       = btn.dataset.fecha   || '';
                 document.getElementById('modal_tipo_cumplimiento').value        = '';
-                overlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
+                overlay.classList.add('active'); document.body.style.overflow = 'hidden';
                 setTimeout(() => document.getElementById('modal_fecha_cumplimiento').focus(), 50);
             });
         });
@@ -1578,8 +1315,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('modal_fecha_segunda').value       = btn.dataset.fecha   || '';
                 document.getElementById('modal_resultado_segunda').value   = '';
                 mostrarHintSegunda();
-                overlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
+                overlay.classList.add('active'); document.body.style.overflow = 'hidden';
                 setTimeout(() => document.getElementById('modal_fecha_segunda').focus(), 50);
             });
         });
@@ -1592,14 +1328,13 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.btn-abrir-modal-pago').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 form.action = btn.dataset.action;
-                document.getElementById('modalPagoCaso').textContent             = btn.dataset.caso       || '';
-                document.getElementById('modalPagoVictima').textContent          = btn.dataset.victima    || '';
-                document.getElementById('modal_fecha_pago_final').value          = btn.dataset.fecha      || '';
-                document.getElementById('modal_valor_pagado').value              = '';
-                document.getElementById('modal_porcentaje_honorarios').value     = btn.dataset.honorarios || '';
-                document.getElementById('modal_observacion_pago').value          = '';
-                overlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
+                document.getElementById('modalPagoCaso').textContent         = btn.dataset.caso       || '';
+                document.getElementById('modalPagoVictima').textContent      = btn.dataset.victima    || '';
+                document.getElementById('modal_fecha_pago_final').value      = btn.dataset.fecha      || '';
+                document.getElementById('modal_valor_pagado').value          = '';
+                document.getElementById('modal_porcentaje_honorarios').value = btn.dataset.honorarios || '';
+                document.getElementById('modal_observacion_pago').value      = '';
+                overlay.classList.add('active'); document.body.style.overflow = 'hidden';
                 setTimeout(() => document.getElementById('modal_valor_pagado').focus(), 50);
             });
         });
@@ -1617,8 +1352,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('modal_fecha_reclamacion_final').value = btn.dataset.fecha   || '';
                 document.getElementById('modal_valor_reclamado').value         = '';
                 document.getElementById('modal_observacion_reclamacion').value = '';
-                overlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
+                overlay.classList.add('active'); document.body.style.overflow = 'hidden';
                 setTimeout(() => document.getElementById('modal_valor_reclamado').focus(), 50);
             });
         });
@@ -1631,12 +1365,11 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.btn-abrir-modal-alta').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 form.action = btn.dataset.action;
-                document.getElementById('modalAltaCaso').textContent                 = btn.dataset.caso    || '';
-                document.getElementById('modalAltaVictima').textContent              = btn.dataset.victima || '';
-                document.getElementById('modal_fecha_alta_ortopedia').value          = btn.dataset.fecha   || '';
-                document.getElementById('modal_observacion_alta_ortopedia').value    = '';
-                overlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
+                document.getElementById('modalAltaCaso').textContent              = btn.dataset.caso    || '';
+                document.getElementById('modalAltaVictima').textContent           = btn.dataset.victima || '';
+                document.getElementById('modal_fecha_alta_ortopedia').value       = btn.dataset.fecha   || '';
+                document.getElementById('modal_observacion_alta_ortopedia').value = '';
+                overlay.classList.add('active'); document.body.style.overflow = 'hidden';
                 setTimeout(() => document.getElementById('modal_fecha_alta_ortopedia').focus(), 50);
             });
         });
@@ -1649,17 +1382,15 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.btn-abrir-modal-furpen').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 form.action = btn.dataset.action;
-                document.getElementById('modalFurpenCaso').textContent           = btn.dataset.caso    || '';
-                document.getElementById('modalFurpenVictima').textContent        = btn.dataset.victima || '';
-                document.getElementById('modal_fecha_furpen_recibido').value     = btn.dataset.fecha   || '';
-                document.getElementById('modal_observacion_furpen').value        = '';
-                overlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
+                document.getElementById('modalFurpenCaso').textContent       = btn.dataset.caso    || '';
+                document.getElementById('modalFurpenVictima').textContent    = btn.dataset.victima || '';
+                document.getElementById('modal_fecha_furpen_recibido').value = btn.dataset.fecha   || '';
+                document.getElementById('modal_observacion_furpen').value    = '';
+                overlay.classList.add('active'); document.body.style.overflow = 'hidden';
                 setTimeout(() => document.getElementById('modal_fecha_furpen_recibido').focus(), 50);
             });
         });
     })();
-
 });
 
 function toggleFechaRespuesta() {
