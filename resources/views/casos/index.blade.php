@@ -125,30 +125,25 @@
 form.inline { display:inline; }
 
 /* ════════════════════════════════════
-   SCROLL HORIZONTAL — VERSIÓN LIMPIA
-   El scroll lo gestiona .tabla-scroll
-   El wrapper .is-table-wrap no interfiere
+   SCROLL HORIZONTAL — FIX
 ════════════════════════════════════ */
 .is-table-wrap {
-    overflow: visible !important;
-}
-.tabla-scroll {
-    overflow-x: auto;
-    overflow-y: visible;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     scrollbar-color: rgba(27,79,255,0.45) var(--border);
 }
-.tabla-scroll table {
+.is-table-wrap table {
     min-width: 1600px;
 }
-.tabla-scroll::-webkit-scrollbar       { height: 5px; }
-.tabla-scroll::-webkit-scrollbar-track { background: var(--border); }
-.tabla-scroll::-webkit-scrollbar-thumb {
+.is-table-wrap::-webkit-scrollbar       { height: 5px; }
+.is-table-wrap::-webkit-scrollbar-track { background: var(--border); }
+.is-table-wrap::-webkit-scrollbar-thumb {
     background: rgba(27,79,255,0.45);
     border-radius: 3px;
 }
-.tabla-scroll::-webkit-scrollbar-thumb:hover {
+.is-table-wrap::-webkit-scrollbar-thumb:hover {
     background: rgba(27,79,255,0.75);
 }
 </style>
@@ -356,486 +351,484 @@ form.inline { display:inline; }
         </div>
     </div>
 
-    {{-- ← Este div es el que maneja el scroll ── --}}
-    <div class="tabla-scroll">
-        <table>
-            <thead>
-                <tr>
-                    <th class="col-prio">Prioridad</th>
-                    <th class="col-num">
-                        <a href="{{ route('casos.index', array_merge(request()->query(),
-                            ['sort'=>'numero_caso','direction'=>(($sort==='numero_caso'&&$direction==='asc')?'desc':'asc')])) }}"
-                           style="color:var(--text-3);text-decoration:none;">
-                            Número @if($sort==='numero_caso'){{ $direction==='asc'?'↑':'↓' }}@endif
-                        </a>
-                    </th>
-                    <th class="col-vic">
-                        <a href="{{ route('casos.index', array_merge(request()->query(),
-                            ['sort'=>'nombres','direction'=>(($sort==='nombres'&&$direction==='asc')?'desc':'asc')])) }}"
-                           style="color:var(--text-3);text-decoration:none;">
-                            Víctima @if($sort==='nombres'){{ $direction==='asc'?'↑':'↓' }}@endif
-                        </a>
-                    </th>
-                    <th class="col-doc">
-                        <a href="{{ route('casos.index', array_merge(request()->query(),
-                            ['sort'=>'cedula','direction'=>(($sort==='cedula'&&$direction==='asc')?'desc':'asc')])) }}"
-                           style="color:var(--text-3);text-decoration:none;">
-                            Cédula @if($sort==='cedula'){{ $direction==='asc'?'↑':'↓' }}@endif
-                        </a>
-                    </th>
-                    <th class="col-aseg">
-                        <a href="{{ route('casos.index', array_merge(request()->query(),
-                            ['sort'=>'aseguradora','direction'=>(($sort==='aseguradora'&&$direction==='asc')?'desc':'asc')])) }}"
-                           style="color:var(--text-3);text-decoration:none;">
-                            Aseguradora @if($sort==='aseguradora'){{ $direction==='asc'?'↑':'↓' }}@endif
-                        </a>
-                    </th>
-                    <th class="col-est">
-                        <a href="{{ route('casos.index', array_merge(request()->query(),
-                            ['sort'=>'estado','direction'=>(($sort==='estado'&&$direction==='asc')?'desc':'asc')])) }}"
-                           style="color:var(--text-3);text-decoration:none;">
-                            Estado @if($sort==='estado'){{ $direction==='asc'?'↑':'↓' }}@endif
-                        </a>
-                    </th>
-                    <th class="col-pcl">PCL</th>
-                    <th class="col-val">V. Estimado</th>
-                    <th class="col-val">V. Pagado</th>
-                    <th>% Honor.</th>
-                    <th class="col-val">Gan. Equipo</th>
-                    <th class="col-val">Neto cliente</th>
-                    <th>Avance</th>
-                    <th>
-                        <a href="{{ route('casos.index', array_merge(request()->query(),
-                            ['sort'=>'junta_asignada','direction'=>(($sort==='junta_asignada'&&$direction==='asc')?'desc':'asc')])) }}"
-                           style="color:var(--text-3);text-decoration:none;">
-                            Junta @if($sort==='junta_asignada'){{ $direction==='asc'?'↑':'↓' }}@endif
-                        </a>
-                    </th>
-                    <th class="col-acc">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-            @forelse($casos as $caso)
-                @php
-                    $rowClass = match($caso->color_alerta) {
-                        'red'         => 'row-red',
-                        'orange'      => 'row-orange',
-                        'cyan','blue' => 'row-blue',
-                        'green'       => 'row-green',
-                        default       => '',
-                    };
-                    $badgeClass = match($caso->color_alerta) {
-                        'red'         => 'is-badge is-badge-red',
-                        'orange'      => 'is-badge is-badge-amber',
-                        'cyan','blue' => 'is-badge is-badge-teal',
-                        'green'       => 'is-badge is-badge-green',
-                        default       => 'is-badge is-badge-gray',
-                    };
-                    $diasPrescripcion = method_exists($caso,'diasParaPrescripcion')
-                        ? $caso->diasParaPrescripcion() : null;
-                @endphp
-                <tr class="{{ $rowClass }}">
+    {{-- ← La tabla va directamente aquí, sin .tabla-scroll ── --}}
+    <table>
+        <thead>
+            <tr>
+                <th class="col-prio">Prioridad</th>
+                <th class="col-num">
+                    <a href="{{ route('casos.index', array_merge(request()->query(),
+                        ['sort'=>'numero_caso','direction'=>(($sort==='numero_caso'&&$direction==='asc')?'desc':'asc')])) }}"
+                       style="color:var(--text-3);text-decoration:none;">
+                        Número @if($sort==='numero_caso'){{ $direction==='asc'?'↑':'↓' }}@endif
+                    </a>
+                </th>
+                <th class="col-vic">
+                    <a href="{{ route('casos.index', array_merge(request()->query(),
+                        ['sort'=>'nombres','direction'=>(($sort==='nombres'&&$direction==='asc')?'desc':'asc')])) }}"
+                       style="color:var(--text-3);text-decoration:none;">
+                        Víctima @if($sort==='nombres'){{ $direction==='asc'?'↑':'↓' }}@endif
+                    </a>
+                </th>
+                <th class="col-doc">
+                    <a href="{{ route('casos.index', array_merge(request()->query(),
+                        ['sort'=>'cedula','direction'=>(($sort==='cedula'&&$direction==='asc')?'desc':'asc')])) }}"
+                       style="color:var(--text-3);text-decoration:none;">
+                        Cédula @if($sort==='cedula'){{ $direction==='asc'?'↑':'↓' }}@endif
+                    </a>
+                </th>
+                <th class="col-aseg">
+                    <a href="{{ route('casos.index', array_merge(request()->query(),
+                        ['sort'=>'aseguradora','direction'=>(($sort==='aseguradora'&&$direction==='asc')?'desc':'asc')])) }}"
+                       style="color:var(--text-3);text-decoration:none;">
+                        Aseguradora @if($sort==='aseguradora'){{ $direction==='asc'?'↑':'↓' }}@endif
+                    </a>
+                </th>
+                <th class="col-est">
+                    <a href="{{ route('casos.index', array_merge(request()->query(),
+                        ['sort'=>'estado','direction'=>(($sort==='estado'&&$direction==='asc')?'desc':'asc')])) }}"
+                       style="color:var(--text-3);text-decoration:none;">
+                        Estado @if($sort==='estado'){{ $direction==='asc'?'↑':'↓' }}@endif
+                    </a>
+                </th>
+                <th class="col-pcl">PCL</th>
+                <th class="col-val">V. Estimado</th>
+                <th class="col-val">V. Pagado</th>
+                <th>% Honor.</th>
+                <th class="col-val">Gan. Equipo</th>
+                <th class="col-val">Neto cliente</th>
+                <th>Avance</th>
+                <th>
+                    <a href="{{ route('casos.index', array_merge(request()->query(),
+                        ['sort'=>'junta_asignada','direction'=>(($sort==='junta_asignada'&&$direction==='asc')?'desc':'asc')])) }}"
+                       style="color:var(--text-3);text-decoration:none;">
+                        Junta @if($sort==='junta_asignada'){{ $direction==='asc'?'↑':'↓' }}@endif
+                    </a>
+                </th>
+                <th class="col-acc">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+        @forelse($casos as $caso)
+            @php
+                $rowClass = match($caso->color_alerta) {
+                    'red'         => 'row-red',
+                    'orange'      => 'row-orange',
+                    'cyan','blue' => 'row-blue',
+                    'green'       => 'row-green',
+                    default       => '',
+                };
+                $badgeClass = match($caso->color_alerta) {
+                    'red'         => 'is-badge is-badge-red',
+                    'orange'      => 'is-badge is-badge-amber',
+                    'cyan','blue' => 'is-badge is-badge-teal',
+                    'green'       => 'is-badge is-badge-green',
+                    default       => 'is-badge is-badge-gray',
+                };
+                $diasPrescripcion = method_exists($caso,'diasParaPrescripcion')
+                    ? $caso->diasParaPrescripcion() : null;
+            @endphp
+            <tr class="{{ $rowClass }}">
 
-                    <td>
-                        <span class="{{ $badgeClass }}" style="font-size:10px;">
-                            {{ $caso->texto_alerta }}
+                <td>
+                    <span class="{{ $badgeClass }}" style="font-size:10px;">
+                        {{ $caso->texto_alerta }}
+                    </span>
+                </td>
+
+                <td>
+                    <strong style="font-family:'Playfair Display',serif;
+                                   color:var(--text-1);font-size:13px;">
+                        {{ $caso->numero_caso }}
+                    </strong>
+                    <div style="margin-top:4px;">
+                        @if($caso->estaPrescrito())
+                            <span class="mini mini-danger">Prescrito</span>
+                        @elseif($diasPrescripcion !== null)
+                            <span class="mini {{ $diasPrescripcion <= 90 ? 'mini-danger' : 'mini-muted' }}">
+                                Prescripción: {{ $diasPrescripcion }}d
+                            </span>
+                        @endif
+                    </div>
+                </td>
+
+                <td style="line-height:1.5;">
+                    <strong style="display:block;color:var(--text-1);font-size:13px;">
+                        {{ $caso->nombres }} {{ $caso->apellidos }}
+                    </strong>
+                    <div style="margin-top:5px;">
+                        <span class="mini {{ $caso->tiene_poder ? 'mini-ok' : 'mini-warn' }}">
+                            Poder {{ $caso->tiene_poder ? '✓' : 'Pend.' }}
                         </span>
-                    </td>
-
-                    <td>
-                        <strong style="font-family:'Playfair Display',serif;
-                                       color:var(--text-1);font-size:13px;">
-                            {{ $caso->numero_caso }}
-                        </strong>
-                        <div style="margin-top:4px;">
-                            @if($caso->estaPrescrito())
-                                <span class="mini mini-danger">Prescrito</span>
-                            @elseif($diasPrescripcion !== null)
-                                <span class="mini {{ $diasPrescripcion <= 90 ? 'mini-danger' : 'mini-muted' }}">
-                                    Prescripción: {{ $diasPrescripcion }}d
-                                </span>
-                            @endif
-                        </div>
-                    </td>
-
-                    <td style="line-height:1.5;">
-                        <strong style="display:block;color:var(--text-1);font-size:13px;">
-                            {{ $caso->nombres }} {{ $caso->apellidos }}
-                        </strong>
-                        <div style="margin-top:5px;">
-                            <span class="mini {{ $caso->tiene_poder ? 'mini-ok' : 'mini-warn' }}">
-                                Poder {{ $caso->tiene_poder ? '✓' : 'Pend.' }}
-                            </span>
-                            <span class="mini {{ $caso->tiene_contrato ? 'mini-ok' : 'mini-warn' }}">
-                                Contrato {{ $caso->tiene_contrato ? '✓' : 'Pend.' }}
-                            </span>
-                        </div>
+                        <span class="mini {{ $caso->tiene_contrato ? 'mini-ok' : 'mini-warn' }}">
+                            Contrato {{ $caso->tiene_contrato ? '✓' : 'Pend.' }}
+                        </span>
+                    </div>
+                    <div style="margin-top:2px;">
+                        <span class="mini {{ $caso->alta_ortopedia ? 'mini-ok' : 'mini-info' }}">
+                            Alta ortop. {{ $caso->alta_ortopedia ? '✓' : 'Pend.' }}
+                        </span>
+                        <span class="mini {{ $caso->furpen_completo ? 'mini-ok' : 'mini-info' }}">
+                            FURPEN {{ $caso->furpen_completo ? '✓' : 'Pend.' }}
+                        </span>
+                    </div>
+                    @if(!empty($caso->tipo_respuesta_aseguradora))
+                        @php
+                            $textoTipoResp = match($caso->tipo_respuesta_aseguradora) {
+                                'emitio_dictamen' => 'Dictamen emitido',
+                                'nego'            => 'Negó solicitud',
+                                'no_respondio'    => 'No respondió',
+                                default           => $caso->tipo_respuesta_aseguradora,
+                            };
+                        @endphp
                         <div style="margin-top:2px;">
-                            <span class="mini {{ $caso->alta_ortopedia ? 'mini-ok' : 'mini-info' }}">
-                                Alta ortop. {{ $caso->alta_ortopedia ? '✓' : 'Pend.' }}
-                            </span>
-                            <span class="mini {{ $caso->furpen_completo ? 'mini-ok' : 'mini-info' }}">
-                                FURPEN {{ $caso->furpen_completo ? '✓' : 'Pend.' }}
+                            <span class="mini mini-muted">{{ $textoTipoResp }}</span>
+                        </div>
+                    @endif
+                    @if(!empty($caso->tipo_tutela))
+                        <div style="margin-top:2px;">
+                            <span class="mini mini-purple">
+                                {{ $caso->tipo_tutela === 'tutela_calificacion'
+                                    ? 'Tutela calificación' : 'Tutela debido proceso' }}
                             </span>
                         </div>
-                        @if(!empty($caso->tipo_respuesta_aseguradora))
-                            @php
-                                $textoTipoResp = match($caso->tipo_respuesta_aseguradora) {
-                                    'emitio_dictamen' => 'Dictamen emitido',
-                                    'nego'            => 'Negó solicitud',
-                                    'no_respondio'    => 'No respondió',
-                                    default           => $caso->tipo_respuesta_aseguradora,
-                                };
-                            @endphp
-                            <div style="margin-top:2px;">
-                                <span class="mini mini-muted">{{ $textoTipoResp }}</span>
-                            </div>
-                        @endif
-                        @if(!empty($caso->tipo_tutela))
-                            <div style="margin-top:2px;">
-                                <span class="mini mini-purple">
-                                    {{ $caso->tipo_tutela === 'tutela_calificacion'
-                                        ? 'Tutela calificación' : 'Tutela debido proceso' }}
-                                </span>
-                            </div>
-                        @endif
-                        @if(!empty($caso->resultado_fallo_tutela))
-                            <div style="margin-top:2px;">
-                                <span class="mini mini-muted">
-                                    Fallo: {{ ucfirst($caso->resultado_fallo_tutela) }}
-                                </span>
-                            </div>
-                        @endif
-                        @if(!empty($caso->resultado_fallo_segunda_instancia))
-                            <div style="margin-top:2px;">
-                                <span class="mini {{ $caso->resultado_fallo_segunda_instancia === 'revoca' ? 'mini-ok' : 'mini-danger' }}">
-                                    2ª inst.: {{ ucfirst($caso->resultado_fallo_segunda_instancia) }}
-                                </span>
-                            </div>
-                        @endif
-                    </td>
+                    @endif
+                    @if(!empty($caso->resultado_fallo_tutela))
+                        <div style="margin-top:2px;">
+                            <span class="mini mini-muted">
+                                Fallo: {{ ucfirst($caso->resultado_fallo_tutela) }}
+                            </span>
+                        </div>
+                    @endif
+                    @if(!empty($caso->resultado_fallo_segunda_instancia))
+                        <div style="margin-top:2px;">
+                            <span class="mini {{ $caso->resultado_fallo_segunda_instancia === 'revoca' ? 'mini-ok' : 'mini-danger' }}">
+                                2ª inst.: {{ ucfirst($caso->resultado_fallo_segunda_instancia) }}
+                            </span>
+                        </div>
+                    @endif
+                </td>
 
-                    <td style="font-size:12px;color:var(--text-3);">{{ $caso->cedula }}</td>
-                    <td style="font-size:13px;font-weight:500;color:var(--text-1);">{{ $caso->aseguradora ?: '—' }}</td>
+                <td style="font-size:12px;color:var(--text-3);">{{ $caso->cedula }}</td>
+                <td style="font-size:13px;font-weight:500;color:var(--text-1);">{{ $caso->aseguradora ?: '—' }}</td>
 
-                    <td>
-                        <span class="is-badge is-badge-cobalt" style="font-size:10px;white-space:nowrap;">
-                            {{ $caso->estado ?: 'N/A' }}
-                        </span>
-                    </td>
+                <td>
+                    <span class="is-badge is-badge-cobalt" style="font-size:10px;white-space:nowrap;">
+                        {{ $caso->estado ?: 'N/A' }}
+                    </span>
+                </td>
 
-                    <td>
-                        @if($caso->porcentaje_pcl)
-                            <div class="is-pcl-wrap">
-                                {{ $caso->porcentaje_pcl }}%
-                                <div class="is-pcl-track">
-                                    <div class="is-pcl-fill"
-                                         style="width:{{ min($caso->porcentaje_pcl,100) }}%;background:#1B4FFF;">
-                                    </div>
-                                </div>
-                            </div>
-                        @else
-                            <span style="color:var(--text-3);font-size:12px;">—</span>
-                        @endif
-                    </td>
-
-                    <td style="font-family:'Playfair Display',serif;font-weight:700;color:#D4AA48;font-size:13px;white-space:nowrap;">
-                        {{ $caso->valor_estimado ? '$'.number_format($caso->valor_estimado,0,',','.') : '—' }}
-                    </td>
-                    <td style="font-family:'Playfair Display',serif;font-weight:700;color:#1DBD7F;font-size:13px;white-space:nowrap;">
-                        {{ $caso->valor_pagado ? '$'.number_format($caso->valor_pagado,0,',','.') : '—' }}
-                    </td>
-                    <td style="font-weight:600;color:var(--text-1);font-size:13px;">
-                        {{ $caso->porcentaje_honorarios ? number_format($caso->porcentaje_honorarios,0,',','.').'%' : '—' }}
-                    </td>
-                    <td style="font-family:'Playfair Display',serif;font-weight:700;color:#4B78FF;font-size:13px;white-space:nowrap;">
-                        {{ $caso->ganancia_equipo ? '$'.number_format($caso->ganancia_equipo,0,',','.') : '—' }}
-                    </td>
-                    <td style="font-family:'Playfair Display',serif;font-weight:700;color:#D4AA48;font-size:13px;white-space:nowrap;">
-                        {{ $caso->valor_neto_cliente ? '$'.number_format($caso->valor_neto_cliente,0,',','.') : '—' }}
-                    </td>
-
-                    <td>
+                <td>
+                    @if($caso->porcentaje_pcl)
                         <div class="is-pcl-wrap">
-                            {{ $caso->porcentaje_avance ?? 0 }}%
+                            {{ $caso->porcentaje_pcl }}%
                             <div class="is-pcl-track">
                                 <div class="is-pcl-fill"
-                                     style="width:{{ $caso->porcentaje_avance ?? 0 }}%;background:#059669;">
+                                     style="width:{{ min($caso->porcentaje_pcl,100) }}%;background:#1B4FFF;">
                                 </div>
                             </div>
                         </div>
-                    </td>
+                    @else
+                        <span style="color:var(--text-3);font-size:12px;">—</span>
+                    @endif
+                </td>
 
-                    <td style="font-size:12px;color:var(--text-2);max-width:220px;line-height:1.35;">
-                        {{ $caso->junta_asignada ?: '—' }}
-                    </td>
+                <td style="font-family:'Playfair Display',serif;font-weight:700;color:#D4AA48;font-size:13px;white-space:nowrap;">
+                    {{ $caso->valor_estimado ? '$'.number_format($caso->valor_estimado,0,',','.') : '—' }}
+                </td>
+                <td style="font-family:'Playfair Display',serif;font-weight:700;color:#1DBD7F;font-size:13px;white-space:nowrap;">
+                    {{ $caso->valor_pagado ? '$'.number_format($caso->valor_pagado,0,',','.') : '—' }}
+                </td>
+                <td style="font-weight:600;color:var(--text-1);font-size:13px;">
+                    {{ $caso->porcentaje_honorarios ? number_format($caso->porcentaje_honorarios,0,',','.').'%' : '—' }}
+                </td>
+                <td style="font-family:'Playfair Display',serif;font-weight:700;color:#4B78FF;font-size:13px;white-space:nowrap;">
+                    {{ $caso->ganancia_equipo ? '$'.number_format($caso->ganancia_equipo,0,',','.') : '—' }}
+                </td>
+                <td style="font-family:'Playfair Display',serif;font-weight:700;color:#D4AA48;font-size:13px;white-space:nowrap;">
+                    {{ $caso->valor_neto_cliente ? '$'.number_format($caso->valor_neto_cliente,0,',','.') : '—' }}
+                </td>
 
-                    <td>
-                        <div style="display:flex;flex-wrap:wrap;gap:5px;">
-                            <a href="{{ route('casos.show', $caso) }}" class="is-act-btn act-gray">Ver</a>
-
-                            @if(auth()->user()->puedeEditar())
-                                <a href="{{ route('casos.edit', $caso) }}" class="is-act-btn act-warn">Editar</a>
-                            @endif
-
-                            <a href="{{ route('casos.documentos.index', $caso) }}" class="is-act-btn act-default">Expediente</a>
-                            <a href="{{ route('casos.bitacoras.index', $caso) }}" class="is-act-btn act-gray">Bitácora</a>
-
-                            @if(auth()->user()->puedeAccionarFlujo())
-
-                                @if(empty($caso->fecha_solicitud_aseguradora) && !$caso->requierePoderContrato() && !$caso->estaPrescrito())
-                                    <button type="button" class="is-act-btn act-default btn-abrir-modal-fecha"
-                                            data-action="{{ route('casos.marcarSolicitudAseguradora', $caso) }}"
-                                            data-campo="fecha_solicitud_aseguradora"
-                                            data-label="Fecha de solicitud"
-                                            data-titulo="Registrar solicitud a aseguradora"
-                                            data-boton="Guardar solicitud"
-                                            data-caso="{{ $caso->numero_caso }}"
-                                            data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
-                                            data-fecha="{{ now()->toDateString() }}">
-                                        Solicitud
-                                    </button>
-                                @elseif(!empty($caso->fecha_solicitud_aseguradora))
-                                    <button type="button" class="is-act-btn act-done" disabled>Solicitud ✓</button>
-                                @else
-                                    <button type="button" class="is-act-btn act-done" disabled>Falta poder/contrato</button>
-                                @endif
-
-                                @if(!empty($caso->fecha_solicitud_aseguradora) && empty($caso->tipo_respuesta_aseguradora))
-                                    <button type="button" class="is-act-btn act-default btn-abrir-modal-respuesta"
-                                            data-action="{{ route('casos.marcarRespuestaAseguradora', $caso) }}"
-                                            data-caso="{{ $caso->numero_caso }}"
-                                            data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
-                                            data-fecha="{{ now()->toDateString() }}">
-                                        Respuesta
-                                    </button>
-                                @elseif(!empty($caso->tipo_respuesta_aseguradora))
-                                    <button type="button" class="is-act-btn act-done" disabled>Respuesta ✓</button>
-                                @endif
-
-                                @if($caso->tipo_respuesta_aseguradora === 'emitio_dictamen' && empty($caso->fecha_apelacion))
-                                    <button type="button" class="is-act-btn act-warn btn-abrir-modal-fecha"
-                                            data-action="{{ route('casos.marcarApelacion', $caso) }}"
-                                            data-campo="fecha_apelacion"
-                                            data-label="Fecha de apelación"
-                                            data-titulo="Registrar apelación del dictamen"
-                                            data-boton="Guardar apelación"
-                                            data-caso="{{ $caso->numero_caso }}"
-                                            data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
-                                            data-fecha="{{ now()->toDateString() }}">
-                                        Apelar
-                                    </button>
-                                @elseif(!empty($caso->fecha_apelacion))
-                                    <button type="button" class="is-act-btn act-done" disabled>Apelación ✓</button>
-                                @endif
-
-                                @if($caso->requiereTutela())
-                                    <button type="button" class="is-act-btn act-warn btn-abrir-modal-tutela"
-                                            data-action="{{ route('casos.marcarTutela', $caso) }}"
-                                            data-caso="{{ $caso->numero_caso }}"
-                                            data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
-                                            data-fecha="{{ now()->toDateString() }}"
-                                            data-tipo-respuesta="{{ $caso->tipo_respuesta_aseguradora }}">
-                                        Tutela
-                                    </button>
-                                @elseif(!empty($caso->fecha_tutela))
-                                    <button type="button" class="is-act-btn act-done" disabled>Tutela ✓</button>
-                                @endif
-
-                                @if(!empty($caso->fecha_tutela) && empty($caso->fecha_fallo_tutela))
-                                    <button type="button" class="is-act-btn act-danger btn-abrir-modal-fallo"
-                                            data-action="{{ route('casos.marcarFalloTutela', $caso) }}"
-                                            data-caso="{{ $caso->numero_caso }}"
-                                            data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
-                                            data-fecha="{{ now()->toDateString() }}"
-                                            data-resultado="{{ $caso->resultado_fallo_tutela }}">
-                                        Fallo tutela
-                                    </button>
-                                @elseif(!empty($caso->fecha_fallo_tutela))
-                                    <button type="button" class="is-act-btn act-done" disabled>Fallo tutela ✓</button>
-                                @endif
-
-                                @if($caso->requiereCumplimientoTutela())
-                                    <button type="button" class="is-act-btn act-success btn-abrir-modal-cumplimiento"
-                                            data-action="{{ route('casos.marcarCumplimientoTutela', $caso) }}"
-                                            data-caso="{{ $caso->numero_caso }}"
-                                            data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
-                                            data-fecha="{{ now()->toDateString() }}"
-                                            data-tipo-tutela="{{ $caso->tipo_tutela }}">
-                                        Cumplimiento
-                                    </button>
-                                @elseif(!empty($caso->fecha_cumplimiento_tutela))
-                                    <button type="button" class="is-act-btn act-done" disabled>Cumplimiento ✓</button>
-                                @endif
-
-                                @if($caso->requiereIncidenteDesacato())
-                                    <button type="button" class="is-act-btn act-danger btn-abrir-modal-fecha"
-                                            data-action="{{ route('casos.marcarIncidenteDesacato', $caso) }}"
-                                            data-campo="fecha_incidente_desacato"
-                                            data-label="Fecha del incidente de desacato"
-                                            data-titulo="Registrar incidente de desacato"
-                                            data-boton="Guardar desacato"
-                                            data-caso="{{ $caso->numero_caso }}"
-                                            data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
-                                            data-fecha="{{ now()->toDateString() }}">
-                                        Desacato
-                                    </button>
-                                @elseif(!empty($caso->fecha_incidente_desacato))
-                                    <button type="button" class="is-act-btn act-done" disabled>Desacato ✓</button>
-                                @endif
-
-                                @if($caso->requiereImpugnacion())
-                                    <button type="button" class="is-act-btn act-warn btn-abrir-modal-fecha"
-                                            data-action="{{ route('casos.marcarImpugnacion', $caso) }}"
-                                            data-campo="fecha_impugnacion"
-                                            data-label="Fecha de impugnación"
-                                            data-titulo="Registrar impugnación"
-                                            data-boton="Guardar impugnación"
-                                            data-caso="{{ $caso->numero_caso }}"
-                                            data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
-                                            data-fecha="{{ now()->toDateString() }}">
-                                        Impugnación
-                                    </button>
-                                @elseif(!empty($caso->fecha_impugnacion))
-                                    <button type="button" class="is-act-btn act-done" disabled>Impugnación ✓</button>
-                                @endif
-
-                                @if($caso->requiereSegundaInstancia())
-                                    <button type="button" class="is-act-btn act-purple btn-abrir-modal-segunda"
-                                            data-action="{{ route('casos.marcarFalloSegundaInstancia', $caso) }}"
-                                            data-caso="{{ $caso->numero_caso }}"
-                                            data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
-                                            data-fecha="{{ now()->toDateString() }}">
-                                        2ª instancia
-                                    </button>
-                                @elseif(!empty($caso->fecha_fallo_segunda_instancia))
-                                    <button type="button" class="is-act-btn act-done" disabled>2ª instancia ✓</button>
-                                @endif
-
-                                @if(!empty($caso->fecha_apelacion) && empty($caso->fecha_pago_honorarios))
-                                    <button type="button" class="is-act-btn act-default btn-abrir-modal-fecha"
-                                            data-action="{{ route('casos.marcarPagoHonorarios', $caso) }}"
-                                            data-campo="fecha_pago_honorarios"
-                                            data-label="Fecha de pago honorarios"
-                                            data-titulo="Registrar pago de honorarios"
-                                            data-boton="Guardar honorarios"
-                                            data-caso="{{ $caso->numero_caso }}"
-                                            data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
-                                            data-fecha="{{ now()->toDateString() }}">
-                                        Honorarios
-                                    </button>
-                                @elseif(!empty($caso->fecha_pago_honorarios))
-                                    <button type="button" class="is-act-btn act-done" disabled>Honorarios ✓</button>
-                                @endif
-
-                                @if($caso->requiereAltaOrtopedia())
-                                    <button type="button" class="is-act-btn act-teal btn-abrir-modal-alta"
-                                            data-action="{{ route('casos.marcarAltaOrtopedia', $caso) }}"
-                                            data-caso="{{ $caso->numero_caso }}"
-                                            data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
-                                            data-fecha="{{ now()->toDateString() }}">
-                                        Alta ortopedia
-                                    </button>
-                                @elseif($caso->alta_ortopedia)
-                                    <button type="button" class="is-act-btn act-done" disabled>Alta ortopedia ✓</button>
-                                @endif
-
-                                @if($caso->requiereSolicitudJunta())
-                                    <button type="button" class="is-act-btn act-gray btn-abrir-modal-fecha"
-                                            data-action="{{ route('casos.marcarSolicitudJunta', $caso) }}"
-                                            data-campo="fecha_envio_junta"
-                                            data-label="Fecha de envío a junta"
-                                            data-titulo="Registrar solicitud a junta"
-                                            data-boton="Guardar junta"
-                                            data-caso="{{ $caso->numero_caso }}"
-                                            data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
-                                            data-fecha="{{ now()->toDateString() }}">
-                                        Junta
-                                    </button>
-                                @elseif(!empty($caso->fecha_envio_junta))
-                                    <button type="button" class="is-act-btn act-done" disabled>Junta ✓</button>
-                                @endif
-
-                                @if(!empty($caso->fecha_envio_junta) && empty($caso->fecha_dictamen_junta))
-                                    <button type="button" class="is-act-btn act-default btn-abrir-modal-fecha"
-                                            data-action="{{ route('casos.marcarDictamenJunta', $caso) }}"
-                                            data-campo="fecha_dictamen_junta"
-                                            data-label="Fecha de dictamen"
-                                            data-titulo="Registrar dictamen de junta"
-                                            data-boton="Guardar dictamen"
-                                            data-caso="{{ $caso->numero_caso }}"
-                                            data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
-                                            data-fecha="{{ now()->toDateString() }}">
-                                        Dictamen junta
-                                    </button>
-                                @elseif(!empty($caso->fecha_dictamen_junta))
-                                    <button type="button" class="is-act-btn act-done" disabled>Dictamen ✓</button>
-                                @endif
-
-                                @if($caso->requiereFurpen())
-                                    <button type="button" class="is-act-btn act-teal btn-abrir-modal-furpen"
-                                            data-action="{{ route('casos.marcarFurpen', $caso) }}"
-                                            data-caso="{{ $caso->numero_caso }}"
-                                            data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
-                                            data-fecha="{{ now()->toDateString() }}">
-                                        FURPEN
-                                    </button>
-                                @elseif($caso->furpen_completo)
-                                    <button type="button" class="is-act-btn act-done" disabled>FURPEN ✓</button>
-                                @endif
-
-                                @if($caso->requiereCobroAseguradora())
-                                    <button type="button" class="is-act-btn act-default btn-abrir-modal-reclamacion"
-                                            data-action="{{ route('casos.marcarReclamacion', $caso) }}"
-                                            data-caso="{{ $caso->numero_caso }}"
-                                            data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
-                                            data-fecha="{{ now()->toDateString() }}">
-                                        Reclamar
-                                    </button>
-                                @elseif(!empty($caso->fecha_reclamacion_final))
-                                    <button type="button" class="is-act-btn act-done" disabled>Reclamación ✓</button>
-                                @endif
-
-                                @if($caso->requierePagoPendiente())
-                                    <button type="button" class="is-act-btn act-success btn-abrir-modal-pago"
-                                            data-action="{{ route('casos.marcarPago', $caso) }}"
-                                            data-caso="{{ $caso->numero_caso }}"
-                                            data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
-                                            data-fecha="{{ now()->toDateString() }}"
-                                            data-honorarios="{{ $caso->porcentaje_honorarios }}">
-                                        Pago
-                                    </button>
-                                @elseif(!empty($caso->fecha_pago_final))
-                                    <button type="button" class="is-act-btn act-done" disabled>Pago ✓</button>
-                                @endif
-
-                            @endif
-
-                            @if(auth()->user()->puedeEliminar())
-                                <form class="inline"
-                                      action="{{ route('casos.destroy', $caso) }}"
-                                      method="POST"
-                                      onsubmit="return confirm('¿Eliminar este caso permanentemente?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="is-act-btn act-danger">Eliminar</button>
-                                </form>
-                            @endif
+                <td>
+                    <div class="is-pcl-wrap">
+                        {{ $caso->porcentaje_avance ?? 0 }}%
+                        <div class="is-pcl-track">
+                            <div class="is-pcl-fill"
+                                 style="width:{{ $caso->porcentaje_avance ?? 0 }}%;background:#059669;">
+                            </div>
                         </div>
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="15"
-                        style="text-align:center;padding:40px 20px;
-                               color:var(--text-3);font-size:14px;">
-                        No hay casos registrados con esos filtros.
-                    </td>
-                </tr>
-            @endforelse
-            </tbody>
-        </table>
-    </div>
+                    </div>
+                </td>
+
+                <td style="font-size:12px;color:var(--text-2);max-width:220px;line-height:1.35;">
+                    {{ $caso->junta_asignada ?: '—' }}
+                </td>
+
+                <td>
+                    <div style="display:flex;flex-wrap:wrap;gap:5px;">
+                        <a href="{{ route('casos.show', $caso) }}" class="is-act-btn act-gray">Ver</a>
+
+                        @if(auth()->user()->puedeEditar())
+                            <a href="{{ route('casos.edit', $caso) }}" class="is-act-btn act-warn">Editar</a>
+                        @endif
+
+                        <a href="{{ route('casos.documentos.index', $caso) }}" class="is-act-btn act-default">Expediente</a>
+                        <a href="{{ route('casos.bitacoras.index', $caso) }}" class="is-act-btn act-gray">Bitácora</a>
+
+                        @if(auth()->user()->puedeAccionarFlujo())
+
+                            @if(empty($caso->fecha_solicitud_aseguradora) && !$caso->requierePoderContrato() && !$caso->estaPrescrito())
+                                <button type="button" class="is-act-btn act-default btn-abrir-modal-fecha"
+                                        data-action="{{ route('casos.marcarSolicitudAseguradora', $caso) }}"
+                                        data-campo="fecha_solicitud_aseguradora"
+                                        data-label="Fecha de solicitud"
+                                        data-titulo="Registrar solicitud a aseguradora"
+                                        data-boton="Guardar solicitud"
+                                        data-caso="{{ $caso->numero_caso }}"
+                                        data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
+                                        data-fecha="{{ now()->toDateString() }}">
+                                    Solicitud
+                                </button>
+                            @elseif(!empty($caso->fecha_solicitud_aseguradora))
+                                <button type="button" class="is-act-btn act-done" disabled>Solicitud ✓</button>
+                            @else
+                                <button type="button" class="is-act-btn act-done" disabled>Falta poder/contrato</button>
+                            @endif
+
+                            @if(!empty($caso->fecha_solicitud_aseguradora) && empty($caso->tipo_respuesta_aseguradora))
+                                <button type="button" class="is-act-btn act-default btn-abrir-modal-respuesta"
+                                        data-action="{{ route('casos.marcarRespuestaAseguradora', $caso) }}"
+                                        data-caso="{{ $caso->numero_caso }}"
+                                        data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
+                                        data-fecha="{{ now()->toDateString() }}">
+                                    Respuesta
+                                </button>
+                            @elseif(!empty($caso->tipo_respuesta_aseguradora))
+                                <button type="button" class="is-act-btn act-done" disabled>Respuesta ✓</button>
+                            @endif
+
+                            @if($caso->tipo_respuesta_aseguradora === 'emitio_dictamen' && empty($caso->fecha_apelacion))
+                                <button type="button" class="is-act-btn act-warn btn-abrir-modal-fecha"
+                                        data-action="{{ route('casos.marcarApelacion', $caso) }}"
+                                        data-campo="fecha_apelacion"
+                                        data-label="Fecha de apelación"
+                                        data-titulo="Registrar apelación del dictamen"
+                                        data-boton="Guardar apelación"
+                                        data-caso="{{ $caso->numero_caso }}"
+                                        data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
+                                        data-fecha="{{ now()->toDateString() }}">
+                                    Apelar
+                                </button>
+                            @elseif(!empty($caso->fecha_apelacion))
+                                <button type="button" class="is-act-btn act-done" disabled>Apelación ✓</button>
+                            @endif
+
+                            @if($caso->requiereTutela())
+                                <button type="button" class="is-act-btn act-warn btn-abrir-modal-tutela"
+                                        data-action="{{ route('casos.marcarTutela', $caso) }}"
+                                        data-caso="{{ $caso->numero_caso }}"
+                                        data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
+                                        data-fecha="{{ now()->toDateString() }}"
+                                        data-tipo-respuesta="{{ $caso->tipo_respuesta_aseguradora }}">
+                                    Tutela
+                                </button>
+                            @elseif(!empty($caso->fecha_tutela))
+                                <button type="button" class="is-act-btn act-done" disabled>Tutela ✓</button>
+                            @endif
+
+                            @if(!empty($caso->fecha_tutela) && empty($caso->fecha_fallo_tutela))
+                                <button type="button" class="is-act-btn act-danger btn-abrir-modal-fallo"
+                                        data-action="{{ route('casos.marcarFalloTutela', $caso) }}"
+                                        data-caso="{{ $caso->numero_caso }}"
+                                        data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
+                                        data-fecha="{{ now()->toDateString() }}"
+                                        data-resultado="{{ $caso->resultado_fallo_tutela }}">
+                                    Fallo tutela
+                                </button>
+                            @elseif(!empty($caso->fecha_fallo_tutela))
+                                <button type="button" class="is-act-btn act-done" disabled>Fallo tutela ✓</button>
+                            @endif
+
+                            @if($caso->requiereCumplimientoTutela())
+                                <button type="button" class="is-act-btn act-success btn-abrir-modal-cumplimiento"
+                                        data-action="{{ route('casos.marcarCumplimientoTutela', $caso) }}"
+                                        data-caso="{{ $caso->numero_caso }}"
+                                        data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
+                                        data-fecha="{{ now()->toDateString() }}"
+                                        data-tipo-tutela="{{ $caso->tipo_tutela }}">
+                                    Cumplimiento
+                                </button>
+                            @elseif(!empty($caso->fecha_cumplimiento_tutela))
+                                <button type="button" class="is-act-btn act-done" disabled>Cumplimiento ✓</button>
+                            @endif
+
+                            @if($caso->requiereIncidenteDesacato())
+                                <button type="button" class="is-act-btn act-danger btn-abrir-modal-fecha"
+                                        data-action="{{ route('casos.marcarIncidenteDesacato', $caso) }}"
+                                        data-campo="fecha_incidente_desacato"
+                                        data-label="Fecha del incidente de desacato"
+                                        data-titulo="Registrar incidente de desacato"
+                                        data-boton="Guardar desacato"
+                                        data-caso="{{ $caso->numero_caso }}"
+                                        data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
+                                        data-fecha="{{ now()->toDateString() }}">
+                                    Desacato
+                                </button>
+                            @elseif(!empty($caso->fecha_incidente_desacato))
+                                <button type="button" class="is-act-btn act-done" disabled>Desacato ✓</button>
+                            @endif
+
+                            @if($caso->requiereImpugnacion())
+                                <button type="button" class="is-act-btn act-warn btn-abrir-modal-fecha"
+                                        data-action="{{ route('casos.marcarImpugnacion', $caso) }}"
+                                        data-campo="fecha_impugnacion"
+                                        data-label="Fecha de impugnación"
+                                        data-titulo="Registrar impugnación"
+                                        data-boton="Guardar impugnación"
+                                        data-caso="{{ $caso->numero_caso }}"
+                                        data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
+                                        data-fecha="{{ now()->toDateString() }}">
+                                    Impugnación
+                                </button>
+                            @elseif(!empty($caso->fecha_impugnacion))
+                                <button type="button" class="is-act-btn act-done" disabled>Impugnación ✓</button>
+                            @endif
+
+                            @if($caso->requiereSegundaInstancia())
+                                <button type="button" class="is-act-btn act-purple btn-abrir-modal-segunda"
+                                        data-action="{{ route('casos.marcarFalloSegundaInstancia', $caso) }}"
+                                        data-caso="{{ $caso->numero_caso }}"
+                                        data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
+                                        data-fecha="{{ now()->toDateString() }}">
+                                    2ª instancia
+                                </button>
+                            @elseif(!empty($caso->fecha_fallo_segunda_instancia))
+                                <button type="button" class="is-act-btn act-done" disabled>2ª instancia ✓</button>
+                            @endif
+
+                            @if(!empty($caso->fecha_apelacion) && empty($caso->fecha_pago_honorarios))
+                                <button type="button" class="is-act-btn act-default btn-abrir-modal-fecha"
+                                        data-action="{{ route('casos.marcarPagoHonorarios', $caso) }}"
+                                        data-campo="fecha_pago_honorarios"
+                                        data-label="Fecha de pago honorarios"
+                                        data-titulo="Registrar pago de honorarios"
+                                        data-boton="Guardar honorarios"
+                                        data-caso="{{ $caso->numero_caso }}"
+                                        data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
+                                        data-fecha="{{ now()->toDateString() }}">
+                                    Honorarios
+                                </button>
+                            @elseif(!empty($caso->fecha_pago_honorarios))
+                                <button type="button" class="is-act-btn act-done" disabled>Honorarios ✓</button>
+                            @endif
+
+                            @if($caso->requiereAltaOrtopedia())
+                                <button type="button" class="is-act-btn act-teal btn-abrir-modal-alta"
+                                        data-action="{{ route('casos.marcarAltaOrtopedia', $caso) }}"
+                                        data-caso="{{ $caso->numero_caso }}"
+                                        data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
+                                        data-fecha="{{ now()->toDateString() }}">
+                                    Alta ortopedia
+                                </button>
+                            @elseif($caso->alta_ortopedia)
+                                <button type="button" class="is-act-btn act-done" disabled>Alta ortopedia ✓</button>
+                            @endif
+
+                            @if($caso->requiereSolicitudJunta())
+                                <button type="button" class="is-act-btn act-gray btn-abrir-modal-fecha"
+                                        data-action="{{ route('casos.marcarSolicitudJunta', $caso) }}"
+                                        data-campo="fecha_envio_junta"
+                                        data-label="Fecha de envío a junta"
+                                        data-titulo="Registrar solicitud a junta"
+                                        data-boton="Guardar junta"
+                                        data-caso="{{ $caso->numero_caso }}"
+                                        data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
+                                        data-fecha="{{ now()->toDateString() }}">
+                                    Junta
+                                </button>
+                            @elseif(!empty($caso->fecha_envio_junta))
+                                <button type="button" class="is-act-btn act-done" disabled>Junta ✓</button>
+                            @endif
+
+                            @if(!empty($caso->fecha_envio_junta) && empty($caso->fecha_dictamen_junta))
+                                <button type="button" class="is-act-btn act-default btn-abrir-modal-fecha"
+                                        data-action="{{ route('casos.marcarDictamenJunta', $caso) }}"
+                                        data-campo="fecha_dictamen_junta"
+                                        data-label="Fecha de dictamen"
+                                        data-titulo="Registrar dictamen de junta"
+                                        data-boton="Guardar dictamen"
+                                        data-caso="{{ $caso->numero_caso }}"
+                                        data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
+                                        data-fecha="{{ now()->toDateString() }}">
+                                    Dictamen junta
+                                </button>
+                            @elseif(!empty($caso->fecha_dictamen_junta))
+                                <button type="button" class="is-act-btn act-done" disabled>Dictamen ✓</button>
+                            @endif
+
+                            @if($caso->requiereFurpen())
+                                <button type="button" class="is-act-btn act-teal btn-abrir-modal-furpen"
+                                        data-action="{{ route('casos.marcarFurpen', $caso) }}"
+                                        data-caso="{{ $caso->numero_caso }}"
+                                        data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
+                                        data-fecha="{{ now()->toDateString() }}">
+                                    FURPEN
+                                </button>
+                            @elseif($caso->furpen_completo)
+                                <button type="button" class="is-act-btn act-done" disabled>FURPEN ✓</button>
+                            @endif
+
+                            @if($caso->requiereCobroAseguradora())
+                                <button type="button" class="is-act-btn act-default btn-abrir-modal-reclamacion"
+                                        data-action="{{ route('casos.marcarReclamacion', $caso) }}"
+                                        data-caso="{{ $caso->numero_caso }}"
+                                        data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
+                                        data-fecha="{{ now()->toDateString() }}">
+                                    Reclamar
+                                </button>
+                            @elseif(!empty($caso->fecha_reclamacion_final))
+                                <button type="button" class="is-act-btn act-done" disabled>Reclamación ✓</button>
+                            @endif
+
+                            @if($caso->requierePagoPendiente())
+                                <button type="button" class="is-act-btn act-success btn-abrir-modal-pago"
+                                        data-action="{{ route('casos.marcarPago', $caso) }}"
+                                        data-caso="{{ $caso->numero_caso }}"
+                                        data-victima="{{ $caso->nombres }} {{ $caso->apellidos }}"
+                                        data-fecha="{{ now()->toDateString() }}"
+                                        data-honorarios="{{ $caso->porcentaje_honorarios }}">
+                                    Pago
+                                </button>
+                            @elseif(!empty($caso->fecha_pago_final))
+                                <button type="button" class="is-act-btn act-done" disabled>Pago ✓</button>
+                            @endif
+
+                        @endif
+
+                        @if(auth()->user()->puedeEliminar())
+                            <form class="inline"
+                                  action="{{ route('casos.destroy', $caso) }}"
+                                  method="POST"
+                                  onsubmit="return confirm('¿Eliminar este caso permanentemente?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="is-act-btn act-danger">Eliminar</button>
+                            </form>
+                        @endif
+                    </div>
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="15"
+                    style="text-align:center;padding:40px 20px;
+                           color:var(--text-3);font-size:14px;">
+                    No hay casos registrados con esos filtros.
+                </td>
+            </tr>
+        @endforelse
+        </tbody>
+    </table>
 </div>
 
 <div class="is-pagination"
