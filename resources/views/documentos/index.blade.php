@@ -1,276 +1,231 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>Expediente del Caso - INDEMNI SOAT</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+@extends('layouts.app')
+
+@section('title', 'Expediente del Caso')
+
+@section('content')
 <style>
-*{box-sizing:border-box}
-body{
-    font-family:Arial,Helvetica,sans-serif;
-    background:#f4f6f9;
-    padding:30px;
-    margin:0;
-    color:#111827;
-}
-.container{
-    max-width:1200px;
-    margin:auto;
-    background:#fff;
-    padding:25px;
-    border-radius:10px;
-    box-shadow:0 8px 24px rgba(0,0,0,.06);
-}
-h1,h2,h3{
-    margin-top:0;
-}
-.topbar{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap:16px;
-    flex-wrap:wrap;
-    margin-bottom:20px;
-}
-.badge{
-    display:inline-block;
-    padding:8px 12px;
-    border-radius:999px;
-    background:#e9ecef;
-    color:#374151;
-    font-size:13px;
-    margin-top:8px;
-}
-.alert{
-    padding:12px 14px;
-    background:#d1e7dd;
-    color:#0f5132;
-    border-radius:8px;
-    margin-bottom:15px;
-    border:1px solid #badbcc;
-}
-.alert-error{
-    background:#f8d7da;
-    color:#842029;
-    border:1px solid #f5c2c7;
-    padding:12px 14px;
-    border-radius:8px;
-    margin-bottom:15px;
-}
-.alert-error ul{
-    margin:0;
-    padding-left:18px;
-}
-.section{
-    background:#f8fafc;
-    border:1px solid #e2e8f0;
-    border-radius:10px;
-    padding:18px;
-    margin-bottom:22px;
-}
-.grid{
+/* ── Grid de documentos ── */
+.is-docs-grid {
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
     gap:16px;
+    margin-bottom:24px;
 }
-.full{
-    grid-column:1 / -1;
-}
-label{
-    display:block;
-    font-weight:bold;
-    margin-bottom:6px;
-}
-input,select{
-    width:100%;
-    padding:10px;
-    margin-top:5px;
-    margin-bottom:15px;
-    border:1px solid #ccc;
-    border-radius:6px;
-    font-family:inherit;
-    font-size:14px;
-}
-button,.btn{
-    display:inline-block;
-    padding:10px 16px;
-    background:#0d6efd;
-    color:#fff;
-    text-decoration:none;
-    border:none;
-    border-radius:6px;
+.is-doc-card {
+    background:var(--bg-card);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:18px;
+    transition:all .2s;
     cursor:pointer;
-    font-size:14px;
+    position:relative;
 }
-.btn-danger{background:#dc3545}
-.btn-secondary{background:#6c757d}
-.btn-light{
-    background:#e5e7eb;
-    color:#111827;
+.is-doc-card:hover {
+    border-color:var(--cobalt-glow,rgba(27,79,255,0.4));
+    transform:translateY(-2px);
+    box-shadow:0 8px 24px rgba(0,0,0,0.08);
 }
-.actions{
+.is-doc-icon {
+    width:48px;height:48px;
+    background:var(--bg-input);
+    border-radius:8px;
     display:flex;
-    gap:10px;
-    flex-wrap:wrap;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:12px;
+    font-size:20px;
 }
-.table-wrap{
-    overflow:auto;
-    border:1px solid #d7dce3;
-    border-radius:10px;
-}
-table{
-    width:100%;
-    border-collapse:collapse;
-    background:#fff;
-}
-th,td{
-    padding:12px;
-    border-bottom:1px solid #ddd;
-    text-align:left;
-    vertical-align:top;
-}
-th{
-    background:#eef2f7;
-    white-space:nowrap;
-}
-form.inline{
-    display:inline;
-}
-.link-file{
-    color:#2563eb;
-    text-decoration:none;
+.is-doc-name {
+    font-size:14px;
     font-weight:600;
+    color:var(--text-1);
+    margin-bottom:4px;
+    line-height:1.3;
 }
-.link-file:hover{
-    text-decoration:underline;
+.is-doc-date {
+    font-size:11px;
+    color:var(--text-3);
+    margin-bottom:8px;
 }
-.empty-state{
-    padding:20px;
+.is-doc-actions {
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+}
+.is-doc-btn {
+    padding:6px 10px;
+    border-radius:6px;
+    font-size:11px;
+    font-weight:600;
+    text-decoration:none;
+    transition:all .2s;
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+}
+.is-doc-btn-primary {
+    background:var(--cobalt-glow,rgba(27,79,255,0.12));
+    color:#4B78FF;
+    border:1px solid rgba(27,79,255,0.25);
+}
+.is-doc-btn-primary:hover {
+    background:rgba(27,79,255,0.22);
+}
+.is-doc-btn-danger {
+    background:rgba(229,57,53,0.12);
+    color:#F26F6F;
+    border:1px solid rgba(229,57,53,0.25);
+}
+.is-doc-btn-danger:hover {
+    background:rgba(229,57,53,0.22);
+}
+.is-doc-empty {
+    grid-column:1/-1;
     text-align:center;
-    color:#64748b;
-}
-.small{
-    color:#6b7280;
-    font-size:13px;
-    line-height:1.4;
-}
-@media (max-width:900px){
-    .grid{
-        grid-template-columns:1fr;
-    }
-    body{
-        padding:18px;
-    }
+    padding:60px 20px;
+    color:var(--text-3);
+    font-style:italic;
+    font-size:14px;
 }
 </style>
-</head>
-<body>
-<div class="container">
-    <div class="topbar">
-        <div>
-            <h1>Expediente Digital</h1>
-            <h2 style="margin-bottom:0;">{{ $caso->numero_caso }} - {{ $caso->nombres }} {{ $caso->apellidos }}</h2>
-            <div class="badge">Caso #{{ $caso->id }}</div>
-        </div>
 
-        <div class="actions">
-            <a href="{{ route('casos.show', $caso) }}" class="btn btn-light">Ver caso</a>
-            <a href="{{ route('casos.index') }}" class="btn btn-secondary">Volver a casos</a>
+{{-- ── Cabecera ── --}}
+<div class="is-animate-rise"
+     style="display:flex;align-items:center;gap:14px;margin-bottom:28px;">
+    <a href="{{ route('casos.show', $caso) }}"
+       style="width:38px;height:38px;border-radius:6px;
+              border:1px solid var(--border-2);background:var(--bg-input);
+              display:flex;align-items:center;justify-content:center;
+              color:var(--text-2);font-size:18px;text-decoration:none;
+              transition:all .2s;flex-shrink:0;"
+       onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--text-1)'"
+       onmouseout="this.style.background='var(--bg-input)';this.style.color='var(--text-2)'">
+        ←
+    </a>
+    <div>
+        <div class="is-page-title">Expediente Digital</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:3px;">
+            {{ $caso->numero_caso }} — {{ $caso->nombres }} {{ $caso->apellidos }}
         </div>
     </div>
+</div>
 
-    @if(session('success'))
-        <div class="alert">{{ session('success') }}</div>
-    @endif
+@session('success')
+    <div class="is-animate-rise is-stagger-1"
+         style="background:rgba(5,150,105,0.08);border:1px solid rgba(5,150,105,0.22);
+                border-radius:8px;padding:11px 16px;margin-bottom:16px;
+                font-size:13px;color:#1DBD7F;display:flex;align-items:center;gap:8px;">
+        <span>✓</span> {{ session('success') }}
+    </div>
+@endsession
 
-    @if($errors->any())
-        <div class="alert-error">
-            <strong>Corrige los siguientes errores:</strong>
-            <ul>
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+@session('error')
+    <div class="is-animate-rise is-stagger-1"
+         style="background:rgba(229,57,53,0.08);border:1px solid rgba(229,57,53,0.22);
+                border-radius:8px;padding:11px 16px;margin-bottom:16px;
+                font-size:13px;color:#F26F6F;display:flex;align-items:center;gap:8px;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M8 11v1M8 5v.01" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+        {{ session('error') }}
+    </div>
+@endsession
+
+{{-- ── Subir documento ── }}
+@if(auth()->user()->puedeEditar())
+    <div class="is-animate-rise is-stagger-1"
+         style="background:var(--bg-card);border:1px solid var(--border);
+                border-radius:8px;padding:20px;margin-bottom:24px;">
+        <div style="font-size:16px;font-weight:600;color:var(--text-1);margin-bottom:16px;">
+            Subir documento al expediente
         </div>
-    @endif
-
-    <div class="section">
-        <h3>Subir documento al expediente</h3>
-        <p class="small">Puedes cargar soportes como cédula, historia clínica, dictámenes, tutelas, reclamaciones, comprobantes y demás anexos del caso.</p>
-
         <form method="POST" action="{{ route('casos.documentos.store', $caso) }}" enctype="multipart/form-data">
             @csrf
-
-            <div class="grid">
-                <div>
-                    <label for="tipo_documento">Tipo de documento</label>
-                    <select name="tipo_documento" id="tipo_documento" required>
-                        <option value="">Seleccione...</option>
-                        @foreach($tipos as $tipo)
-                            <option value="{{ $tipo }}" {{ old('tipo_documento') == $tipo ? 'selected' : '' }}>
-                                {{ $tipo }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div>
-                    <label for="archivo">Archivo</label>
-                    <input type="file" name="archivo" id="archivo" required>
-                    <div class="small">Formatos permitidos: PDF, JPG, JPEG, PNG, DOC, DOCX. Máximo 10 MB.</div>
-                </div>
-
-                <div class="full actions">
-                    <button type="submit">Subir documento</button>
-                </div>
+            <div class="is-form-section">
+                <div class="is-form-label">Tipo de documento</div>
+                <select name="tipo_documento" class="is-select" required>
+                    <option value="">Seleccionar...</option>
+                    <option value="poder">Poder</option>
+                    <option value="contrato">Contrato de honorarios</option>
+                    <option value="copia_cedula">Copia de cédula</option>
+                    <option value="historia_clinica">Historia clínica</option>
+                    <option value="facturas">Facturas médicas</option>
+                    <option value="desprendibles">Desprendibles</option>
+                    <option value="otros">Otros</option>
+                </select>
+            </div>
+            <div class="is-form-section">
+                <div class="is-form-label">Archivo (PDF, imagen o documento)</div>
+                <input type="file" name="archivo" class="is-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end;">
+                <button type="submit" class="is-btn-primary">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="margin-right:6px;">
+                        <path d="M8 2v6M4 6h8M2 10h12l-1 4H3l-1-4z" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                    Subir documento
+                </button>
             </div>
         </form>
     </div>
+@endif
 
-    <div class="section">
-        <h3>Documentos cargados</h3>
-
-        @if($documentos->count())
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Tipo</th>
-                            <th>Archivo</th>
-                            <th>Fecha de carga</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($documentos as $documento)
-                            <tr>
-                                <td>{{ $documento->id }}</td>
-                                <td>{{ $documento->tipo_documento }}</td>
-                                <td>
-                                    <a href="{{ asset('storage/' . $documento->archivo) }}" target="_blank" class="link-file">
-                                        Ver archivo
-                                    </a>
-                                </td>
-                                <td>{{ optional($documento->created_at)->format('Y-m-d H:i') }}</td>
-                                <td>
-                                    <form class="inline" method="POST" action="{{ route('casos.documentos.destroy', [$caso, $documento]) }}" onsubmit="return confirm('¿Eliminar este documento?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger">Eliminar</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @else
-            <div class="empty-state">
-                No hay documentos cargados en este expediente.
-            </div>
-        @endif
+{{-- ── Lista de documentos ── --}}
+<div class="is-animate-rise is-stagger-2"
+     style="background:var(--bg-card);border:1px solid var(--border);
+            border-radius:8px;padding:20px;">
+    <div style="font-size:16px;font-weight:600;color:var(--text-1);margin-bottom:20px;">
+        Documentos del expediente
     </div>
+    
+    @if($documentos->count() > 0)
+        <div class="is-docs-grid">
+            @foreach($documentos as $documento)
+                <div class="is-doc-card">
+                    <div class="is-doc-icon">
+                        📄
+                    </div>
+                    <div class="is-doc-name">
+                        {{ $documento->nombre_original }}
+                    </div>
+                    <div class="is-doc-date">
+                        Subido el {{ $documento->created_at->format('d/m/Y H:i') }}
+                    </div>
+                    <div class="is-doc-actions">
+                        <a href="{{ route('casos.documentos.show', [$caso, $documento]) }}" 
+                           class="is-doc-btn is-doc-btn-primary" target="_blank">
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                                <path d="M1 3h14v8H1V3zm2 2v4h10V5H3z" stroke="currentColor" stroke-width="1.5"/>
+                            </svg>
+                            Ver
+                        </a>
+                        @if(auth()->user()->puedeEditar())
+                            <form method="POST" action="{{ route('casos.documentos.destroy', [$caso, $documento]) }}" 
+                                  style="display:inline;"
+                                  onsubmit="return confirm('¿Eliminar este documento del expediente?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="is-doc-btn is-doc-btn-danger">
+                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                                        <path d="M2 4h12M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1M7 8v4M4 4v8a2 2 0 002 2h4a2 2 0 002-2V4" 
+                                              stroke="currentColor" stroke-width="1.5"/>
+                                    </svg>
+                                    Eliminar
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @else
+        <div class="is-doc-empty">
+            <svg width="48" height="48" viewBox="0 0 16 16" fill="none" style="opacity:0.2;margin-bottom:12px;">
+                <path d="M3 8h10M8 3v10" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+            No hay documentos en el expediente de este caso.
+        </div>
+    @endif
 </div>
-</body>
-</html>
+@endsection
