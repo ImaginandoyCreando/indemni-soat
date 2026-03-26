@@ -155,11 +155,24 @@ form.inline { display:inline; }
     <div>
         <div class="is-page-title">Casos SOAT</div>
         <div style="font-size:12px;color:var(--text-2);margin-top:4px;">
+            @if(request('alerta'))
+                <span style="background:rgba(245,158,11,0.12);
+                             color:#F5B942;padding:3px 10px;border-radius:20px;
+                             font-weight:700;font-size:11px;margin-right:8px;">
+                    🚨 {{ $alertasDisponibles->where('valor', request('alerta'))->first()['texto'] ?? 'Alerta activa' }}
+                </span>
+            @endif
             <span style="background:var(--cobalt-glow,rgba(27,79,255,.12));
                          color:#4B78FF;padding:3px 10px;border-radius:20px;
                          font-weight:700;font-size:11px;">
                 {{ $casos->total() }} resultado(s)
             </span>
+            @if(request('alerta'))
+                <a href="{{ route('casos.index') }}" 
+                   style="margin-left:8px;color:var(--text-3);text-decoration:none;font-size:11px;">
+                    ✕ Limpiar filtro
+                </a>
+            @endif
         </div>
     </div>
     @if(auth()->user()->puedeEditar())

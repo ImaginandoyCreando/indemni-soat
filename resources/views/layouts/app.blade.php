@@ -376,14 +376,14 @@
         {{-- Módulos --}}
         <div class="is-sidebar-section">Módulos</div>
 
-        <a href="#" class="is-sidebar-item">
+        <a href="{{ route('casos.index') }}#bitacoras" class="is-sidebar-item">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M3 8h10M3 4h10M3 12h7"/>
             </svg>
             Bitácoras
         </a>
 
-        <a href="#" class="is-sidebar-item">
+        <a href="{{ route('dashboard') }}#reportes" class="is-sidebar-item">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M2 12V4a2 2 0 012-2h8a2 2 0 012 2v8"/>
                 <path d="M6 6h4M6 9h4M6 12h2"/>

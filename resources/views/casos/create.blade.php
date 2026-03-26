@@ -26,6 +26,11 @@
     margin-top:1px; transition:all .2s;
 }
 .is-cb-sq.on { background:#059669; border-color:#059669; }
+/* ── Validación en tiempo real ── */
+.is-input.valid { border-color: #059669 !important; }
+.is-input.invalid { border-color: #F26F6F !important; background: rgba(229,57,53,0.05); }
+.is-error-msg { color: #F26F6F; font-size: 11px; margin-top: 4px; display: none; }
+.is-error-msg.show { display: block; }
 </style>
 
 {{-- ── Cabecera ── --}}
@@ -44,8 +49,15 @@
     <div>
         <div class="is-page-title">Registrar Nuevo Caso</div>
         <div style="font-size:12px;color:var(--text-2);margin-top:3px;">
-            Completa los 3 pasos · Los campos con
-            <span style="color:#F26F6F;">*</span> son obligatorios
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <div style="display:flex;gap:4px;">
+                    <span style="display:inline-flex;width:20px;height:20px;border-radius:50%;background:#4B78FF;color:white;font-size:10px;font-weight:700;align-items:center;justify-content:center;">1</span>
+                    <span style="display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--border);color:var(--text-3);font-size:10px;font-weight:700;align-items:center;justify-content:center;">2</span>
+                    <span style="display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--border);color:var(--text-3);font-size:10px;font-weight:700;align-items:center;justify-content:center;">3</span>
+                </div>
+                <span style="color:#4B78FF;font-weight:600;">Paso 1 de 3</span>
+            </div>
+            Los campos con <span style="color:#F26F6F;">*</span> son obligatorios
         </div>
     </div>
 </div>
@@ -443,5 +455,39 @@ function toggleCb(boxId, inputId) {
         if (check) check.style.display = 'none';
     }
 }
+
+// Validación en tiempo real
+document.addEventListener('DOMContentLoaded', function() {
+    const requiredFields = ['nombres', 'apellidos', 'cedula', 'aseguradora'];
+    
+    requiredFields.forEach(fieldName => {
+        const field = document.querySelector(`[name="${fieldName}"]`);
+        if (field) {
+            field.addEventListener('blur', function() {
+                validateField(field);
+            });
+            
+            field.addEventListener('input', function() {
+                if (field.classList.contains('invalid')) {
+                    validateField(field);
+                }
+            });
+        }
+    });
+    
+    function validateField(field) {
+        const errorMsg = field.parentNode.querySelector('.is-error-msg');
+        
+        if (field.value.trim() === '') {
+            field.classList.remove('valid');
+            field.classList.add('invalid');
+            if (errorMsg) errorMsg.classList.add('show');
+        } else {
+            field.classList.remove('invalid');
+            field.classList.add('valid');
+            if (errorMsg) errorMsg.classList.remove('show');
+        }
+    }
+});
 </script>
 @endpush
