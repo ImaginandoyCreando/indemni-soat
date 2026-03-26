@@ -146,13 +146,11 @@
                 <div class="is-form-label">Tipo de documento</div>
                 <select name="tipo_documento" class="is-select" required>
                     <option value="">Seleccionar...</option>
-                    <option value="poder">Poder</option>
-                    <option value="contrato">Contrato de honorarios</option>
-                    <option value="copia_cedula">Copia de cédula</option>
-                    <option value="historia_clinica">Historia clínica</option>
-                    <option value="facturas">Facturas médicas</option>
-                    <option value="desprendibles">Desprendibles</option>
-                    <option value="otros">Otros</option>
+                    @foreach($tipos as $tipo)
+                        <option value="{{ $tipo }}" {{ old('tipo_documento') == $tipo ? 'selected' : '' }}>
+                            {{ $tipo }}
+                        </option>
+                    @endforeach
                 </select>
             </div>
             <div class="is-form-section">

@@ -116,10 +116,19 @@
         <form method="POST" action="{{ route('casos.bitacoras.store', $caso->id) }}">
             @csrf
             <div class="is-form-section">
+                <div class="is-form-label">Título del movimiento</div>
+                <input type="text" name="titulo" class="is-input"
+                       placeholder="Ej: Documento recibido, Llamada realizada, etc."
+                       required>
+            </div>
+            <div class="is-form-section">
                 <div class="is-form-label">Descripción del evento</div>
-                <textarea name="contenido" class="is-textarea" rows="4"
-                          placeholder="Describe la acción realizada, observación o evento importante..."
-                          required></textarea>
+                <textarea name="descripcion" class="is-textarea" rows="4"
+                          placeholder="Describe la acción realizada, observación o evento importante..."></textarea>
+            </div>
+            <div class="is-form-section">
+                <div class="is-form-label">Fecha del evento</div>
+                <input type="date" name="fecha_evento" class="is-input">
             </div>
             <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end;">
                 <button type="submit" class="is-btn-primary">
@@ -148,8 +157,13 @@
                     <div class="is-bitacora-date">
                         {{ $bitacora->created_at->format('d/m/Y H:i') }} — {{ $bitacora->user->name }}
                     </div>
+                    @if($bitacora->titulo)
+                        <div style="font-weight:600;color:var(--text-1);margin-bottom:6px;">
+                            {{ $bitacora->titulo }}
+                        </div>
+                    @endif
                     <div class="is-bitacora-content">
-                        {{ $bitacora->contenido }}
+                        {{ $bitacora->descripcion }}
                     </div>
                     @if(auth()->user()->puedeAccionarFlujo())
                         <form method="POST" action="{{ route('casos.bitacoras.destroy', [$caso->id, $bitacora->id]) }}" 
