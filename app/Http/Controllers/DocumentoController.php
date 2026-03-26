@@ -40,32 +40,64 @@ class DocumentoController extends Controller
 
     public function store(Request $request, Caso $caso)
     {
-        $request->validate([
-            'tipo_documento' => 'required|string|max:255',
-            'archivo' => 'required|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:102400',
-        ]);
+        try {
+            $request->validate([
+                'tipo_documento' => 'required|string|max:255',
+                'archivo' => 'required|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:102400',
+            ]);
 
-        $archivo = $request->file('archivo');
-        $nombreOriginal = $archivo->getClientOriginalName();
+            $archivo = $request->file('archivo');
+            if (!$archivo || !$archivo->isValid()) {
+                return redirect()
+                    ->route('casos.documentos.index', $caso)
+                    ->with('error', 'El archivo no es válido o está dañado.');
+            }
 
-        $ruta = $archivo->store('documentos', 'public');
+            $nombreOriginal = $archivo->getClientOriginalName();
 
-        Documento::create([
-            'caso_id' => $caso->id,
-            'tipo_documento' => $request->tipo_documento,
-            'archivo' => $ruta,
-        ]);
+            // Asegurar que el directorio exista
+            $storagePath = storage_path('app/public/documentos');
+            if (!is_dir($storagePath)) {
+                mkdir($storagePath, 0755, true);
+            }
 
-        Bitacora::create([
-            'caso_id' => $caso->id,
-            'titulo' => 'Documento cargado',
-            'descripcion' => 'Se cargó documento tipo: ' . $request->tipo_documento . '. Archivo: ' . $nombreOriginal,
-            'fecha_evento' => now()->toDateString(),
-        ]);
+            $ruta = $archivo->store('documentos', 'public');
+            if (!$ruta) {
+                return redirect()
+                    ->route('casos.documentos.index', $caso)
+                    ->with('error', 'No se pudo guardar el archivo. Intente nuevamente.');
+            }
 
-        return redirect()
-            ->route('casos.documentos.index', $caso)
-            ->with('success', 'Documento subido correctamente.');
+            Documento::create([
+                'caso_id' => $caso->id,
+                'tipo_documento' => $request->tipo_documento,
+                'archivo' => $ruta,
+            ]);
+
+            Bitacora::create([
+                'caso_id' => $caso->id,
+                'titulo' => 'Documento cargado',
+                'descripcion' => 'Se cargó documento tipo: ' . $request->tipo_documento . '. Archivo: ' . $nombreOriginal,
+                'fecha_evento' => now()->toDateString(),
+            ]);
+
+            return redirect()
+                ->route('casos.documentos.index', $caso)
+                ->with('success', 'Documento subido correctamente.');
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()
+                ->route('casos.documentos.index', $caso)
+                ->withErrors($e->errors())
+                ->withInput();
+        } catch (\Exception $e) {
+            // Log del error para debugging
+            \Log::error('Error subiendo documento: ' . $e->getMessage());
+            
+            return redirect()
+                ->route('casos.documentos.index', $caso)
+                ->with('error', 'Error al subir el documento: ' . $e->getMessage());
+        }
     }
 
     public function destroy(Caso $caso, Documento $documento)
