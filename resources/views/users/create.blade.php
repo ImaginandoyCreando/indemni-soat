@@ -1,140 +1,191 @@
-{{-- resources/views/users/create.blade.php --}}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>{{ isset($user) ? 'Editar usuario' : 'Nuevo usuario' }} — INDEMNI SOAT</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+@extends('layouts.app')
+
+@section('title', 'Nuevo Usuario')
+
+@section('content')
 <style>
-*{box-sizing:border-box}
-body{font-family:Arial,Helvetica,sans-serif;background:#f4f6f9;margin:0;color:#111827}
-.layout{display:flex;min-height:100vh}
-.sidebar{width:260px;background:linear-gradient(180deg,#1f2937 0%,#172033 100%);color:#fff;padding:25px 18px;flex-shrink:0;display:flex;flex-direction:column}
-.brand{font-size:28px;font-weight:bold;margin-bottom:30px;line-height:1.2}
-.menu a{display:block;padding:12px 14px;margin-bottom:8px;text-decoration:none;color:#fff;background:#374151;border-radius:8px;transition:.2s}
-.menu a:hover,.menu a.active{background:#2563eb}
-.user-box{margin-top:auto;padding-top:20px;border-top:1px solid #374151;font-size:13px}
-.user-name{font-weight:bold;margin-bottom:4px}
-.user-role{font-size:11px;color:#9ca3af}
-.logout-btn{display:block;margin-top:10px;padding:8px 12px;background:#374151;color:#fff;text-decoration:none;border-radius:6px;font-size:12px;text-align:center;border:none;cursor:pointer;width:100%}
-.logout-btn:hover{background:#dc3545}
-.content{flex:1;padding:30px}
-.card{background:#fff;border-radius:12px;padding:28px;max-width:560px;box-shadow:0 8px 24px rgba(15,23,42,.06)}
-h2{margin:0 0 24px 0}
-label{display:block;font-size:13px;font-weight:bold;color:#374151;margin-bottom:6px}
-input,select{width:100%;padding:11px 13px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;margin-bottom:16px}
-input:focus,select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
-.helper{font-size:11px;color:#6b7280;margin-top:-12px;margin-bottom:14px;display:block}
-.btn{display:inline-block;padding:11px 20px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;text-decoration:none}
-.btn:hover{opacity:.9}
-.btn-secondary{background:#6b7280}
-.actions{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
-.alert-error{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;margin-bottom:18px;font-size:13px;color:#dc2626}
-.alert-error ul{margin:0;padding-left:18px}
-.field-error{font-size:11px;color:#dc2626;margin-top:-12px;margin-bottom:12px;display:block}
-.divider{border:none;border-top:1px solid #e5e7eb;margin:20px 0}
-@media(max-width:900px){.layout{flex-direction:column}.sidebar{width:100%}}
+/* ── Formulario de usuario ── */
+.is-user-form {
+    max-width:560px;margin:auto;
+    background:var(--bg-card);border:1px solid var(--border);
+    border-radius:12px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,0.04);
+}
+.is-form-section { margin-bottom:24px; }
+.is-form-section:last-child { margin-bottom:0; }
+.is-divider {
+    border:none;border-top:1px solid var(--border);
+    margin:24px 0;
+}
+/* ── Validación visual ── */
+.is-input.valid { border-color: #059669 !important; }
+.is-input.invalid { border-color: #F26F6F !important; background: rgba(229,57,53,0.05); }
+.is-error-msg { color: #F26F6F; font-size: 11px; margin-top: 4px; display: none; }
+.is-error-msg.show { display: block; }
 </style>
-</head>
-<body>
-<div class="layout">
-    <aside class="sidebar">
-        <div class="brand">INDEMNI<br>SOAT</div>
-        <nav class="menu">
-            <a href="{{ route('casos.index') }}">Casos</a>
-            <a href="{{ route('dashboard') }}">Dashboard</a>
-            <a href="{{ route('users.index') }}" class="active">Usuarios</a>
-        </nav>
-        <div style="flex:1"></div>
-        <div class="user-box">
-            <div class="user-name">{{ auth()->user()->name }}</div>
-            <div class="user-role">{{ auth()->user()->textoRol() }}</div>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="logout-btn">Cerrar sesión</button>
-            </form>
+
+{{-- ── Cabecera ── --}}
+<div class="is-animate-rise"
+     style="display:flex;align-items:center;gap:14px;margin-bottom:28px;">
+    <a href="{{ route('users.index') }}"
+       style="width:38px;height:38px;border-radius:8px;
+              border:1px solid var(--border-2);background:var(--bg-input);
+              display:flex;align-items:center;justify-content:center;
+              color:var(--text-2);font-size:18px;text-decoration:none;
+              transition:all .2s;flex-shrink:0;"
+       onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--text-1)'"
+       onmouseout="this.style.background='var(--bg-input)';this.style.color='var(--text-2)'">
+        ←
+    </a>
+    <div>
+        <div class="is-page-title">Nuevo Usuario</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:3px;">
+            Creando nuevo usuario en el sistema
         </div>
-    </aside>
-
-    <main class="content">
-        <div class="card">
-            <h2>{{ isset($user) ? 'Editar usuario' : 'Crear nuevo usuario' }}</h2>
-
-            @if($errors->any())
-                <div class="alert-error">
-                    <strong>Corrige los siguientes errores:</strong>
-                    <ul>
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-
-            <form method="POST"
-                action="{{ isset($user) ? route('users.update', $user) : route('users.store') }}">
-                @csrf
-                @if(isset($user)) @method('PUT') @endif
-
-                <label>Nombre completo</label>
-                <input type="text" name="name"
-                    value="{{ old('name', $user->name ?? '') }}"
-                    placeholder="Ej: Juan Pérez" required>
-                @error('name') <span class="field-error">{{ $message }}</span> @enderror
-
-                <label>Correo electrónico</label>
-                <input type="email" name="email"
-                    value="{{ old('email', $user->email ?? '') }}"
-                    placeholder="juan@firma.com" required>
-                @error('email') <span class="field-error">{{ $message }}</span> @enderror
-
-                <label>Rol</label>
-                <select name="role" required>
-                    <option value="">— Seleccionar —</option>
-                    <option value="admin"
-                        {{ old('role', $user->role ?? '') === 'admin' ? 'selected' : '' }}>
-                        Administrador — acceso total + gestión de usuarios
-                    </option>
-                    <option value="abogado"
-                        {{ old('role', $user->role ?? '') === 'abogado' ? 'selected' : '' }}>
-                        Abogado — crear/editar casos y acciones del flujo
-                    </option>
-                    <option value="readonly"
-                        {{ old('role', $user->role ?? '') === 'readonly' ? 'selected' : '' }}>
-                        Solo lectura — ver casos y dashboard sin modificar
-                    </option>
-                </select>
-                @error('role') <span class="field-error">{{ $message }}</span> @enderror
-
-                <hr class="divider">
-
-                <label>
-                    Contraseña
-                    @if(isset($user))
-                        <span style="font-weight:normal;color:#6b7280"> — dejar vacío para no cambiarla</span>
-                    @endif
-                </label>
-                <input type="password" name="password"
-                    placeholder="{{ isset($user) ? 'Nueva contraseña (opcional)' : 'Mínimo 8 caracteres' }}"
-                    {{ isset($user) ? '' : 'required' }}>
-                <span class="helper">Mínimo 8 caracteres.</span>
-                @error('password') <span class="field-error">{{ $message }}</span> @enderror
-
-                <label>Confirmar contraseña</label>
-                <input type="password" name="password_confirmation"
-                    placeholder="{{ isset($user) ? 'Repetir nueva contraseña' : 'Repetir contraseña' }}"
-                    {{ isset($user) ? '' : 'required' }}>
-                @error('password_confirmation') <span class="field-error">{{ $message }}</span> @enderror
-
-                <div class="actions">
-                    <button type="submit" class="btn">
-                        {{ isset($user) ? 'Guardar cambios' : 'Crear usuario' }}
-                    </button>
-                    <a href="{{ route('users.index') }}" class="btn btn-secondary">Cancelar</a>
-                </div>
-            </form>
-        </div>
-    </main>
+    </div>
 </div>
-</body>
-</html>
+
+@if($errors->any())
+    <div class="is-animate-rise is-stagger-1"
+         style="background:rgba(229,57,53,0.08);border:1px solid rgba(229,57,53,0.22);
+                border-radius:10px;padding:11px 16px;margin-bottom:16px;
+                font-size:13px;color:#F26F6F;display:flex;align-items:center;gap:8px;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M8 11v1M8 5v.01" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+        <div>
+            <strong>Corrige los siguientes errores:</strong>
+            <ul style="margin:6px 0 0 16px;padding:0;">
+                @foreach($errors->all() as $error)
+                    <li style="margin-bottom:2px;">{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+@endif
+
+{{-- ── Formulario ── --}}
+<div class="is-user-form is-animate-rise is-stagger-1">
+    <form method="POST" action="{{ route('users.store') }}">
+        @csrf
+
+        {{-- Información Básica --}}
+        <div class="is-form-section">
+            <div class="is-form-label">Nombre completo</div>
+            <input type="text" name="name" class="is-input"
+                   value="{{ old('name') }}"
+                   placeholder="Ej: Juan Pérez" required>
+            @error('name') 
+                <div class="is-error-msg show">{{ $message }}</div> 
+            @enderror
+        </div>
+
+        <div class="is-form-section">
+            <div class="is-form-label">Correo electrónico</div>
+            <input type="email" name="email" class="is-input"
+                   value="{{ old('email') }}"
+                   placeholder="usuario@correo.com" required>
+            @error('email') 
+                <div class="is-error-msg show">{{ $message }}</div> 
+            @enderror
+        </div>
+
+        <div class="is-form-section">
+            <div class="is-form-label">Rol</div>
+            <select name="role" class="is-select" required>
+                <option value="">Seleccionar rol...</option>
+                <option value="admin"
+                    {{ old('role') === 'admin' ? 'selected' : '' }}>
+                    Administrador — Acceso total + gestión de usuarios
+                </option>
+                <option value="abogado"
+                    {{ old('role') === 'abogado' ? 'selected' : '' }}>
+                    Abogado — Crear/editar casos y acciones del flujo
+                </option>
+                <option value="readonly"
+                    {{ old('role') === 'readonly' ? 'selected' : '' }}>
+                    Solo lectura — Ver casos y dashboard sin modificar
+                </option>
+            </select>
+            @error('role') 
+                <div class="is-error-msg show">{{ $message }}</div> 
+            @enderror
+        </div>
+
+        <div class="is-divider"></div>
+
+        {{-- Contraseña --}}
+        <div class="is-form-section">
+            <div class="is-form-label">Contraseña</div>
+            <input type="password" name="password" class="is-input"
+                   placeholder="Mínimo 8 caracteres" required>
+            <div style="font-size:11px;color:var(--text-3);margin-top:4px;">
+                Mínimo 8 caracteres
+            </div>
+            @error('password') 
+                <div class="is-error-msg show">{{ $message }}</div> 
+            @enderror
+        </div>
+
+        <div class="is-form-section">
+            <div class="is-form-label">Confirmar contraseña</div>
+            <input type="password" name="password_confirmation" class="is-input"
+                   placeholder="Repetir contraseña" required>
+            @error('password_confirmation') 
+                <div class="is-error-msg show">{{ $message }}</div> 
+            @enderror
+        </div>
+
+        {{-- Acciones --}}
+        <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:28px;">
+            <a href="{{ route('users.index') }}" class="is-btn-ghost">
+                Cancelar
+            </a>
+            <button type="submit" class="is-btn-primary">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="margin-right:6px;">
+                    <path d="M8 2v6M4 6h8M2 10h12l-1 4H3l-1-4z" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+                Crear usuario
+            </button>
+        </div>
+    </form>
+</div>
+
+@push('scripts')
+<script>
+// Validación en tiempo real
+document.addEventListener('DOMContentLoaded', function() {
+    const requiredFields = ['name', 'email', 'role', 'password', 'password_confirmation'];
+    
+    requiredFields.forEach(fieldName => {
+        const field = document.querySelector(`[name="${fieldName}"]`);
+        if (field) {
+            field.addEventListener('blur', function() {
+                validateField(field);
+            });
+            
+            field.addEventListener('input', function() {
+                if (field.classList.contains('invalid')) {
+                    validateField(field);
+                }
+            });
+        }
+    });
+    
+    function validateField(field) {
+        const errorMsg = field.parentNode.querySelector('.is-error-msg');
+        
+        if (field.value.trim() === '') {
+            field.classList.remove('valid');
+            field.classList.add('invalid');
+            if (errorMsg) errorMsg.classList.add('show');
+        } else {
+            field.classList.remove('invalid');
+            field.classList.add('valid');
+            if (errorMsg) errorMsg.classList.remove('show');
+        }
+    }
+});
+</script>
+@endpush
+@endsection
