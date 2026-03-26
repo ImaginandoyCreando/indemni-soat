@@ -1,226 +1,180 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>Bitácora del Caso - INDEMNI SOAT</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+@extends('layouts.app')
+
+@section('title', 'Bitácora del Caso')
+
+@section('content')
 <style>
-*{box-sizing:border-box}
-body{
-    font-family:Arial,Helvetica,sans-serif;
-    background:#f4f6f9;
-    padding:30px;
-    margin:0;
-    color:#111827;
+/* ── Timeline de bitácora ── */
+.is-bitacora-timeline {
+    position:relative;
+    padding-left:32px;
 }
-.container{
-    max-width:1100px;
-    margin:auto;
-    background:#fff;
-    padding:25px;
-    border-radius:10px;
-    box-shadow:0 8px 24px rgba(0,0,0,.06);
+.is-bitacora-timeline::before {
+    content:'';
+    position:absolute;
+    left:10px;
+    top:0;
+    bottom:0;
+    width:2px;
+    background:var(--border);
 }
-.topbar{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap:16px;
-    flex-wrap:wrap;
-    margin-bottom:20px;
+.is-bitacora-item {
+    position:relative;
+    margin-bottom:24px;
 }
-.badge{
-    display:inline-block;
-    padding:8px 12px;
-    border-radius:999px;
-    background:#e9ecef;
-    color:#374151;
-    font-size:13px;
-    margin-top:8px;
+.is-bitacora-item::before {
+    content:'';
+    position:absolute;
+    left:-22px;
+    top:8px;
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    background:var(--bg-card);
+    border:2px solid var(--cobalt-glow,rgba(27,79,255,0.4));
 }
-.section{
-    background:#f8fafc;
-    border:1px solid #e2e8f0;
-    border-radius:10px;
-    padding:18px;
-    margin-bottom:22px;
+.is-bitacora-date {
+    font-size:11px;
+    color:var(--text-3);
+    margin-bottom:6px;
+    font-weight:600;
+    letter-spacing:0.5px;
 }
-input,textarea{
-    width:100%;
-    padding:10px;
-    margin-top:5px;
-    margin-bottom:15px;
-    border:1px solid #ccc;
-    border-radius:6px;
-    box-sizing:border-box;
-    font-family:inherit;
-    font-size:14px;
-}
-textarea{
-    min-height:100px;
-    resize:vertical;
-}
-button,.btn{
-    display:inline-block;
-    padding:10px 16px;
-    background:#0d6efd;
-    color:#fff;
-    text-decoration:none;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-    font-size:14px;
-}
-.btn-danger{background:#dc3545}
-.btn-secondary{background:#6c757d}
-.btn-light{
-    background:#e5e7eb;
-    color:#111827;
-}
-.alert{
-    padding:12px 14px;
-    background:#d1e7dd;
-    color:#0f5132;
+.is-bitacora-content {
+    background:var(--bg-input);
+    border:1px solid var(--border);
     border-radius:8px;
-    margin-bottom:15px;
-    border:1px solid #badbcc;
-}
-.alert-error{
-    background:#f8d7da;
-    color:#842029;
-    border:1px solid #f5c2c7;
-    padding:12px 14px;
-    border-radius:8px;
-    margin-bottom:15px;
-}
-.alert-error ul{
-    margin:0;
-    padding-left:18px;
-}
-.card{
-    background:#f8f9fa;
-    border:1px solid #ddd;
-    border-radius:10px;
-    padding:15px;
-    margin-top:15px;
-}
-.top{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap:15px;
-    flex-wrap:wrap;
-}
-.small{
-    color:#666;
+    padding:14px 16px;
     font-size:13px;
-    line-height:1.4;
+    line-height:1.5;
+    color:var(--text-1);
 }
-form.inline{
-    display:inline;
-}
-.actions{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-}
-.empty-state{
-    padding:20px;
+.is-bitacora-empty {
     text-align:center;
-    color:#64748b;
-    background:#f8fafc;
-    border:1px dashed #cbd5e1;
-    border-radius:10px;
-}
-h1,h2,h3{
-    margin-top:0;
+    padding:40px 20px;
+    color:var(--text-3);
+    font-style:italic;
+    font-size:14px;
 }
 </style>
-</head>
-<body>
-<div class="container">
 
-    <div class="topbar">
-        <div>
-            <h1>Bitácora del Caso</h1>
-            <h2 style="margin-bottom:0;">{{ $caso->numero_caso }} - {{ $caso->nombres }} {{ $caso->apellidos }}</h2>
-            <div class="badge">Caso #{{ $caso->id }}</div>
-        </div>
-
-        <div class="actions">
-            <a href="{{ route('casos.show', $caso) }}" class="btn btn-light">Ver caso</a>
-            <a href="{{ route('casos.index') }}" class="btn btn-secondary">Volver a casos</a>
+{{-- ── Cabecera ── --}}
+<div class="is-animate-rise"
+     style="display:flex;align-items:center;gap:14px;margin-bottom:28px;">
+    <a href="{{ route('casos.show', $caso->id) }}"
+       style="width:38px;height:38px;border-radius:6px;
+              border:1px solid var(--border-2);background:var(--bg-input);
+              display:flex;align-items:center;justify-content:center;
+              color:var(--text-2);font-size:18px;text-decoration:none;
+              transition:all .2s;flex-shrink:0;"
+       onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--text-1)'"
+       onmouseout="this.style.background='var(--bg-input)';this.style.color='var(--text-2)'">
+        ←
+    </a>
+    <div>
+        <div class="is-page-title">Bitácora del Caso</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:3px;">
+            Caso #{{ $caso->id }} — {{ $caso->nombres }} {{ $caso->apellidos }}
         </div>
     </div>
+</div>
 
-    @if(session('success'))
-        <div class="alert">{{ session('success') }}</div>
-    @endif
-
-    @if($errors->any())
-        <div class="alert-error">
-            <strong>Corrige los siguientes errores:</strong>
-            <ul>
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+{{-- ── Info del caso ── --}}
+<div class="is-animate-rise is-stagger-1"
+     style="background:var(--bg-card);border:1px solid var(--border);
+            border-radius:8px;padding:16px 18px;margin-bottom:20px;
+            display:flex;align-items:center;justify-content:space-between;
+            flex-wrap:wrap;gap:12px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+        <div>
+            <div style="font-size:11px;color:var(--text-3);margin-bottom:2px;">
+                Estado actual
+            </div>
+            <div style="font-size:14px;font-weight:600;color:var(--text-1);">
+                {{ $caso->estado }}
+            </div>
         </div>
-    @endif
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+        <span style="display:inline-flex;align-items:center;
+                     padding:4px 10px;border-radius:999px;font-size:11px;
+                     font-weight:600;background:var(--cobalt-glow,rgba(27,79,255,0.12));
+                     color:#4B78FF;">
+            #{{ $caso->id }}
+        </span>
+    </div>
+</div>
 
-    <div class="section">
-        <h3>Agregar movimiento a la bitácora</h3>
-        <p class="small">Registra actuaciones, llamadas, envíos, respuestas, observaciones o cualquier gestión relevante del caso.</p>
-
-        <form method="POST" action="{{ route('casos.bitacoras.store', $caso) }}">
+{{-- ── Formulario agregar entrada ── --}}
+@if(auth()->user()->puedeAccionarFlujo())
+    <div class="is-animate-rise is-stagger-1"
+         style="background:var(--bg-card);border:1px solid var(--border);
+                border-radius:8px;padding:20px;margin-bottom:24px;">
+        <div style="font-size:16px;font-weight:600;color:var(--text-1);margin-bottom:16px;">
+            Agregar entrada a bitácora
+        </div>
+        <form method="POST" action="{{ route('casos.bitacoras.store', $caso->id) }}">
             @csrf
-
-            <label for="titulo">Título del movimiento</label>
-            <input type="text" name="titulo" id="titulo" value="{{ old('titulo') }}" required>
-
-            <label for="descripcion">Descripción</label>
-            <textarea name="descripcion" id="descripcion">{{ old('descripcion') }}</textarea>
-
-            <label for="fecha_evento">Fecha del evento</label>
-            <input type="date" name="fecha_evento" id="fecha_evento" value="{{ old('fecha_evento', now()->format('Y-m-d')) }}">
-
-            <div class="actions">
-                <button type="submit">Guardar movimiento</button>
+            <div class="is-form-section">
+                <div class="is-form-label">Descripción del evento</div>
+                <textarea name="contenido" class="is-textarea" rows="4"
+                          placeholder="Describe la acción realizada, observación o evento importante..."
+                          required></textarea>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end;">
+                <button type="submit" class="is-btn-primary">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="margin-right:6px;">
+                        <path d="M8 2v6M4 6h8M2 10h12l-1 4H3l-1-4z" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                    Agregar a bitácora
+                </button>
             </div>
         </form>
     </div>
+@endif
 
-    <div class="section">
-        <h3>Historial del caso</h3>
-
-        @forelse($bitacoras as $bitacora)
-            <div class="card">
-                <div class="top">
-                    <div>
-                        <strong>{{ $bitacora->titulo }}</strong><br>
-                        <span class="small">
-                            Fecha:
-                            {{ $bitacora->fecha_evento ? \Carbon\Carbon::parse($bitacora->fecha_evento)->format('Y-m-d') : 'No registrada' }}
-                        </span>
-                    </div>
-
-                    <form class="inline" method="POST" action="{{ route('casos.bitacoras.destroy', [$caso, $bitacora]) }}" onsubmit="return confirm('¿Eliminar este movimiento?')">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-danger">Eliminar</button>
-                    </form>
-                </div>
-
-                <p style="margin-top:12px; margin-bottom:0;">
-                    {{ $bitacora->descripcion ?: 'Sin descripción.' }}
-                </p>
-            </div>
-        @empty
-            <div class="empty-state">
-                No hay movimientos registrados en este caso.
-            </div>
-        @endforelse
+{{-- ── Timeline de eventos ── --}}
+<div class="is-animate-rise is-stagger-2"
+     style="background:var(--bg-card);border:1px solid var(--border);
+            border-radius:8px;padding:20px;">
+    <div style="font-size:16px;font-weight:600;color:var(--text-1);margin-bottom:20px;">
+        Historial de eventos
     </div>
+    
+    @if($bitacoras->count() > 0)
+        <div class="is-bitacora-timeline">
+            @foreach($bitacoras as $bitacora)
+                <div class="is-bitacora-item">
+                    <div class="is-bitacora-date">
+                        {{ $bitacora->created_at->format('d/m/Y H:i') }} — {{ $bitacora->user->name }}
+                    </div>
+                    <div class="is-bitacora-content">
+                        {{ $bitacora->contenido }}
+                    </div>
+                    @if(auth()->user()->puedeAccionarFlujo())
+                        <form method="POST" action="{{ route('casos.bitacoras.destroy', [$caso->id, $bitacora->id]) }}" 
+                              style="margin-top:10px;display:inline-block;"
+                              onsubmit="return confirm('¿Eliminar esta entrada de la bitácora?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="is-btn-danger" style="font-size:11px;padding:6px 10px;">
+                                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" style="margin-right:4px;">
+                                    <path d="M2 4h12M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1M7 8v4M4 4v8a2 2 0 002 2h4a2 2 0 002-2V4" 
+                                          stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                                Eliminar
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            </div>
+        @else
+        <div class="is-bitacora-empty">
+            <svg width="48" height="48" viewBox="0 0 16 16" fill="none" style="opacity:0.2;margin-bottom:12px;">
+                <path d="M3 8h10M8 3v10" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+            No hay eventos registrados en la bitácora de este caso.
+        </div>
+    @endif
 </div>
-</body>
-</html>
+@endsection
