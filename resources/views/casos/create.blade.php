@@ -14,7 +14,7 @@
 /* ── Checkbox campo ── */
 .is-cb-field {
     display:flex; align-items:flex-start; gap:10px;
-    padding:12px 14px; border-radius:8px;
+    padding:12px 14px; border-radius:6px;
     border:1px solid var(--border); background:var(--bg-input);
     cursor:pointer; transition:all .18s;
 }

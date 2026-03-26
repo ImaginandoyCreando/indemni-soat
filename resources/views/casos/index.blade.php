@@ -100,7 +100,7 @@
 .is-pagination nav { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
 .is-pagination nav a,
 .is-pagination nav span {
-    padding:6px 11px; border-radius:7px; font-size:12px; font-weight:600;
+    padding:6px 11px; border-radius:6px; font-size:12px; font-weight:600;
     color:var(--text-2); transition:all .18s; text-decoration:none;
     border:1px solid var(--border); background:var(--bg-input);
 }
@@ -188,7 +188,7 @@ form.inline { display:inline; }
 @if(session('success'))
     <div class="is-animate-rise is-stagger-1"
          style="background:rgba(5,150,105,0.08);border:1px solid rgba(5,150,105,0.22);
-                border-radius:10px;padding:11px 16px;margin-bottom:16px;
+                border-radius:8px;padding:11px 16px;margin-bottom:16px;
                 font-size:13px;color:#1DBD7F;display:flex;align-items:center;gap:8px;">
         <span>✓</span> {{ session('success') }}
     </div>
@@ -196,7 +196,7 @@ form.inline { display:inline; }
 @if(session('info'))
     <div class="is-animate-rise is-stagger-1"
          style="background:rgba(8,145,178,0.08);border:1px solid rgba(8,145,178,0.22);
-                border-radius:10px;padding:11px 16px;margin-bottom:16px;
+                border-radius:8px;padding:11px 16px;margin-bottom:16px;
                 font-size:13px;color:#22B8D4;display:flex;align-items:center;gap:8px;">
         <span>ℹ</span> {{ session('info') }}
     </div>

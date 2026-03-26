@@ -8,7 +8,7 @@
 .is-user-form {
     max-width:560px;margin:auto;
     background:var(--bg-card);border:1px solid var(--border);
-    border-radius:12px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,0.04);
+    border-radius:8px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,0.04);
 }
 .is-form-section { margin-bottom:24px; }
 .is-form-section:last-child { margin-bottom:0; }
@@ -47,7 +47,7 @@
 @if($errors->any())
     <div class="is-animate-rise is-stagger-1"
          style="background:rgba(229,57,53,0.08);border:1px solid rgba(229,57,53,0.22);
-                border-radius:10px;padding:11px 16px;margin-bottom:16px;
+                border-radius:8px;padding:11px 16px;margin-bottom:16px;
                 font-size:13px;color:#F26F6F;display:flex;align-items:center;gap:8px;">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/>

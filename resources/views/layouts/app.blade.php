@@ -148,7 +148,7 @@
         align-items: center;
         gap: 9px;
         padding: 10px 11px;
-        border-radius: 8px;
+        border-radius: 6px;
         background: var(--bg-input);
         border: 1px solid var(--border);
         margin-bottom: 3px;
@@ -180,7 +180,7 @@
         gap: 8px;
         width: 100%;
         padding: 8px 11px;
-        border-radius: 8px;
+        border-radius: 6px;
         border: none;
         background: transparent;
         cursor: pointer;

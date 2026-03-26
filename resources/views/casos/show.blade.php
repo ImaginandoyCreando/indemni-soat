@@ -9,7 +9,7 @@
 .is-detail-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 14px 16px;
     transition: background .3s, border-color .3s;
 }
@@ -82,7 +82,7 @@
     margin-bottom: 8px;
 }
 .is-tl-step {
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 13px 14px;
     border: 1px solid var(--border-2);
     background: var(--bg-card);
@@ -137,7 +137,7 @@
     padding: 14px 18px;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     margin-bottom: 20px;
     transition: background .3s;
 }

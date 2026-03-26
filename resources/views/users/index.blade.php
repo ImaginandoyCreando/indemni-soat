@@ -45,7 +45,7 @@
     vertical-align:middle;
 }
 .is-user-avatar {
-    width:40px;height:40px;border-radius:10px;
+    width:40px;height:40px;border-radius:8px;
     background:var(--bg-input);display:flex;
     align-items:center;justify-content:center;
     font-size:13px;font-weight:700;color:var(--text-2);
@@ -91,7 +91,7 @@
 @session('success')
     <div class="is-animate-rise is-stagger-1"
          style="background:rgba(5,150,105,0.08);border:1px solid rgba(5,150,105,0.22);
-                border-radius:10px;padding:11px 16px;margin-bottom:16px;
+                border-radius:8px;padding:11px 16px;margin-bottom:16px;
                 font-size:13px;color:#1DBD7F;display:flex;align-items:center;gap:8px;">
         <span>✓</span> {{ session('success') }}
     </div>

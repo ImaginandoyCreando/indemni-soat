@@ -126,7 +126,7 @@
     <div class="is-animate-rise"
          style="background:rgba(229,57,53,0.08);
                 border:1px solid rgba(229,57,53,0.22);
-                border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+                border-radius:8px;padding:14px 18px;margin-bottom:20px;">
         <div style="font-size:13px;font-weight:700;
                     color:#F26F6F;margin-bottom:8px;">
             Corrige los siguientes errores:
