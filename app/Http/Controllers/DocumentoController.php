@@ -42,7 +42,7 @@ class DocumentoController extends Controller
     {
         $request->validate([
             'tipo_documento' => 'required|string|max:255',
-            'archivo' => 'required|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:1024000',
+            'archivo' => 'required|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:102400',
         ]);
 
         $archivo = $request->file('archivo');

@@ -137,7 +137,7 @@
                     <div class="is-form-label">Archivo</div>
                     <input type="file" name="archivo" class="is-input" required>
                     <div style="font-size:11px;color:var(--text-3);margin-top:4px;line-height:1.3;">
-                        Formatos permitidos: PDF, JPG, JPEG, PNG, DOC, DOCX. Máximo 10 MB.
+                        Formatos permitidos: PDF, JPG, JPEG, PNG, DOC, DOCX. Máximo 100 MB.
                     </div>
                 </div>
             </div>
