@@ -689,19 +689,21 @@ body::after {
 ══════════════════════════════════════════════ */
 .is-form-label {
     display: block;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--text-3);
-    letter-spacing: 0.8px;
+    letter-spacing: 0.6px;
     text-transform: uppercase;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    line-height: 1.3;
+    padding-top: 2px;
 }
 
 .is-input,
 .is-select,
 .is-textarea {
     width: 100%;
-    padding: 10px 12px;
+    padding: 11px 14px;
     background: var(--bg-input);
     border: 1px solid var(--border-2);
     border-radius: 8px;
