@@ -243,6 +243,10 @@
            class="is-nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
             Dashboard
         </a>
+        <a href="{{ route('emails.index') }}"
+           class="is-nav-item {{ request()->routeIs('emails.*') ? 'active' : '' }}">
+            Correos
+        </a>
         @if(auth()->check() && auth()->user()->puedeGestionarUsuarios())
             <a href="{{ route('users.index') }}"
                class="is-nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
@@ -332,6 +336,14 @@
                 <rect x="9" y="7" width="6" height="8" rx="1"/>
             </svg>
             Dashboard
+        </a>
+
+        <a href="{{ route('emails.index') }}"
+           class="is-sidebar-item {{ request()->routeIs('emails.*') ? 'active' : '' }}">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M1 4v8a1 1 0 001 1h12a1 1 0 001-1V4M1 4l6 4 6-4M1 4h14"/>
+            </svg>
+            Correos
         </a>
 
         @if(auth()->check() && auth()->user()->puedeGestionarUsuarios())
