@@ -47,7 +47,9 @@ class EmailController extends Controller
             $this->checkOverdueCases();
             
             if ($totalProcessed > 0) {
-                $message = "Se procesaron {$totalProcessed} correos de 5 cuentas:\n";
+                $message = "Se procesaron {$totalProcessed} correos de 2 cuentas:\n";
+                $autoCasesCount = 0;
+                
                 foreach ($accountResults as $account => $result) {
                     if ($result['success']) {
                         $message .= "- {$account}: {$result['processed']} correos\n";
@@ -56,11 +58,20 @@ class EmailController extends Controller
                     }
                 }
                 
+                // Contar casos creados automáticamente
+                $autoCasesCount = Caso::where('auto_created', true)
+                    ->where('created_at', '>', now()->subMinutes(5))
+                    ->count();
+                
+                if ($autoCasesCount > 0) {
+                    $message .= "\n🎉 {$autoCasesCount} casos nuevos creados automáticamente";
+                }
+                
                 return redirect()->route('emails.index')
                     ->with('success', $message);
             } else {
                 return redirect()->route('emails.index')
-                    ->with('info', 'No hay correos nuevos para procesar en las 5 cuentas');
+                    ->with('info', 'No hay correos nuevos para procesar en las 2 cuentas');
             }
             
         } catch (\Exception $e) {

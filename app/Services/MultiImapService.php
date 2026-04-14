@@ -6,6 +6,7 @@ use PhpImap\Mailbox;
 use App\Models\EmailLog;
 use App\Models\Caso;
 use App\Models\Bitacora;
+use App\Services\AutoCaseCreationService;
 
 class MultiImapService
 {
@@ -111,7 +112,7 @@ class MultiImapService
                 $caso = $this->findRelatedCase($email->subject, $email->textPlain);
                 
                 if ($caso) {
-                    // Guardar log del correo
+                    // Caso existente - actualizar
                     EmailLog::create([
                         'caso_id' => $caso->id,
                         'email_id' => $email->messageId,
@@ -130,6 +131,24 @@ class MultiImapService
                     $this->updateCaseStatusByAccount($caso, $emailType, $account, $email);
                     
                     $processedCount++;
+                } else {
+                    // No hay caso relacionado - intentar crear automáticamente
+                    $autoCaseService = new AutoCaseCreationService();
+                    $emailData = [
+                        'subject' => $this->cleanSubject($email->subject),
+                        'body' => $this->cleanBody($email->textHtml ?: $email->textPlain),
+                        'from_email' => $email->fromAddress,
+                        'from_name' => $email->fromName,
+                        'date' => new \DateTime($email->date),
+                        'message_id' => $email->messageId
+                    ];
+                    
+                    $autoCaseResult = $autoCaseService->processEmailForNewCase($emailData, $account['name']);
+                    
+                    if ($autoCaseResult && $autoCaseResult['success']) {
+                        $processedCount++;
+                        \Log::info("Caso automático creado: " . $autoCaseResult['message']);
+                    }
                 }
 
                 // Marcar como leído
