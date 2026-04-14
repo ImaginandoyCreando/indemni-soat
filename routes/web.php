@@ -8,6 +8,8 @@ use App\Http\Controllers\BitacoraController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\OutlookAuthController;
+use App\Http\Controllers\EmailController;
 
 // ── Rutas públicas (sin autenticación) ───────────────────────────────────────
 
@@ -24,6 +26,15 @@ Route::get('/', function () {
 // ── Rutas protegidas (requieren login) ────────────────────────────────────────
 
 Route::middleware(['auth'])->group(function () {
+
+    // ── Rutas de integración de correos ────────────────────────────────────────
+    Route::get('/emails', [EmailController::class, 'index'])->name('emails.index');
+    Route::post('/emails/sync', [EmailController::class, 'sync'])->name('emails.sync');
+
+    // ── Rutas de autenticación Outlook ────────────────────────────────────────
+    Route::get('/outlook/connect', [OutlookAuthController::class, 'redirectToOutlook'])->name('outlook.connect');
+    Route::get('/outlook/callback', [OutlookAuthController::class, 'handleCallback'])->name('outlook.callback');
+    Route::post('/outlook/disconnect/{id}', [OutlookAuthController::class, 'disconnect'])->name('outlook.disconnect');
 
     // ── Dashboard ─────────────────────────────────────────────────────────────
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

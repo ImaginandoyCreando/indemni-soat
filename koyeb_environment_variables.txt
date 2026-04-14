@@ -1,0 +1,34 @@
+# Variables de entorno para Koyeb - Sistema Multi-Cuenta IMAP
+# COPIA Y PEGA ESTAS VARIABLES EN KOYEB
+
+# Variables existentes (no modificar)
+APP_DEBUG=true
+APP_ENV=production
+APP_KEY=base64:PWgDkYm9puMRw8Qb1xf/APMmJMjJ0w4Sx3o/E9nF/dY=
+APP_NAME=indemni-soat
+APP_URL=https://{{KOYEB_PUBLIC_DOMAIN}}/
+DB_CONNECTION=pgsql
+DB_DATABASE=neondb
+DB_HOST=ep-shiny-rain-ads84alx.c-2.us-east-1.aws.neon.tech
+DB_PASSWORD=npg_DdK1Wtn7jQUH
+DB_PORT=5432
+DB_USERNAME=neondb_owner
+LOG_CHANNEL=stderr
+MAIL_ENCRYPTION=ssl
+MAIL_FROM_ADDRESS=tektomate@gmail.com
+MAIL_FROM_NAME=INDEMNI SOAT
+MAIL_HOST=smtp.gmail.com
+MAIL_MAILER=smtp
+MAIL_PASSWORD=odysmgfcqzzbbgtk
+MAIL_PORT=465
+MAIL_USERNAME=tektomate@gmail.com
+PGSSLMODE=require
+SESSION_DRIVER=database
+
+# Nuevas variables - Integración IMAP (AGREGAR ESTAS)
+GESTION_EMAIL=gestionsoat365@outlook.com
+GESTION_PASSWORD=nbwvvzqhetsvrtug
+RECLAMACIONES_EMAIL=reclamacionessoat@hotmail.com
+RECLAMACIONES_PASSWORD=tcqwucljosshibse
+EMAIL_SYNC_ENABLED=true
+EMAIL_DEBUG=false
