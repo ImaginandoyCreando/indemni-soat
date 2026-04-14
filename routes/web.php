@@ -1,15 +1,35 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\CasoController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\BitacoraController;
-use App\Http\Controllers\ReporteController;
-use App\Http\Controllers\LoginController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OutlookAuthController;
 use App\Http\Controllers\EmailController;
+use App\Http\Controllers\LoginController;
+use App\Http\Controllers\ReporteController;
+
+// Ruta temporal para migrar en producción - ELIMINAR DESPUÉS DE USAR
+Route::get('/migrate-production', function () {
+    try {
+        Artisan::call('migrate', ['--force' => true]);
+        $output = Artisan::output();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Migraciones ejecutadas exitosamente',
+            'output' => $output
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error ejecutando migraciones: ' . $e->getMessage()
+        ]);
+    }
+});
 
 // ── Rutas públicas (sin autenticación) ───────────────────────────────────────
 
