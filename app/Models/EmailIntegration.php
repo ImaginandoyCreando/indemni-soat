@@ -9,6 +9,8 @@ class EmailIntegration extends Model
 {
     use HasFactory;
 
+    protected $table = 'email_integrations_new';
+
     protected $fillable = [
         'email_provider',
         'email_address',

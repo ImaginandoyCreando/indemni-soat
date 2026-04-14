@@ -9,6 +9,8 @@ class EmailLog extends Model
 {
     use HasFactory;
 
+    protected $table = 'email_logs_new';
+
     protected $fillable = [
         'caso_id',
         'email_id',
