@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\EmailIntegration;
 use App\Models\EmailLog;
 use App\Models\Caso;
 use App\Models\Bitacora;
@@ -14,15 +13,16 @@ class EmailController extends Controller
 {
     public function index()
     {
-        $emailIntegrations = EmailIntegration::where('is_active', true)->get();
-        
-        // Estadísticas
+        // Estadísticas básicas sin EmailIntegration
         $stats = [
             'emails_today' => EmailLog::whereDate('created_at', today())->count(),
             'cases_updated' => EmailLog::whereDate('created_at', today())->distinct('caso_id')->count(),
             'overdue_cases' => Caso::where('estado', 'Solicitud enviada a aseguradora')
                 ->where('fecha_envio_solicitud', '<', now()->subDays(30))->count(),
-            'pending_alerts' => 0, // Calcular según lógica de alertas
+            'pending_alerts' => 0,
+            'total_cases' => Caso::count(),
+            'auto_cases_today' => Caso::where('auto_created', true)
+                ->whereDate('created_at', today())->count(),
         ];
         
         // Correos recientes
@@ -30,6 +30,20 @@ class EmailController extends Controller
             ->orderBy('email_date', 'desc')
             ->limit(20)
             ->get();
+        
+        // Cuentas configuradas (estáticas por ahora)
+        $emailIntegrations = collect([
+            (object) [
+                'email_provider' => 'outlook',
+                'email_address' => 'gestionsoat365@outlook.com',
+                'is_active' => true,
+            ],
+            (object) [
+                'email_provider' => 'outlook',
+                'email_address' => 'reclamacionessoat@hotmail.com',
+                'is_active' => true,
+            ]
+        ]);
         
         return view('emails.index', compact('emailIntegrations', 'stats', 'recentEmails'));
     }
