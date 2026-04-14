@@ -31,6 +31,35 @@ Route::get('/migrate-production', function () {
     }
 });
 
+// Ruta para verificar tablas en producción
+Route::get('/check-tables', function () {
+    try {
+        $tables = DB::select("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
+        
+        $tableNames = [];
+        foreach ($tables as $table) {
+            $tableNames[] = $table->table_name;
+        }
+        
+        $emailTables = array_filter($tableNames, function($table) {
+            return strpos($table, 'email') !== false;
+        });
+        
+        return response()->json([
+            'success' => true,
+            'total_tables' => count($tableNames),
+            'email_tables' => array_values($emailTables),
+            'all_tables' => $tableNames
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error verificando tablas: ' . $e->getMessage()
+        ]);
+    }
+});
+
 // ── Rutas públicas (sin autenticación) ───────────────────────────────────────
 
 Route::get('/login',  [LoginController::class, 'showLogin'])->name('login');
