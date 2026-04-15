@@ -106,7 +106,6 @@
             </div>
         @endif
 
-        {{-- Abre el modal de agregar cuenta --}}
         <button class="is-btn-primary" style="margin-top:16px;width:100%;"
                 onclick="document.getElementById('modal-agregar-cuenta').style.display='flex'">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="margin-right:6px;">
@@ -208,25 +207,37 @@
                         <td style="padding:12px;">
                             @php
                                 $typeColors = [
-                                    'solicitud_enviada'   => '#4B78FF',
-                                    'respuesta_positiva'  => '#1DBD7F',
-                                    'respuesta_negativa'  => '#F26F6F',
-                                    'en_proceso'          => '#FFB800',
-                                    'requiere_documentos' => '#8B5CF6',
-                                    'citacion'            => '#EC4899',
-                                    'otro'                => '#64748B',
+                                    'tutela'                  => '#8B5CF6',
+                                    'fallo_tutela'            => '#1DBD7F',
+                                    'fallo_segunda_instancia' => '#1DBD7F',
+                                    'dictamen'                => '#4B78FF',
+                                    'honorarios'              => '#FFB800',
+                                    'indemnizacion'           => '#1DBD7F',
+                                    'solicitud_enviada'       => '#4B78FF',
+                                    'respuesta_positiva'      => '#1DBD7F',
+                                    'respuesta_negativa'      => '#F26F6F',
+                                    'en_proceso'              => '#FFB800',
+                                    'requiere_documentos'     => '#8B5CF6',
+                                    'citacion'                => '#EC4899',
+                                    'otro'                    => '#64748B',
                                 ];
                                 $typeLabels = [
-                                    'solicitud_enviada'   => 'Solicitud',
-                                    'respuesta_positiva'  => 'Positiva',
-                                    'respuesta_negativa'  => 'Negativa',
-                                    'en_proceso'          => 'En Proceso',
-                                    'requiere_documentos' => 'Documentos',
-                                    'citacion'            => 'Citación',
-                                    'otro'                => 'Otro',
+                                    'tutela'                  => 'Tutela',
+                                    'fallo_tutela'            => 'Fallo Tutela',
+                                    'fallo_segunda_instancia' => '2da Instancia',
+                                    'dictamen'                => 'Dictamen',
+                                    'honorarios'              => 'Honorarios',
+                                    'indemnizacion'           => 'Indemnización',
+                                    'solicitud_enviada'       => 'Solicitud',
+                                    'respuesta_positiva'      => 'Positiva',
+                                    'respuesta_negativa'      => 'Negativa',
+                                    'en_proceso'              => 'En Proceso',
+                                    'requiere_documentos'     => 'Documentos',
+                                    'citacion'                => 'Citación',
+                                    'otro'                    => 'Otro',
                                 ];
                                 $color = $typeColors[$email->email_type] ?? '#64748B';
-                                $label = $typeLabels[$email->email_type] ?? 'Otro';
+                                $label = $typeLabels[$email->email_type] ?? ucfirst($email->email_type ?? 'Otro');
                             @endphp
                             <span style="padding:4px 8px;border-radius:12px;font-size:10px;font-weight:600;
                                          background:{{ $color }}22;color:{{ $color }};">
@@ -260,7 +271,7 @@
         Configuración de Alertas
     </div>
 
-    {{-- Formulario de configuración --}}
+    {{-- ► Formulario 1: Guardar configuración (SIN el botón de sincronizar) --}}
     <form method="POST" action="{{ route('emails.saveConfig') }}" id="form-config">
         @csrf
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
@@ -280,28 +291,28 @@
         </div>
 
         <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:16px;">
-            {{-- Guardar configuración --}}
-            <button type="submit" class="is-btn-primary" id="btn-guardar">
+            <button type="submit" class="is-btn-primary">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="margin-right:6px;">
                     <path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 Guardar Configuración
             </button>
-
-            {{-- Sincronizar — POST a emails.sync --}}
-            <form method="POST" action="{{ route('emails.sync') }}" style="display:inline;" id="form-sync">
-                @csrf
-                <button type="submit" class="is-btn-ghost" id="btn-sync"
-                        onclick="this.disabled=true;this.innerHTML='<span style=\'opacity:.6\'>Sincronizando…</span>';this.closest(\'form\').submit();">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="margin-right:6px;">
-                        <path d="M13 3v4h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M3 13v-4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M3.5 9A5.5 5.5 0 0112.5 7M12.5 7A5.5 5.5 0 013.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                    </svg>
-                    Sincronizar Ahora
-                </button>
-            </form>
         </div>
+    </form>
+
+    {{-- ► Formulario 2: Sincronizar (SEPARADO — nunca anidado en form-config) --}}
+    <form method="POST" action="{{ route('emails.sync') }}" id="form-sync"
+          style="display:flex;justify-content:flex-end;margin-top:10px;">
+        @csrf
+        <button type="submit" class="is-btn-ghost" id="btn-sync"
+                onclick="this.disabled=true;this.innerText='Sincronizando…';this.closest('form').submit();">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="margin-right:6px;">
+                <path d="M13 3v4h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M3 13v-4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M3.5 9A5.5 5.5 0 0112.5 7M12.5 7A5.5 5.5 0 013.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            Sincronizar Ahora
+        </button>
     </form>
 </div>
 
@@ -351,7 +362,7 @@
                 </div>
             </div>
 
-            <div class="is-form-section" style="margin-bottom:20px;" id="field-imap" style="display:none;">
+            <div class="is-form-section" style="margin-bottom:20px;display:none;" id="field-imap">
                 <div class="is-form-label">Servidor IMAP</div>
                 <input type="text" name="imap_host" class="is-input"
                        placeholder="imap.tudominio.com">
@@ -382,7 +393,6 @@ function togglePasswordField(provider) {
     }
 }
 
-// Mostrar modal si hay error de validación al agregar cuenta
 @if($errors->any())
     document.getElementById('modal-agregar-cuenta').style.display = 'flex';
 @endif
