@@ -16,6 +16,9 @@ class Bitacora extends Model
         'titulo',
         'descripcion',
         'fecha_evento',
+        'tipo_alerta',
+        'auto_generada',
+        'prioridad',
     ];
 
     protected $casts = [

@@ -10,7 +10,7 @@ use Carbon\Carbon;
 class AutoCaseCreationService
 {
     private $patterns = [
-        // Patrones para detectar negocios nuevos
+        // Patrones para detectar negocios nuevos (mejorados)
         'nuevo_negocio' => [
             'nuevo negocio soat',
             'solicitud de indemnización',
@@ -20,7 +20,20 @@ class AutoCaseCreationService
             'cliente solicita',
             'nuevo caso',
             'asesoría soat',
-            'trámite soat'
+            'trámite soat',
+            'requiere asesoría',
+            'necesita ayuda',
+            'consulta legal',
+            'accidente laboral',
+            'incidente vial',
+            'colisión vehicular',
+            'atropellamiento',
+            'lesión corporal',
+            'perjuicios económicos',
+            'daño moral',
+            'pérdida capacidad',
+            'calificación pcl',
+            'dictamen pericial'
         ],
         
         // Patrones para extraer información
