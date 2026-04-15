@@ -84,14 +84,25 @@ class MultiImapService
     {
         $hostname = '{outlook.office365.com:993/imap/ssl}INBOX';
         
-        $mailbox = new Mailbox($hostname, $account['email'], $account['password']);
-        $mailbox->checkImapStream();
-
-        // Obtener correos no leídos
-        $emailsIds = $mailbox->searchMailbox('UNSEEN');
+        try {
+            $mailbox = new Mailbox($hostname, $account['email'], $account['password']);
+            
+            // Verificar conexión intentando obtener carpetas
+            $mailbox->getImapStream();
+            
+            // Obtener correos no leídos
+            $emailsIds = $mailbox->searchMailbox('UNSEEN');
+        } catch (\Exception $e) {
+            \Log::error("Error conectando a {$account['email']}: " . $e->getMessage());
+            return 0;
+        }
         
         if (empty($emailsIds)) {
-            $mailbox->disconnect();
+            try {
+                $mailbox->disconnect();
+            } catch (\Exception $e) {
+                // Ignorar error de desconexión
+            }
             return 0;
         }
 
@@ -160,7 +171,13 @@ class MultiImapService
             }
         }
 
-        $mailbox->disconnect();
+        // Desconectar
+        try {
+            $mailbox->disconnect();
+        } catch (\Exception $e) {
+            // Ignorar error de desconexión
+        }
+        
         return $processedCount;
     }
 
