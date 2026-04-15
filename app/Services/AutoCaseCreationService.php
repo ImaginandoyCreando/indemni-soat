@@ -10,8 +10,9 @@ use Carbon\Carbon;
 class AutoCaseCreationService
 {
     private $patterns = [
-        // Patrones para detectar negocios nuevos (mejorados)
+        // ── Patrones para detectar negocios nuevos / eventos relevantes ──────────
         'nuevo_negocio' => [
+            // Frases explícitas de negocio nuevo
             'nuevo negocio soat',
             'solicitud de indemnización',
             'accidente de tránsito',
@@ -35,256 +36,500 @@ class AutoCaseCreationService
             'calificación pcl',
             'dictamen pericial'
         ],
-        
-        // Patrones para extraer información
+
+        // ── Patrones jurídicos colombianos (NUEVOS) ───────────────────────────
+        'evento_juridico' => [
+            'acción de tutela',
+            'accion de tutela',
+            'tutela',
+            'fallo de tutela',
+            'impugnación',
+            'impugnacion',
+            'dictamen',
+            'calificación de invalidez',
+            'calificacion de invalidez',
+            'junta de calificación',
+            'pérdida de capacidad laboral',
+            'perdida de capacidad laboral',
+            'pago de honorarios',
+            'honorarios',
+            'indemnización soat',
+            'indemnizacion soat',
+            'reclamación soat',
+            'reclamacion soat',
+            'segunda instancia',
+            'fallo de segunda instancia',
+            'cumplimiento de fallo',
+            'incidente de desacato',
+            'radicación de tutela',
+            'radicacion de tutela',
+            'notificación judicial',
+            'notificacion judicial',
+        ],
+
+        // ── Extracción de nombre del cliente ─────────────────────────────────
         'nombre_cliente' => [
-            '/cliente[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i',
-            '/nombre[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i',
-            '/señor[a]?[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i',
-            '/paciente[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i'
+            // Formato juzgados colombianos: "seguida por NOMBRE APELLIDO RAD:"
+            '/seguida\s+por\s+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]{5,60}?)(?:\s+RAD|\s+contra|\s+vs\.?|\s+C\.C|\.|,|$)/i',
+            // "interpuesta por / presentada por NOMBRE"
+            '/(?:interpuesta|presentada|instaurada)\s+por\s+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]{5,60}?)(?:\s+contra|\s+RAD|,|\.)/i',
+            // "Señor(a)(es): NOMBRE" en cuerpo
+            '/se[ñn]or[a]?\(?es?\)?[:\s]+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑA-Za-záéíóúñ\s]{5,60}?)(?:\n|$)/i',
+            // "paciente: NOMBRE"
+            '/paciente[:\s]+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑA-Za-záéíóúñ\s]{5,60}?)(?:\n|$)/i',
+            // "cliente: NOMBRE"
+            '/cliente[:\s]+([A-Z][a-záéíóúñ]+(?:\s+[A-Z][a-záéíóúñ]+)*)/i',
+            // "nombre: NOMBRE"
+            '/nombre[:\s]+([A-Z][a-záéíóúñ]+(?:\s+[A-Z][a-záéíóúñ]+)*)/i',
+            // Nombre completo en mayúsculas en asunto (≥ 2 palabras, ≥ 4 chars cada una)
+            '/\b([A-ZÁÉÍÓÚÑ]{3,}\s+[A-ZÁÉÍÓÚÑ]{3,}(?:\s+[A-ZÁÉÍÓÚÑ]{3,})*)\b/',
         ],
-        
+
+        // ── Fechas ────────────────────────────────────────────────────────────
         'fecha_accidente' => [
-            '/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/',
             '/(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+de\s+(\d{4})/i',
-            '/fecha[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i'
+            '/fecha\s*(?:de\s*accidente)?[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i',
+            '/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/',
         ],
-        
+
+        // ── Radicado judicial ─────────────────────────────────────────────────
+        'radicado' => [
+            '/RAD[:\.\s]+([0-9]{4}[\.\-][0-9]+[\.\-]?[0-9]*)/i',
+            '/radicado[:\s]+([0-9\-\.]{8,})/i',
+            '/No\.\s*([0-9]{4}[\.\-][0-9]+[\.\-]?[0-9]*)/i',
+        ],
+
+        // ── Aseguradoras ──────────────────────────────────────────────────────
         'aseguradora' => [
-            '/sura|sura\s+seguros/i',
-            '/mapfre|mapfre\s+seguros/i',
-            '/hdi|hdi\s+seguros/i',
-            '/axa|axa\s+seguros/i',
-            '/liberty|liberty\s+seguros/i',
-            '/bolívar|bolivar\s+seguros/i',
-            '/estado solidario|solidaria/i',
-            '/allianz|allianz\s+seguros/i',
-            '/zurich|zurich\s+seguros/i'
+            '/previsora|la\s+previsora/i',
+            '/sura|seguros\s+sura/i',
+            '/mapfre/i',
+            '/hdi\s+seguros|hdi/i',
+            '/axa\s+seguros|axa/i',
+            '/liberty\s+seguros|liberty/i',
+            '/bol[ií]var\s+seguros|bol[ií]var/i',
+            '/estado\s+solidario|solidaria/i',
+            '/allianz/i',
+            '/zurich/i',
+            '/mundial\s+seguros|mundial/i',
+            '/cardif/i',
+            '/colm[eé]dica/i',
+            '/positiva/i',
         ],
-        
+
+        // ── Montos ────────────────────────────────────────────────────────────
         'monto' => [
-            '/\$?\s*(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/',
             '/valor[:\s]+\$?\s*(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/i',
             '/monto[:\s]+\$?\s*(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/i',
-            '/(\d+)\s*(?:smmlv|smmv|salarios?)/i'
+            '/(\d+)\s*(?:smmlv|smmv|salarios?)/i',
+            '/\$\s*(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/',
         ],
-        
+
+        // ── Contacto ──────────────────────────────────────────────────────────
         'contacto' => [
+            '/(?:tel[eé]fono|celular|cel)[:\s]+(\d[\d\s\-]{6,})/i',
             '/(\d{3}[-\s]?\d{3}[-\s]?\d{4})/',
-            '/(\d{7,})/',
-            '/telefono[:\s]+(\d{7,})/i',
-            '/celular[:\s]+(\d{7,})/i'
-        ]
+            '/(\b3\d{9}\b)/',   // Celular colombiano
+        ],
     ];
 
+    // ── Palabras reservadas que NO son nombres de personas ────────────────────
+    private $excludeFromNames = [
+        'ACCION', 'ACCIÓN', 'TUTELA', 'SOAT', 'SEGURO', 'SEGUROS', 'RAD',
+        'OFICIO', 'JUZGADO', 'CIVIL', 'PENAL', 'TRIBUNAL', 'CORTE',
+        'MINISTERIO', 'COLOMBIA', 'PROVIDENCIA', 'NOTIFICACION', 'NOTIFICACIÓN',
+        'ESTE', 'CORREO', 'SOLO', 'PARA', 'EFECTOS', 'SEÑOR', 'SEÑORA',
+        'RESPETADO', 'MEDIANTE', 'PRESENTE', 'NOTIFICO', 'ADJUNTO',
+        'COMPAÑIA', 'COMPAÑÍA', 'EMPRESA', 'JUNTA', 'REGIONAL', 'NACIONAL',
+    ];
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  PUNTO DE ENTRADA PRINCIPAL
+    // ─────────────────────────────────────────────────────────────────────────
     public function processEmailForNewCase($email, $accountName)
     {
-        $subject = strtolower($email['subject']);
-        $body = strtolower($email['body']);
+        $subject  = $email['subject'] ?? '';
+        $body     = $email['body'] ?? '';
         $fullText = $subject . ' ' . $body;
-        
-        // Verificar si es un negocio nuevo
-        if (!$this->isNewBusiness($fullText)) {
+
+        // 1. ¿Es un correo relevante para crear/actualizar un caso?
+        if (!$this->isRelevantEmail($fullText)) {
             return null;
         }
-        
-        // Extraer información
+
+        // 2. Extraer toda la información posible
         $caseData = $this->extractCaseInformation($email);
-        
-        // Verificar que tengamos información mínima
+
+        // 3. Verificar información mínima requerida
         if (!$this->hasMinimumRequiredInfo($caseData)) {
+            \Log::info("AutoCase: correo descartado por falta de info mínima. Asunto: {$subject}");
             return null;
         }
-        
-        // Crear el caso
+
+        // 4. Crear el caso
         return $this->createAutoCase($caseData, $email, $accountName);
     }
 
-    private function isNewBusiness($text)
+    // ─────────────────────────────────────────────────────────────────────────
+    //  DETECCIÓN DE RELEVANCIA
+    // ─────────────────────────────────────────────────────────────────────────
+    private function isRelevantEmail($text)
     {
-        foreach ($this->patterns['nuevo_negocio'] as $pattern) {
-            if (strpos($text, $pattern) !== false) {
+        $lower = strtolower($text);
+
+        // Palabras clave de negocio nuevo
+        foreach ($this->patterns['nuevo_negocio'] as $keyword) {
+            if (strpos($lower, $keyword) !== false) {
                 return true;
             }
         }
-        
-        // También detectar correos que no mencionan casos existentes
-        if (!preg_match('/caso[:\s#]+([A-Z0-9\-]+)/i', $text) && 
+
+        // Eventos jurídicos colombianos
+        foreach ($this->patterns['evento_juridico'] as $keyword) {
+            if (strpos($lower, $keyword) !== false) {
+                return true;
+            }
+        }
+
+        // Correos con radicado judicial
+        foreach ($this->patterns['radicado'] as $pattern) {
+            if (preg_match($pattern, $text)) {
+                return true;
+            }
+        }
+
+        // Correos que mencionan SOAT o accidente sin número de caso existente
+        if (!preg_match('/caso[:\s#]+([A-Z0-9\-]+)/i', $text) &&
             !preg_match('/expediente[:\s#]+([A-Z0-9\-]+)/i', $text) &&
-            (strpos($text, 'soat') !== false || strpos($text, 'accidente') !== false)) {
+            (strpos($lower, 'soat') !== false || strpos($lower, 'accidente') !== false)) {
             return true;
         }
-        
+
         return false;
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    //  EXTRACCIÓN DE INFORMACIÓN
+    // ─────────────────────────────────────────────────────────────────────────
     private function extractCaseInformation($email)
     {
-        $data = [
-            'nombre_cliente' => $this->extractPattern($email['subject'] . ' ' . $email['body'], 'nombre_cliente'),
-            'fecha_accidente' => $this->extractPattern($email['subject'] . ' ' . $email['body'], 'fecha_accidente'),
-            'aseguradora' => $this->extractPattern($email['subject'] . ' ' . $email['body'], 'aseguradora'),
-            'monto' => $this->extractPattern($email['subject'] . ' ' . $email['body'], 'monto'),
-            'contacto' => $this->extractPattern($email['subject'] . ' ' . $email['body'], 'contacto'),
-            'email_origen' => $email['from_email'],
-            'asunto' => $email['subject'],
-            'cuerpo' => substr($email['body'], 0, 1000) // Primeros 1000 caracteres
+        $fullText = ($email['subject'] ?? '') . ' ' . ($email['body'] ?? '');
+
+        return [
+            'nombre_cliente'  => $this->extractNombreCliente($email['subject'] ?? '', $email['body'] ?? ''),
+            'fecha_accidente' => $this->extractFecha($fullText),
+            'aseguradora'     => $this->extractAseguradora($fullText),
+            'radicado'        => $this->extractRadicado($fullText),
+            'monto'           => $this->extractMonto($fullText),
+            'contacto'        => $this->extractContacto($fullText),
+            'tipo_evento'     => $this->detectTipoEvento($email['subject'] ?? '', $email['body'] ?? ''),
+            'email_origen'    => $email['from_email'] ?? '',
+            'asunto'          => $email['subject'] ?? '',
+            'cuerpo'          => substr($email['body'] ?? '', 0, 1000),
         ];
-        
-        return $data;
     }
 
-    private function extractPattern($text, $patternType)
+    // ── Nombre del cliente ────────────────────────────────────────────────────
+    private function extractNombreCliente($subject, $body)
     {
-        if ($patternType === 'aseguradora') {
-            foreach ($this->patterns['aseguradora'] as $pattern) {
-                if (preg_match($pattern, $text, $matches)) {
-                    return $this->normalizeInsuranceName($matches[0]);
+        $fullText = $subject . ' ' . $body;
+
+        foreach ($this->patterns['nombre_cliente'] as $index => $pattern) {
+            if (preg_match($pattern, $fullText, $matches)) {
+                $candidate = trim($matches[1]);
+
+                // Para el patrón genérico de mayúsculas, validar que no sea palabra reservada
+                if ($index === count($this->patterns['nombre_cliente']) - 1) {
+                    if ($this->isExcludedWord($candidate)) continue;
+                    if (str_word_count($candidate) < 2) continue;
                 }
-            }
-        } else {
-            foreach ($this->patterns[$patternType] as $pattern) {
-                if (preg_match($pattern, $text, $matches)) {
-                    return $matches[1] ?? $matches[0];
+
+                // Limpiar y validar longitud mínima
+                $candidate = preg_replace('/\s+/', ' ', $candidate);
+                if (strlen($candidate) >= 5) {
+                    return $candidate;
                 }
             }
         }
-        
+
         return null;
     }
 
-    private function normalizeInsuranceName($insurance)
+    private function isExcludedWord($text)
     {
-        $insurance = strtolower($insurance);
-        
-        if (strpos($insurance, 'sura') !== false) return 'SURA';
-        if (strpos($insurance, 'mapfre') !== false) return 'MAPFRE';
-        if (strpos($insurance, 'hdi') !== false) return 'HDI';
-        if (strpos($insurance, 'axa') !== false) return 'AXA';
-        if (strpos($insurance, 'liberty') !== false) return 'LIBERTY';
-        if (strpos($insurance, 'bolívar') !== false || strpos($insurance, 'bolivar') !== false) return 'BOLÍVAR';
-        if (strpos($insurance, 'estado solidario') !== false || strpos($insurance, 'solidaria') !== false) return 'ESTADO SOLIDARIO';
-        if (strpos($insurance, 'allianz') !== false) return 'ALLIANZ';
-        if (strpos($insurance, 'zurich') !== false) return 'ZURICH';
-        
-        return 'POR IDENTIFICAR';
+        $words = explode(' ', strtoupper($text));
+        foreach ($words as $word) {
+            if (in_array(trim($word), $this->excludeFromNames)) {
+                return true;
+            }
+        }
+        return false;
     }
 
+    // ── Fecha ─────────────────────────────────────────────────────────────────
+    private function extractFecha($text)
+    {
+        $meses = [
+            'enero'=>1,'febrero'=>2,'marzo'=>3,'abril'=>4,'mayo'=>5,'junio'=>6,
+            'julio'=>7,'agosto'=>8,'septiembre'=>9,'octubre'=>10,'noviembre'=>11,'diciembre'=>12,
+        ];
+
+        // "13 de abril de 2026"
+        if (preg_match(
+            '/(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+de\s+(\d{4})/i',
+            $text, $m
+        )) {
+            try {
+                return Carbon::createFromDate((int)$m[3], $meses[strtolower($m[2])], (int)$m[1]);
+            } catch (\Exception $e) {}
+        }
+
+        // "fecha: dd/mm/yyyy" o "fecha: dd-mm-yyyy"
+        if (preg_match('/fecha\s*(?:de\s*accidente)?[:\s]+(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/i', $text, $m)) {
+            return $this->parseDate("{$m[1]}/{$m[2]}/{$m[3]}");
+        }
+
+        // "dd/mm/yyyy" o "dd-mm-yyyy"
+        if (preg_match('/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/', $text, $m)) {
+            return $this->parseDate("{$m[1]}/{$m[2]}/{$m[3]}");
+        }
+
+        return null;
+    }
+
+    // ── Aseguradora ───────────────────────────────────────────────────────────
+    private function extractAseguradora($text)
+    {
+        $map = [
+            '/previsora|la\s+previsora/i'         => 'LA PREVISORA',
+            '/seguros\s+sura|sura/i'              => 'SURA',
+            '/mapfre/i'                           => 'MAPFRE',
+            '/hdi\s+seguros|hdi/i'               => 'HDI',
+            '/axa\s+seguros|axa/i'               => 'AXA',
+            '/liberty\s+seguros|liberty/i'        => 'LIBERTY',
+            '/bol[ií]var\s+seguros|bol[ií]var/i' => 'BOLÍVAR',
+            '/estado\s+solidario|solidaria/i'     => 'ESTADO SOLIDARIO',
+            '/allianz/i'                          => 'ALLIANZ',
+            '/zurich/i'                           => 'ZURICH',
+            '/mundial\s+seguros|mundial/i'        => 'MUNDIAL',
+            '/cardif/i'                           => 'CARDIF',
+            '/colm[eé]dica/i'                    => 'COLMÉDICA',
+            '/positiva\s+compañ/i'               => 'POSITIVA',
+        ];
+
+        foreach ($map as $pattern => $nombre) {
+            if (preg_match($pattern, $text)) {
+                return $nombre;
+            }
+        }
+
+        return null;
+    }
+
+    // ── Radicado ──────────────────────────────────────────────────────────────
+    private function extractRadicado($text)
+    {
+        foreach ($this->patterns['radicado'] as $pattern) {
+            if (preg_match($pattern, $text, $m)) {
+                return trim($m[1]);
+            }
+        }
+        return null;
+    }
+
+    // ── Monto ─────────────────────────────────────────────────────────────────
+    private function extractMonto($text)
+    {
+        foreach ($this->patterns['monto'] as $pattern) {
+            if (preg_match($pattern, $text, $m)) {
+                return $m[1] ?? $m[0];
+            }
+        }
+        return null;
+    }
+
+    // ── Contacto ──────────────────────────────────────────────────────────────
+    private function extractContacto($text)
+    {
+        foreach ($this->patterns['contacto'] as $pattern) {
+            if (preg_match($pattern, $text, $m)) {
+                return preg_replace('/[\s\-]/', '', $m[1]);
+            }
+        }
+        return null;
+    }
+
+    // ── Tipo de evento jurídico ───────────────────────────────────────────────
+    private function detectTipoEvento($subject, $body)
+    {
+        $text = strtolower($subject . ' ' . $body);
+
+        if (preg_match('/fallo.*segunda\s+instancia|segunda\s+instancia.*fallo/i', $text)) return 'fallo_segunda_instancia';
+        if (preg_match('/cumplimiento.*fallo|fallo.*cumplimiento/i', $text))                return 'cumplimiento_fallo';
+        if (preg_match('/incidente\s+de\s+desacato|desacato/i', $text))                    return 'incidente_desacato';
+        if (preg_match('/impugnaci[oó]n/i', $text))                                        return 'impugnacion';
+        if (preg_match('/fallo.*tutela|tutela.*fallo/i', $text))                           return 'fallo_tutela';
+        if (preg_match('/acci[oó]n\s+de\s+tutela|tutela/i', $subject))                    return 'tutela';
+        if (preg_match('/dictamen|calificaci[oó]n\s+de\s+invalidez/i', $text))            return 'dictamen';
+        if (preg_match('/p[eé]rdida\s+de\s+capacidad\s+laboral/i', $text))                return 'dictamen';
+        if (preg_match('/pago\s+de\s+honorarios|honorarios/i', $text))                    return 'honorarios';
+        if (preg_match('/indemnizaci[oó]n/i', $text))                                     return 'indemnizacion';
+        if (preg_match('/reclamaci[oó]n/i', $text))                                       return 'reclamacion';
+        if (preg_match('/solicitud.*soat|soat.*solicitud/i', $text))                      return 'solicitud_soat';
+        if (preg_match('/accidente\s+de\s+tr[aá]nsito/i', $text))                        return 'accidente';
+
+        return 'nuevo';
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  VALIDACIÓN MÍNIMA
+    // ─────────────────────────────────────────────────────────────────────────
     private function hasMinimumRequiredInfo($data)
     {
-        // Necesitamos al menos nombre del cliente O fecha del accidente
-        return !empty($data['nombre_cliente']) || !empty($data['fecha_accidente']);
+        // Necesitamos al menos nombre del cliente O (radicado + aseguradora)
+        return !empty($data['nombre_cliente']) ||
+               (!empty($data['radicado']) && !empty($data['aseguradora']));
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    //  MAPEO TIPO → ESTADO
+    // ─────────────────────────────────────────────────────────────────────────
+    private function estadoDesde($tipo)
+    {
+        $estados = [
+            'tutela'                 => 'Acción de tutela recibida',
+            'fallo_tutela'           => 'Fallo de tutela recibido',
+            'fallo_segunda_instancia'=> 'Fallo de segunda instancia recibido',
+            'cumplimiento_fallo'     => 'En cumplimiento de fallo',
+            'incidente_desacato'     => 'Incidente de desacato',
+            'impugnacion'            => 'Impugnación presentada',
+            'dictamen'               => 'Dictamen de calificación recibido',
+            'honorarios'             => 'Honorarios pagados',
+            'indemnizacion'          => 'Indemnización recibida',
+            'reclamacion'            => 'Reclamación presentada',
+            'solicitud_soat'         => 'Solicitud SOAT',
+            'accidente'              => 'Nuevo caso - Accidente',
+            'nuevo'                  => 'Nuevo caso',
+        ];
+
+        return $estados[$tipo] ?? 'Nuevo caso';
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  CREACIÓN DEL CASO
+    // ─────────────────────────────────────────────────────────────────────────
     private function createAutoCase($data, $email, $accountName)
     {
         try {
-            // Generar número de caso único
-            $numeroCaso = 'SOAT-' . date('Y') . '-' . str_pad(Caso::count() + 1, 4, '0', STR_PAD_LEFT);
-            
-            // Determinar etapa inicial según contenido
-            $etapaInicial = $this->determineInitialStage($email['subject'] . ' ' . $email['body']);
-            
+            // Número de caso: usa radicado si existe, sino genera uno secuencial
+            $numeroCaso = $data['radicado']
+                ? 'RAD-' . $data['radicado']
+                : 'SOAT-' . date('Y') . '-' . str_pad(Caso::count() + 1, 4, '0', STR_PAD_LEFT);
+
+            // Determinar etapa inicial
+            $etapaInicial = $this->determineInitialStage($data['tipo_evento']);
+
             // Crear el caso
             $caso = Caso::create([
-                'numero_caso' => $numeroCaso,
+                'numero_caso'    => $numeroCaso,
                 'nombre_cliente' => $data['nombre_cliente'] ?? 'Por identificar',
-                'fecha_accidente' => $data['fecha_accidente'] ? $this->parseDate($data['fecha_accidente']) : now(),
-                'aseguradora' => $data['aseguradora'] ?? 'Por identificar',
-                'estado' => $etapaInicial['estado'],
-                'etapa_actual' => $etapaInicial['etapa'],
-                'monto_reclamado' => $data['monto'] ? $this->parseAmount($data['monto']) : null,
-                'telefono' => $data['contacto'],
-                'email' => $data['email_origen'],
-                'descripcion' => "Caso creado automáticamente desde correo:\n\n" .
-                                "Asunto: " . $data['asunto'] . "\n" .
-                                "De: " . $data['email_origen'] . "\n" .
-                                "Cuenta: " . $accountName . "\n\n" .
-                                "Contenido:\n" . $data['cuerpo'],
-                'created_by' => 1, // Usuario sistema
-                'auto_created' => true,
-                'auto_created_from' => $accountName,
-                'auto_created_date' => now()
+                'fecha_accidente'=> $data['fecha_accidente'] ?? now(),
+                'aseguradora'    => $data['aseguradora'] ?? 'Por identificar',
+                'estado'         => $etapaInicial['estado'],
+                'etapa_actual'   => $etapaInicial['etapa'],
+                'monto_reclamado'=> $data['monto'] ? $this->parseAmount($data['monto']) : null,
+                'telefono'       => $data['contacto'],
+                'email'          => $data['email_origen'],
+                'descripcion'    => "Caso creado automáticamente desde correo:\n\n" .
+                                    "Asunto: " . $data['asunto'] . "\n" .
+                                    "De: " . $data['email_origen'] . "\n" .
+                                    "Cuenta: " . $accountName . "\n" .
+                                    "Tipo detectado: " . $data['tipo_evento'] . "\n\n" .
+                                    "Contenido:\n" . $data['cuerpo'],
+                'created_by'     => 1,
+                'auto_created'   => true,
             ]);
-            
-            // Crear bitácora inicial
+
+            // Bitácora inicial
             Bitacora::create([
-                'caso_id' => $caso->id,
-                'titulo' => 'Caso creado automáticamente',
-                'descripcion' => "Caso creado desde correo de {$accountName}: {$data['asunto']}",
-                'fecha_evento' => now()
+                'caso_id'     => $caso->id,
+                'titulo'      => 'Caso creado automáticamente desde correo',
+                'descripcion' => "Tipo: {$data['tipo_evento']} | Cuenta: {$accountName} | Asunto: {$data['asunto']}",
+                'fecha_evento'=> now(),
             ]);
-            
-            // Marcar correo como procesado
+
+            // Registrar email log
             EmailLog::create([
-                'caso_id' => $caso->id,
-                'email_id' => $email['message_id'] ?? $email['id'],
-                'subject' => $email['subject'],
-                'body' => $email['body'],
-                'from_email' => $email['from_email'],
-                'from_name' => $email['from_name'],
-                'email_date' => $email['date'],
+                'caso_id'            => $caso->id,
+                'email_id'           => $email['message_id'] ?? ($email['id'] ?? null),
+                'subject'            => $email['subject'] ?? '',
+                'body'               => $email['body'] ?? '',
+                'from_email'         => $email['from_email'] ?? '',
+                'from_name'          => $email['from_name'] ?? '',
+                'email_date'         => $email['date'] ?? now(),
                 'detected_insurance' => $data['aseguradora'],
-                'email_type' => 'nuevo_negocio_auto',
-                'extracted_data' => json_encode($data),
-                'processed' => true,
+                'email_type'         => $data['tipo_evento'],
+                'extracted_data'     => json_encode($data),
+                'processed'          => true,
             ]);
-            
+
+            \Log::info("AutoCase: caso {$numeroCaso} creado para '{$data['nombre_cliente']}' | Tipo: {$data['tipo_evento']}");
+
             return [
                 'success' => true,
-                'caso' => $caso,
-                'message' => "Caso {$numeroCaso} creado automáticamente"
+                'caso'    => $caso,
+                'message' => "Caso {$numeroCaso} creado automáticamente",
             ];
-            
+
         } catch (\Exception $e) {
-            \Log::error("Error creando caso automático: " . $e->getMessage());
+            \Log::error("AutoCase ERROR al crear caso: " . $e->getMessage() . " | Asunto: " . ($data['asunto'] ?? ''));
             return [
                 'success' => false,
-                'message' => 'Error creando caso: ' . $e->getMessage()
+                'message' => 'Error creando caso: ' . $e->getMessage(),
             ];
         }
     }
 
-    private function determineInitialStage($text)
+    // ─────────────────────────────────────────────────────────────────────────
+    //  ETAPA INICIAL SEGÚN TIPO
+    // ─────────────────────────────────────────────────────────────────────────
+    private function determineInitialStage($tipoEvento)
     {
-        $text = strtolower($text);
-        
-        if (strpos($text, 'solicitud') !== false || strpos($text, 'consulta') !== false) {
-            return ['estado' => 'Solicitud inicial', 'etapa' => 'solicitud_inicial'];
-        }
-        
-        if (strpos($text, 'documentación') !== false || strpos($text, 'documentos') !== false) {
-            return ['estado' => 'Recopilando documentos', 'etapa' => 'recopilacion_documentos'];
-        }
-        
-        if (strpos($text, 'reclamación') !== false || strpos($text, 'reclamo') !== false) {
-            return ['estado' => 'Reclamación presentada', 'etapa' => 'reclamacion_presentada'];
-        }
-        
-        if (strpos($text, 'negociación') !== false || strpos($text, 'negociar') !== false) {
-            return ['estado' => 'En negociación', 'etapa' => 'negociacion'];
-        }
-        
-        // Por defecto
-        return ['estado' => 'Nuevo caso', 'etapa' => 'nuevo'];
+        $etapas = [
+            'tutela'                  => ['estado' => 'Acción de tutela recibida',         'etapa' => 'tutela'],
+            'fallo_tutela'            => ['estado' => 'Fallo de tutela recibido',           'etapa' => 'fallo_tutela'],
+            'fallo_segunda_instancia' => ['estado' => 'Fallo de segunda instancia',         'etapa' => 'fallo_segunda_instancia'],
+            'cumplimiento_fallo'      => ['estado' => 'En cumplimiento de fallo',           'etapa' => 'cumplimiento_tutela'],
+            'incidente_desacato'      => ['estado' => 'Incidente de desacato',              'etapa' => 'incidente_desacato'],
+            'impugnacion'             => ['estado' => 'Impugnación presentada',             'etapa' => 'impugnacion'],
+            'dictamen'                => ['estado' => 'Dictamen de calificación recibido',  'etapa' => 'dictamen_junta'],
+            'honorarios'              => ['estado' => 'Honorarios pagados',                 'etapa' => 'pago_honorarios'],
+            'indemnizacion'           => ['estado' => 'Indemnización recibida',             'etapa' => 'pago'],
+            'reclamacion'             => ['estado' => 'Reclamación presentada',             'etapa' => 'reclamacion_presentada'],
+            'solicitud_soat'          => ['estado' => 'Solicitud inicial',                  'etapa' => 'solicitud_inicial'],
+            'accidente'               => ['estado' => 'Nuevo caso - Accidente de tránsito', 'etapa' => 'nuevo'],
+            'nuevo'                   => ['estado' => 'Nuevo caso',                         'etapa' => 'nuevo'],
+        ];
+
+        return $etapas[$tipoEvento] ?? ['estado' => 'Nuevo caso', 'etapa' => 'nuevo'];
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    //  UTILIDADES
+    // ─────────────────────────────────────────────────────────────────────────
     private function parseDate($dateString)
     {
-        try {
-            // Intentar diferentes formatos
-            $formats = ['d/m/Y', 'd-m-Y', 'Y-m-d', 'd/m/y', 'd-m-y'];
-            
-            foreach ($formats as $format) {
-                $date = \DateTime::createFromFormat($format, $dateString);
-                if ($date) {
-                    return $date;
-                }
+        $formats = ['d/m/Y', 'd-m-Y', 'Y-m-d', 'd/m/y', 'd-m-y'];
+
+        foreach ($formats as $format) {
+            $date = \DateTime::createFromFormat($format, $dateString);
+            if ($date && $date->format($format) === $dateString) {
+                return Carbon::instance($date);
             }
-            
-            // Si no funciona, intentar con strtotime
-            return new \DateTime($dateString);
-            
+        }
+
+        try {
+            return new Carbon($dateString);
         } catch (\Exception $e) {
             return now();
         }
@@ -292,10 +537,10 @@ class AutoCaseCreationService
 
     private function parseAmount($amountString)
     {
-        // Limpiar el string
+        // Quitar todo excepto dígitos y coma decimal
         $amount = preg_replace('/[^0-9,]/', '', $amountString);
         $amount = str_replace(',', '.', $amount);
-        
+
         return is_numeric($amount) ? floatval($amount) : null;
     }
 }

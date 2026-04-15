@@ -12,101 +12,89 @@ use App\Http\Controllers\EmailController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\ReporteController;
 
-// Ruta temporal para migrar en producción - ELIMINAR DESPUÉS DE USAR
+// ── Ruta temporal para migrar en producción - ELIMINAR DESPUÉS DE USAR ────────
 Route::get('/migrate-production', function () {
     try {
         Artisan::call('migrate', ['--force' => true]);
         $output = Artisan::output();
-        
         return response()->json([
             'success' => true,
             'message' => 'Migraciones ejecutadas exitosamente',
-            'output' => $output
+            'output'  => $output,
         ]);
     } catch (\Exception $e) {
         return response()->json([
             'success' => false,
-            'message' => 'Error ejecutando migraciones: ' . $e->getMessage()
+            'message' => 'Error ejecutando migraciones: ' . $e->getMessage(),
         ]);
     }
 });
 
-// Ruta para verificar tablas en producción
+// ── Ruta para verificar tablas en producción ──────────────────────────────────
 Route::get('/check-tables', function () {
     try {
-        $tables = DB::select("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
-        
-        $tableNames = [];
-        foreach ($tables as $table) {
-            $tableNames[] = $table->table_name;
-        }
-        
-        $emailTables = array_filter($tableNames, function($table) {
-            return strpos($table, 'email') !== false;
-        });
-        
+        $tables     = DB::select("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
+        $tableNames = array_column($tables, 'table_name');
+        $emailTables = array_values(array_filter($tableNames, fn($t) => str_contains($t, 'email')));
         return response()->json([
-            'success' => true,
+            'success'      => true,
             'total_tables' => count($tableNames),
-            'email_tables' => array_values($emailTables),
-            'all_tables' => $tableNames
+            'email_tables' => $emailTables,
+            'all_tables'   => $tableNames,
         ]);
-        
     } catch (\Exception $e) {
         return response()->json([
             'success' => false,
-            'message' => 'Error verificando tablas: ' . $e->getMessage()
+            'message' => 'Error verificando tablas: ' . $e->getMessage(),
         ]);
     }
 });
 
-// ── Rutas públicas (sin autenticación) ───────────────────────────────────────
-
+// ── Rutas públicas ────────────────────────────────────────────────────────────
 Route::get('/login',  [LoginController::class, 'showLogin'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
 Route::post('/logout',[LoginController::class, 'logout'])->name('logout');
 
 // ── Redirect raíz ─────────────────────────────────────────────────────────────
+Route::get('/', fn() => redirect()->route('casos.index'));
 
-Route::get('/', function () {
-    return redirect()->route('casos.index');
-});
-
-// ── Rutas protegidas (requieren login) ────────────────────────────────────────
-
+// ── Rutas protegidas ──────────────────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
 
-    // ── Rutas de integración de correos ────────────────────────────────────────
-    Route::get('/emails', [EmailController::class, 'index'])->name('emails.index');
-    Route::post('/emails/sync', [EmailController::class, 'sync'])->name('emails.sync');
+    // ── Correos ───────────────────────────────────────────────────────────────
+    Route::prefix('emails')->name('emails.')->group(function () {
+        Route::get('/',              [EmailController::class, 'index'])->name('index');
+        Route::post('/sync',         [EmailController::class, 'sync'])->name('sync');
+        Route::post('/add-account',  [EmailController::class, 'addAccount'])->name('addAccount');
+        Route::post('/save-config',  [EmailController::class, 'saveConfig'])->name('saveConfig');
+        Route::delete('/account/{id}', [EmailController::class, 'removeAccount'])->name('removeAccount');
+    });
 
-    // ── Rutas de autenticación Outlook ────────────────────────────────────────
-    Route::get('/outlook/connect', [OutlookAuthController::class, 'redirectToOutlook'])->name('outlook.connect');
-    Route::get('/outlook/callback', [OutlookAuthController::class, 'handleCallback'])->name('outlook.callback');
+    // ── Outlook OAuth ─────────────────────────────────────────────────────────
+    Route::get('/outlook/connect',       [OutlookAuthController::class, 'redirectToOutlook'])->name('outlook.connect');
+    Route::get('/outlook/callback',      [OutlookAuthController::class, 'handleCallback'])->name('outlook.callback');
     Route::post('/outlook/disconnect/{id}', [OutlookAuthController::class, 'disconnect'])->name('outlook.disconnect');
 
     // ── Dashboard ─────────────────────────────────────────────────────────────
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/dashboard/exportar-excel', [ReporteController::class, 'exportarExcel'])
-        ->middleware('role:admin,abogado')
-        ->name('dashboard.exportarExcel');
-    Route::get('/dashboard/exportar-pdf', [ReporteController::class, 'exportarPdf'])
-        ->middleware('role:admin,abogado')
-        ->name('dashboard.exportarPdf');
+    Route::middleware('role:admin,abogado')->group(function () {
+        Route::get('/dashboard/exportar-excel', [ReporteController::class, 'exportarExcel'])->name('dashboard.exportarExcel');
+        Route::get('/dashboard/exportar-pdf',   [ReporteController::class, 'exportarPdf'])->name('dashboard.exportarPdf');
+    });
 
-    // ── Casos — lectura (todos los roles) ────────────────────────────────────
+    // ── Casos — lectura (todos) ───────────────────────────────────────────────
     Route::get('/casos', [CasoController::class, 'index'])->name('casos.index');
 
     // ── Casos — escritura (admin + abogado) ──────────────────────────────────
     Route::middleware('role:admin,abogado')->group(function () {
-        Route::get('/casos/create',       [CasoController::class, 'create'])->name('casos.create');
-        Route::post('/casos',             [CasoController::class, 'store'])->name('casos.store');
-        Route::get('/casos/{caso}/edit',  [CasoController::class, 'edit'])->name('casos.edit');
-        Route::put('/casos/{caso}',       [CasoController::class, 'update'])->name('casos.update');
-        Route::patch('/casos/{caso}',     [CasoController::class, 'update']);
+        Route::get('/casos/create',      [CasoController::class, 'create'])->name('casos.create');
+        Route::post('/casos',            [CasoController::class, 'store'])->name('casos.store');
+        Route::get('/casos/{caso}/edit', [CasoController::class, 'edit'])->name('casos.edit');
+        Route::put('/casos/{caso}',      [CasoController::class, 'update'])->name('casos.update');
+        Route::patch('/casos/{caso}',    [CasoController::class, 'update']);
     });
 
-    // ── Esta va DESPUÉS del create ────────────────────────────────────────────
+    // ── Esta va DESPUÉS del /create ───────────────────────────────────────────
     Route::get('/casos/{caso}', [CasoController::class, 'show'])->name('casos.show');
 
     // ── Casos — eliminar (solo admin) ────────────────────────────────────────
@@ -134,7 +122,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/marcar-pago',                    [CasoController::class, 'marcarPago'])->name('casos.marcarPago');
     });
 
-    // ── Documentos (todos ven, solo admin+abogado suben/eliminan) ────────────
+    // ── Documentos ────────────────────────────────────────────────────────────
     Route::prefix('casos/{caso}')->group(function () {
         Route::get('/documentos', [DocumentoController::class, 'index'])->name('casos.documentos.index');
 
@@ -143,7 +131,7 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/documentos/{documento}', [DocumentoController::class, 'destroy'])->name('casos.documentos.destroy');
         });
 
-        // ── Bitácora (todos ven, solo admin+abogado agregan/eliminan) ────────
+        // ── Bitácora ──────────────────────────────────────────────────────────
         Route::get('/bitacoras', [BitacoraController::class, 'index'])->name('casos.bitacoras.index');
 
         Route::middleware('role:admin,abogado')->group(function () {
@@ -152,7 +140,7 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
-    // ── Gestión de usuarios (solo admin) ─────────────────────────────────────
+    // ── Usuarios (solo admin) ─────────────────────────────────────────────────
     Route::middleware('role:admin')->group(function () {
         Route::get('/usuarios',               [UserController::class, 'index'])->name('users.index');
         Route::get('/usuarios/crear',         [UserController::class, 'create'])->name('users.create');
