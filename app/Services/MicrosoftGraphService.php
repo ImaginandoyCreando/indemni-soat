@@ -27,16 +27,19 @@ class MicrosoftGraphService
     }
 
     /**
-     * Obtener token de acceso para Microsoft Graph
+     * Obtener token de acceso para Microsoft Graph (CORREGIDO para cuentas personales)
      */
     private function getAccessToken($email, $password)
     {
         try {
-            $response = $this->httpClient->post("https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token", [
+            // Para cuentas personales (@outlook.com, @hotmail.com) usamos el endpoint de consumers
+            $tokenEndpoint = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
+            
+            $response = $this->httpClient->post($tokenEndpoint, [
                 'form_params' => [
                     'client_id' => $this->clientId,
                     'client_secret' => $this->clientSecret,
-                    'scope' => 'https://graph.microsoft.com/.default',
+                    'scope' => 'https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/User.Read https://graph.microsoft.com/offline_access',
                     'grant_type' => 'password',
                     'username' => $email,
                     'password' => $password,
@@ -47,6 +50,12 @@ class MicrosoftGraphService
             ]);
 
             $data = json_decode($response->getBody()->getContents(), true);
+            
+            if (isset($data['error'])) {
+                \Log::error("Error OAuth para {$email}: " . $data['error_description'] ?? $data['error']);
+                return null;
+            }
+            
             return $data['access_token'] ?? null;
 
         } catch (RequestException $e) {
