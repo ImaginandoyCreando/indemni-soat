@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Services\MultiImapService;
+use App\Services\MicrosoftGraphService;
 use App\Models\Caso;
 use App\Models\Bitacora;
 use App\Models\EmailLog;
@@ -19,7 +19,7 @@ class AutoEmailProcessor extends Command
         $this->info('🚀 Iniciando procesamiento automático de correos...');
         
         try {
-            $service = new MultiImapService();
+            $service = new MicrosoftGraphService();
             $results = $service->processAllAccounts();
             
             $totalProcessed = $results['total_processed'];

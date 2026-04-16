@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\EmailLog;
 use App\Models\Caso;
 use App\Models\Bitacora;
-use App\Services\MultiImapService;
+use App\Services\MicrosoftGraphService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
@@ -84,7 +84,7 @@ class EmailController extends Controller
     public function sync(Request $request)
     {
         try {
-            $service = new MultiImapService();
+            $service = new MicrosoftGraphService();
             $results = $service->processAllAccounts();
 
             $totalProcessed  = $results['total_processed'] ?? 0;
