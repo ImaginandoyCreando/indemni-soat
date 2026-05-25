@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\EmailLog;
 use App\Models\Caso;
 use App\Models\Bitacora;
-use App\Services\MicrosoftGraphService;
+use App\Services\MultiImapService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
@@ -84,7 +84,7 @@ class EmailController extends Controller
     public function sync(Request $request)
     {
         try {
-            $service = new MicrosoftGraphService();
+            $service = new MultiImapService();
             $results = $service->processAllAccounts();
 
             $totalProcessed  = $results['total_processed'] ?? 0;
@@ -93,35 +93,48 @@ class EmailController extends Controller
             // Verificar y marcar casos vencidos
             $overdueMarked = $this->checkOverdueCases();
 
-            if ($totalProcessed > 0) {
-                $lines = ["✅ Se procesaron {$totalProcessed} correos:"];
+            // Siempre mostrar el resultado por cuenta (éxito o error)
+            $lines = [];
+            $hasErrors = false;
 
-                foreach ($accountResults as $account => $result) {
-                    if ($result['success'] ?? false) {
-                        $lines[] = "• {$account}: {$result['processed']} correos";
-                    } else {
-                        $lines[] = "• {$account}: Error — " . ($result['message'] ?? 'desconocido');
-                    }
+            foreach ($accountResults as $account => $result) {
+                if ($result['success'] ?? false) {
+                    $lines[] = "• {$account}: {$result['processed']} correo(s) procesado(s)";
+                } else {
+                    $lines[] = "• {$account}: Error — " . ($result['message'] ?? 'desconocido');
+                    $hasErrors = true;
                 }
+            }
 
-                // Casos creados automáticamente en los últimos 5 minutos
+            if ($totalProcessed > 0) {
                 $autoCasesCount = Caso::where('auto_created', true)
                     ->where('created_at', '>', now()->subMinutes(5))
                     ->count();
 
                 if ($autoCasesCount > 0) {
-                    $lines[] = "🎉 {$autoCasesCount} caso(s) nuevos creados automáticamente";
+                    array_unshift($lines, "🎉 {$autoCasesCount} caso(s) nuevos creados automáticamente");
                 }
 
                 if ($overdueMarked > 0) {
                     $lines[] = "⚠️ {$overdueMarked} caso(s) marcados como 'Sin respuesta'";
                 }
 
+                array_unshift($lines, "✅ Se procesaron {$totalProcessed} correos en total:");
                 return redirect()->route('emails.index')
                     ->with('success', implode("\n", $lines));
             }
 
+            // Sin correos procesados — mostrar detalle aunque sea error
+            if ($hasErrors) {
+                array_unshift($lines, "❌ Error al conectar con los correos:");
+                return redirect()->route('emails.index')
+                    ->with('error', implode("\n", $lines));
+            }
+
             $infoMsg = 'No hay correos nuevos para procesar.';
+            if (!empty($lines)) {
+                $infoMsg .= ' (' . implode(', ', $lines) . ')';
+            }
             if ($overdueMarked > 0) {
                 $infoMsg .= " Se marcaron {$overdueMarked} caso(s) sin respuesta.";
             }

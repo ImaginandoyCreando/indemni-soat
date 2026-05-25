@@ -82,102 +82,109 @@ class MultiImapService
 
     private function processAccount($account)
     {
-        $hostname = '{outlook.office365.com:993/imap/ssl}INBOX';
-        
+        $hostname = '{outlook.office365.com:993/imap/ssl/novalidate-cert}INBOX';
+
         try {
-            $mailbox = new Mailbox($hostname, $account['email'], $account['password']);
-            
-            // Verificar conexión intentando obtener carpetas
+            $mailbox = new Mailbox($hostname, $account['email'], $account['password'], null, 'UTF-8');
             $mailbox->getImapStream();
-            
-            // Obtener correos no leídos
-            $emailsIds = $mailbox->searchMailbox('UNSEEN');
+
+            // Traer TODOS los correos (no solo no leídos) — limitamos por fecha: últimos 6 meses
+            $since = date('d-M-Y', strtotime('-6 months'));
+            $emailsIds = $mailbox->searchMailbox("SINCE \"{$since}\"");
+
+            // Ordenar de más reciente a más antiguo (los IDs más altos son más recientes en IMAP)
+            rsort($emailsIds);
+
         } catch (\Exception $e) {
-            \Log::error("Error conectando a {$account['email']}: " . $e->getMessage());
-            return 0;
+            \Log::error("IMAP conexión fallida para {$account['email']}: " . $e->getMessage());
+            throw new \Exception("No se pudo conectar a {$account['email']}: " . $e->getMessage());
         }
-        
+
         if (empty($emailsIds)) {
-            try {
-                $mailbox->disconnect();
-            } catch (\Exception $e) {
-                // Ignorar error de desconexión
-            }
+            try { $mailbox->disconnect(); } catch (\Exception $e) {}
             return 0;
         }
 
+        // IDs de correos ya procesados (evitar duplicados)
+        $alreadyProcessed = EmailLog::whereNotNull('email_id')
+            ->pluck('email_id')
+            ->flip()
+            ->all();
+
         $processedCount = 0;
-        $limit = $account['priority'] === 'high' ? 100 : 50;
+        $limit = $account['priority'] === 'high' ? 200 : 100;
+        $autoCaseService = new AutoCaseCreationService();
 
         foreach ($emailsIds as $emailId) {
             if ($processedCount >= $limit) break;
 
             try {
                 $email = $mailbox->getMail($emailId, false);
-                
-                // Clasificar correo según la cuenta
+                $messageId = $email->messageId ?: ('imap-' . $emailId . '-' . $account['email']);
+
+                // Skip correos ya procesados
+                if (isset($alreadyProcessed[$messageId])) {
+                    continue;
+                }
+
+                $subject  = $this->cleanSubject($email->subject);
+                $bodyText = $this->cleanBody($email->textHtml ?: $email->textPlain);
                 $emailType = $this->classifyEmailByAccount($email, $account);
-                $insurance = EmailLog::detectInsurance($email->fromAddress, $email->subject, $email->textPlain);
-                
-                // Buscar caso relacionado
-                $caso = $this->findRelatedCase($email->subject, $email->textPlain);
-                
+                $insurance = EmailLog::detectInsurance($email->fromAddress, $subject, $bodyText);
+
+                $emailData = [
+                    'id'         => $messageId,
+                    'message_id' => $messageId,
+                    'subject'    => $subject,
+                    'body'       => $bodyText,
+                    'from_email' => $email->fromAddress ?? '',
+                    'from_name'  => $email->fromName ?? '',
+                    'date'       => $email->date ? new \DateTime($email->date) : now(),
+                ];
+
+                // ¿Existe caso relacionado?
+                $caso = $this->findRelatedCase($subject, $bodyText);
+
                 if ($caso) {
-                    // Caso existente - actualizar
+                    // Caso existente — registrar email y actualizar estado
                     EmailLog::create([
-                        'caso_id' => $caso->id,
-                        'email_id' => $email->messageId,
-                        'subject' => $this->cleanSubject($email->subject),
-                        'body' => $this->cleanBody($email->textHtml ?: $email->textPlain),
-                        'from_email' => $email->fromAddress,
-                        'from_name' => $email->fromName,
-                        'email_date' => new \DateTime($email->date),
+                        'caso_id'            => $caso->id,
+                        'email_id'           => $messageId,
+                        'subject'            => $subject,
+                        'body'               => substr($bodyText, 0, 5000),
+                        'from_email'         => $emailData['from_email'],
+                        'from_name'          => $emailData['from_name'],
+                        'email_date'         => $emailData['date'],
                         'detected_insurance' => $insurance,
-                        'email_type' => $emailType,
-                        'extracted_data' => $this->extractData($email->subject, $email->textPlain),
-                        'processed' => true,
+                        'email_type'         => $emailType,
+                        'extracted_data'     => $this->extractData($subject, $bodyText),
+                        'processed'          => true,
                     ]);
-                    
-                    // Actualizar estado del caso según tipo y cuenta
+
                     $this->updateCaseStatusByAccount($caso, $emailType, $account, $email);
-                    
                     $processedCount++;
+
                 } else {
-                    // No hay caso relacionado - intentar crear automáticamente
-                    $autoCaseService = new AutoCaseCreationService();
-                    $emailData = [
-                        'subject' => $this->cleanSubject($email->subject),
-                        'body' => $this->cleanBody($email->textHtml ?: $email->textPlain),
-                        'from_email' => $email->fromAddress,
-                        'from_name' => $email->fromName,
-                        'date' => new \DateTime($email->date),
-                        'message_id' => $email->messageId
-                    ];
-                    
+                    // Sin caso relacionado — intentar crear automáticamente
                     $autoCaseResult = $autoCaseService->processEmailForNewCase($emailData, $account['name']);
-                    
+
                     if ($autoCaseResult && $autoCaseResult['success']) {
                         $processedCount++;
                         \Log::info("Caso automático creado: " . $autoCaseResult['message']);
                     }
                 }
 
-                // Marcar como leído
-                $mailbox->markMailAsRead($emailId);
-                
+                // Marcar como leído para no reprocesar en siguientes UNSEEN runs
+                try { $mailbox->markMailAsRead($emailId); } catch (\Exception $e) {}
+
             } catch (\Exception $e) {
-                \Log::error("Error procesando email ID {$emailId} en cuenta {$account['name']}: " . $e->getMessage());
+                \Log::error("Error procesando email #{$emailId} en {$account['name']}: " . $e->getMessage());
                 continue;
             }
         }
 
-        // Desconectar
-        try {
-            $mailbox->disconnect();
-        } catch (\Exception $e) {
-            // Ignorar error de desconexión
-        }
-        
+        try { $mailbox->disconnect(); } catch (\Exception $e) {}
+
         return $processedCount;
     }
 
