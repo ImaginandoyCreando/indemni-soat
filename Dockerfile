@@ -12,10 +12,14 @@ RUN apk add --no-cache \
     libzip-dev \
     oniguruma-dev \
     postgresql-dev \
+    imap-dev \
+    krb5-dev \
+    openssl-dev \
     nodejs \
     npm
 
 # Instalar extensiones PHP
+RUN docker-php-ext-configure imap --with-imap --with-imap-ssl --with-kerberos
 RUN docker-php-ext-install \
     pdo \
     pdo_pgsql \
@@ -25,7 +29,8 @@ RUN docker-php-ext-install \
     pcntl \
     bcmath \
     gd \
-    zip
+    zip \
+    imap
 
 # Configuración PHP
 RUN echo "memory_limit=256M" > /usr/local/etc/php/conf.d/custom.ini \
