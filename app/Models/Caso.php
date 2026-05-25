@@ -24,6 +24,7 @@ class Caso extends Model
         'direccion',
         'aseguradora',
         'estado',
+        'etapa_actual',
         'porcentaje_pcl',
         'valor_estimado',
         'valor_reclamado',

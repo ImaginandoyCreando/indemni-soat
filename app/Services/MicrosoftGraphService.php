@@ -321,12 +321,19 @@ class MicrosoftGraphService
             return Caso::where('numero_caso', 'LIKE', "%{$numeroCaso}%")->first();
         }
 
-        // Buscar por nombre de cliente
-        if (preg_match('/(?:cliente|nombre|señor[a]?|paciente)[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i', $subject . ' ' . $body, $matches)) {
-            $nombreCliente = $matches[1];
-            return Caso::where('nombres', 'LIKE', "%{$nombreCliente}%")
-                ->orWhere('apellidos', 'LIKE', "%{$nombreCliente}%")
-                ->first();
+        // Buscar por nombre en nombres o apellidos
+        if (preg_match('/(?:cliente|nombre|se[ñn]or[a]?|paciente)[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i', $subject . ' ' . $body, $matches)) {
+            $nombreBuscar = $matches[1];
+            $parts = explode(' ', trim($nombreBuscar));
+            $query = Caso::where(function ($q) use ($parts) {
+                foreach ($parts as $part) {
+                    if (strlen($part) >= 3) {
+                        $q->orWhere('nombres', 'LIKE', "%{$part}%")
+                          ->orWhere('apellidos', 'LIKE', "%{$part}%");
+                    }
+                }
+            });
+            return $query->first();
         }
 
         return null;
@@ -360,7 +367,7 @@ class MicrosoftGraphService
         return [
             'subject_keywords' => $this->extractKeywords($subject),
             'body_keywords' => $this->extractKeywords($body),
-            'has_amount' => preg_match('/\$?\s*\d+(?:\.\d{3})*(?:,\d{2})?/', $subject . ' ' . $body'),
+            'has_amount' => preg_match('/\$?\s*\d+(?:\.\d{3})*(?:,\d{2})?/', $subject . ' ' . $body),
             'has_date' => preg_match('/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/', $subject . ' ' . $body),
             'urgency' => $this->detectUrgency($subject . ' ' . $body),
         ];

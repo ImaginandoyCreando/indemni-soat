@@ -418,35 +418,55 @@ class AutoCaseCreationService
     // ─────────────────────────────────────────────────────────────────────────
     //  CREACIÓN DEL CASO
     // ─────────────────────────────────────────────────────────────────────────
+    private function splitNombre($nombreCompleto)
+    {
+        $parts = preg_split('/\s+/', trim($nombreCompleto ?? ''));
+        if (count($parts) <= 1) {
+            return ['nombres' => $parts[0] ?? 'Por identificar', 'apellidos' => ''];
+        }
+        // Últimas 2 palabras como apellidos, el resto como nombres
+        $splitAt = max(1, count($parts) - 2);
+        return [
+            'nombres'   => implode(' ', array_slice($parts, 0, $splitAt)),
+            'apellidos' => implode(' ', array_slice($parts, $splitAt)),
+        ];
+    }
+
     private function createAutoCase($data, $email, $accountName)
     {
         try {
-            // Número de caso: usa radicado si existe, sino genera uno secuencial
+            // Número de caso único: radicado si existe, sino secuencial con lock
             $numeroCaso = $data['radicado']
                 ? 'RAD-' . $data['radicado']
-                : 'SOAT-' . date('Y') . '-' . str_pad(Caso::count() + 1, 4, '0', STR_PAD_LEFT);
+                : 'SOAT-' . date('Y') . '-' . str_pad(
+                    Caso::withTrashed()->count() + 1, 4, '0', STR_PAD_LEFT
+                );
+
+            // Separar nombre en nombres + apellidos
+            $nombreParts = $this->splitNombre($data['nombre_cliente'] ?? null);
 
             // Determinar etapa inicial
             $etapaInicial = $this->determineInitialStage($data['tipo_evento']);
 
-            // Crear el caso
+            // Crear el caso con columnas reales del modelo
             $caso = Caso::create([
                 'numero_caso'    => $numeroCaso,
-                'nombre_cliente' => $data['nombre_cliente'] ?? 'Por identificar',
+                'nombres'        => $nombreParts['nombres'],
+                'apellidos'      => $nombreParts['apellidos'],
                 'fecha_accidente'=> $data['fecha_accidente'] ?? now(),
                 'aseguradora'    => $data['aseguradora'] ?? 'Por identificar',
                 'estado'         => $etapaInicial['estado'],
                 'etapa_actual'   => $etapaInicial['etapa'],
-                'monto_reclamado'=> $data['monto'] ? $this->parseAmount($data['monto']) : null,
+                'valor_reclamado'=> $data['monto'] ? $this->parseAmount($data['monto']) : null,
                 'telefono'       => $data['contacto'],
-                'email'          => $data['email_origen'],
-                'descripcion'    => "Caso creado automáticamente desde correo:\n\n" .
+                'correo'         => $data['email_origen'],
+                'observaciones'  => "Caso creado automáticamente desde correo:\n\n" .
                                     "Asunto: " . $data['asunto'] . "\n" .
                                     "De: " . $data['email_origen'] . "\n" .
                                     "Cuenta: " . $accountName . "\n" .
                                     "Tipo detectado: " . $data['tipo_evento'] . "\n\n" .
                                     "Contenido:\n" . $data['cuerpo'],
-                'created_by'     => 1,
+                'user_id'        => 1,
                 'auto_created'   => true,
             ]);
 
