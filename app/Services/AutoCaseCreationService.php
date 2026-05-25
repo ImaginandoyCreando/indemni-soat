@@ -152,6 +152,12 @@ class AutoCaseCreationService
         $body     = $email['body'] ?? '';
         $fullText = $subject . ' ' . $body;
 
+        // 0. Dedup: si este correo ya fue procesado, no crear caso de nuevo.
+        $emailId = $email['message_id'] ?? ($email['id'] ?? null);
+        if ($emailId && EmailLog::where('email_id', $emailId)->exists()) {
+            return null;
+        }
+
         // 1. ¿Es un correo relevante para crear/actualizar un caso?
         if (!$this->isRelevantEmail($fullText)) {
             return null;
@@ -426,39 +432,48 @@ class AutoCaseCreationService
                 ? 'RAD-' . $data['radicado']
                 : 'SOAT-' . date('Y') . '-' . str_pad(Caso::count() + 1, 4, '0', STR_PAD_LEFT);
 
-            // Determinar etapa inicial
+            // Determinar etapa inicial (sólo usamos el estado, el modelo no tiene 'etapa_actual')
             $etapaInicial = $this->determineInitialStage($data['tipo_evento']);
 
-            // Crear el caso
+            // Separar nombre completo en nombres + apellidos (el modelo los maneja por separado)
+            [$nombres, $apellidos] = $this->splitNombreCompleto($data['nombre_cliente'] ?? '');
+
+            $observaciones = "Caso creado automáticamente desde correo.\n" .
+                "Asunto: " . $data['asunto'] . "\n" .
+                "De: " . $data['email_origen'] . "\n" .
+                "Cuenta: " . $accountName . "\n" .
+                "Tipo detectado: " . $data['tipo_evento'] . "\n\n" .
+                "Contenido:\n" . $data['cuerpo'];
+
             $caso = Caso::create([
-                'numero_caso'    => $numeroCaso,
-                'nombre_cliente' => $data['nombre_cliente'] ?? 'Por identificar',
-                'fecha_accidente'=> $data['fecha_accidente'] ?? now(),
-                'aseguradora'    => $data['aseguradora'] ?? 'Por identificar',
-                'estado'         => $etapaInicial['estado'],
-                'etapa_actual'   => $etapaInicial['etapa'],
-                'monto_reclamado'=> $data['monto'] ? $this->parseAmount($data['monto']) : null,
-                'telefono'       => $data['contacto'],
-                'email'          => $data['email_origen'],
-                'descripcion'    => "Caso creado automáticamente desde correo:\n\n" .
-                                    "Asunto: " . $data['asunto'] . "\n" .
-                                    "De: " . $data['email_origen'] . "\n" .
-                                    "Cuenta: " . $accountName . "\n" .
-                                    "Tipo detectado: " . $data['tipo_evento'] . "\n\n" .
-                                    "Contenido:\n" . $data['cuerpo'],
-                'created_by'     => 1,
-                'auto_created'   => true,
+                'numero_caso'       => $numeroCaso,
+                'nombres'           => $nombres,
+                'apellidos'         => $apellidos,
+                'fecha_accidente'   => $data['fecha_accidente'] ?? now(),
+                'aseguradora'       => $data['aseguradora'] ?? 'Por identificar',
+                'estado'            => $etapaInicial['estado'],
+                'valor_reclamado'   => $data['monto'] ? $this->parseAmount($data['monto']) : null,
+                'telefono'          => $data['contacto'],
+                'correo'            => $data['email_origen'],
+                'observaciones'     => $observaciones,
+                'user_id'           => null,
+                'auto_created'      => true,
+                'auto_created_from' => $accountName,
+                'auto_created_date' => now(),
             ]);
 
-            // Bitácora inicial
+            // Bitácora inicial (los campos auto_generada/prioridad/tipo_alerta existen en el modelo)
             Bitacora::create([
-                'caso_id'     => $caso->id,
-                'titulo'      => 'Caso creado automáticamente desde correo',
-                'descripcion' => "Tipo: {$data['tipo_evento']} | Cuenta: {$accountName} | Asunto: {$data['asunto']}",
-                'fecha_evento'=> now(),
+                'caso_id'       => $caso->id,
+                'titulo'        => 'Caso creado automáticamente desde correo',
+                'descripcion'   => "Tipo: {$data['tipo_evento']} | Cuenta: {$accountName} | Asunto: {$data['asunto']}",
+                'fecha_evento'  => now(),
+                'auto_generada' => true,
+                'tipo_alerta'   => $data['tipo_evento'] ?? null,
+                'prioridad'     => 'media',
             ]);
 
-            // Registrar email log
+            // Registrar email log (ahora con caso_id que sí existe en la tabla)
             EmailLog::create([
                 'caso_id'            => $caso->id,
                 'email_id'           => $email['message_id'] ?? ($email['id'] ?? null),
@@ -469,11 +484,11 @@ class AutoCaseCreationService
                 'email_date'         => $email['date'] ?? now(),
                 'detected_insurance' => $data['aseguradora'],
                 'email_type'         => $data['tipo_evento'],
-                'extracted_data'     => json_encode($data),
+                'extracted_data'     => $data,
                 'processed'          => true,
             ]);
 
-            \Log::info("AutoCase: caso {$numeroCaso} creado para '{$data['nombre_cliente']}' | Tipo: {$data['tipo_evento']}");
+            \Log::info("AutoCase: caso {$numeroCaso} creado para '{$nombres} {$apellidos}' | Tipo: {$data['tipo_evento']}");
 
             return [
                 'success' => true,
@@ -488,6 +503,30 @@ class AutoCaseCreationService
                 'message' => 'Error creando caso: ' . $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Separa un nombre completo en (nombres, apellidos) usando una heurística
+     * razonable para nombres colombianos: si hay 4 palabras → 2 nombres + 2 apellidos;
+     * si hay 3 → 1 nombre + 2 apellidos; si hay 2 → 1 nombre + 1 apellido.
+     */
+    private function splitNombreCompleto(string $nombreCompleto): array
+    {
+        $nombreCompleto = trim(preg_replace('/\s+/', ' ', $nombreCompleto));
+
+        if ($nombreCompleto === '') {
+            return ['Por identificar', ''];
+        }
+
+        $partes = explode(' ', $nombreCompleto);
+        $n = count($partes);
+
+        return match (true) {
+            $n >= 4 => [implode(' ', array_slice($partes, 0, $n - 2)), implode(' ', array_slice($partes, -2))],
+            $n === 3 => [$partes[0], $partes[1] . ' ' . $partes[2]],
+            $n === 2 => [$partes[0], $partes[1]],
+            default => [$nombreCompleto, ''],
+        };
     }
 
     // ─────────────────────────────────────────────────────────────────────────

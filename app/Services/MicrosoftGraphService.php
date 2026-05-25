@@ -206,7 +206,7 @@ class MicrosoftGraphService
                         'email_date' => new \DateTime($emailData['date']),
                         'detected_insurance' => $this->detectInsurance($emailData['from_email'], $emailData['subject']),
                         'email_type' => $emailType,
-                        'extracted_data' => json_encode($this->extractData($emailData['subject'], $emailData['body'])),
+                        'extracted_data' => $this->extractData($emailData['subject'], $emailData['body']),
                         'processed' => true,
                     ]);
                     
@@ -360,8 +360,8 @@ class MicrosoftGraphService
         return [
             'subject_keywords' => $this->extractKeywords($subject),
             'body_keywords' => $this->extractKeywords($body),
-            'has_amount' => preg_match('/\$?\s*\d+(?:\.\d{3})*(?:,\d{2})?/', $subject . ' ' . $body'),
-            'has_date' => preg_match('/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/', $subject . ' ' . $body),
+            'has_amount' => (bool) preg_match('/\$?\s*\d+(?:\.\d{3})*(?:,\d{2})?/', $subject . ' ' . $body),
+            'has_date' => (bool) preg_match('/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/', $subject . ' ' . $body),
             'urgency' => $this->detectUrgency($subject . ' ' . $body),
         ];
     }
