@@ -4,9 +4,16 @@ namespace App\Services;
 
 use App\Models\SalarioMinimo;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class SoatIndemnizacionService
 {
+    /**
+     * Los salarios mínimos cambian una vez al año. Cachearlos evita ir a la BD
+     * en cada cálculo de indemnización (que se ejecuta en cada save de Caso).
+     */
+    private const CACHE_TTL_SECONDS = 86400; // 24 h
+
     public function calcular(?string $fechaAccidente, $porcentajePcl): array
     {
         if (empty($fechaAccidente) || $porcentajePcl === null || $porcentajePcl === '') {
@@ -22,7 +29,7 @@ class SoatIndemnizacionService
         $anio = Carbon::parse($fechaAccidente)->year;
         $porcentaje = (float) $porcentajePcl;
 
-        $salario = SalarioMinimo::where('anio', $anio)->first();
+        $salario = $this->salarioDelAnio($anio);
 
         if (!$salario) {
             return [
@@ -55,6 +62,15 @@ class SoatIndemnizacionService
             'valor_estimado' => $valorEstimado,
             'mensaje' => null,
         ];
+    }
+
+    private function salarioDelAnio(int $anio): ?SalarioMinimo
+    {
+        return Cache::remember(
+            "salario_minimo_{$anio}",
+            self::CACHE_TTL_SECONDS,
+            fn () => SalarioMinimo::where('anio', $anio)->first()
+        );
     }
 
     private function obtenerSmldvPorPcl(float $pcl): ?float
