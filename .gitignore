@@ -1,6 +1,7 @@
 *.log
 .DS_Store
 .env
+koyeb_environment_variables.txt
 .env.backup
 .env.production
 .phpactor.json

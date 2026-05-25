@@ -12,44 +12,6 @@ use App\Http\Controllers\EmailController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\ReporteController;
 
-// ── Ruta temporal para migrar en producción - ELIMINAR DESPUÉS DE USAR ────────
-Route::get('/migrate-production', function () {
-    try {
-        Artisan::call('migrate', ['--force' => true]);
-        $output = Artisan::output();
-        return response()->json([
-            'success' => true,
-            'message' => 'Migraciones ejecutadas exitosamente',
-            'output'  => $output,
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Error ejecutando migraciones: ' . $e->getMessage(),
-        ]);
-    }
-});
-
-// ── Ruta para verificar tablas en producción ──────────────────────────────────
-Route::get('/check-tables', function () {
-    try {
-        $tables     = DB::select("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
-        $tableNames = array_column($tables, 'table_name');
-        $emailTables = array_values(array_filter($tableNames, fn($t) => str_contains($t, 'email')));
-        return response()->json([
-            'success'      => true,
-            'total_tables' => count($tableNames),
-            'email_tables' => $emailTables,
-            'all_tables'   => $tableNames,
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Error verificando tablas: ' . $e->getMessage(),
-        ]);
-    }
-});
-
 // ── Rutas públicas ────────────────────────────────────────────────────────────
 Route::get('/login',  [LoginController::class, 'showLogin'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
