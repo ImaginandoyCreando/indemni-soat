@@ -13,13 +13,12 @@ RUN apk add --no-cache \
     oniguruma-dev \
     postgresql-dev \
     imap-dev \
-    krb5-dev \
     openssl-dev \
     nodejs \
     npm
 
 # Instalar extensiones PHP
-RUN docker-php-ext-configure imap --with-imap --with-imap-ssl --with-kerberos
+RUN docker-php-ext-configure imap --with-imap --with-imap-ssl
 RUN docker-php-ext-install \
     pdo \
     pdo_pgsql \

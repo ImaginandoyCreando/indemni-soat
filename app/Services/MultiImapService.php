@@ -82,8 +82,7 @@ class MultiImapService
 
     private function processAccount($account)
     {
-        // DISABLE_AUTHENTICATOR=GSSAPI fuerza LOGIN/PLAIN básico en vez de Kerberos
-        $hostname = '{outlook.office365.com:993/imap/ssl/novalidate-cert/DISABLE_AUTHENTICATOR=GSSAPI}INBOX';
+        $hostname = '{outlook.office365.com:993/imap/ssl/novalidate-cert}INBOX';
 
         try {
             $mailbox = new Mailbox($hostname, $account['email'], $account['password'], '', 'UTF-8');
@@ -376,7 +375,7 @@ class MultiImapService
         
         foreach ($this->accounts as $account) {
             try {
-                $hostname = '{outlook.office365.com:993/imap/ssl/novalidate-cert/DISABLE_AUTHENTICATOR=GSSAPI}INBOX';
+                $hostname = '{outlook.office365.com:993/imap/ssl/novalidate-cert}INBOX';
                 $mailbox = new Mailbox($hostname, $account['email'], $account['password'], '', 'UTF-8');
                 $mailbox->getImapStream();
                 
