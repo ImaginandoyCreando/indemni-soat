@@ -25,12 +25,16 @@ Route::middleware(['auth'])->group(function () {
 
     // ── Correos ───────────────────────────────────────────────────────────────
     Route::prefix('emails')->name('emails.')->group(function () {
-        Route::get('/',              [EmailController::class, 'index'])->name('index');
-        Route::post('/sync',         [EmailController::class, 'sync'])->name('sync');
-        Route::post('/add-account',  [EmailController::class, 'addAccount'])->name('addAccount');
-        Route::post('/save-config',  [EmailController::class, 'saveConfig'])->name('saveConfig');
+        Route::get('/',                [EmailController::class, 'index'])->name('index');
+        Route::post('/sync',           [EmailController::class, 'sync'])->name('sync');
+        Route::post('/add-account',    [EmailController::class, 'addAccount'])->name('addAccount');
+        Route::post('/save-config',    [EmailController::class, 'saveConfig'])->name('saveConfig');
         Route::delete('/account/{id}', [EmailController::class, 'removeAccount'])->name('removeAccount');
-        Route::get('/test-connection',   [EmailController::class, 'testConnection'])->name('testConnection');
+        Route::get('/test-connection', [EmailController::class, 'testConnection'])->name('testConnection');
+        // OAuth Device Code Flow
+        Route::get('/oauth/setup',     [EmailController::class, 'oauthSetup'])->name('oauthSetup');
+        Route::get('/oauth/poll',      [EmailController::class, 'oauthPoll'])->name('oauthPoll');
+        Route::delete('/oauth/revoke', [EmailController::class, 'oauthRevoke'])->name('oauthRevoke');
     });
 
     // ── Outlook OAuth ─────────────────────────────────────────────────────────

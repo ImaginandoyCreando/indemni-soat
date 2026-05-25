@@ -5,6 +5,18 @@
 @section('content')
 
 {{-- ── Mensajes flash ─────────────────────────────────────────────────────── --}}
+@if(request('oauth') === 'ok')
+    <div style="background:rgba(29,189,127,0.12);border:1px solid #1DBD7F;border-radius:8px;
+                padding:14px 18px;margin-bottom:20px;color:#1DBD7F;font-size:13px;
+                display:flex;align-items:center;gap:10px;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M5.5 8l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        Cuenta conectada con Microsoft correctamente. Ahora puedes sincronizar los correos.
+    </div>
+@endif
+
 @if(session('success'))
     <div style="background:rgba(29,189,127,0.12);border:1px solid #1DBD7F;border-radius:8px;
                 padding:14px 18px;margin-bottom:20px;color:#1DBD7F;font-size:13px;
@@ -80,22 +92,56 @@
         </div>
 
         @foreach($emailIntegrations ?? [] as $integration)
+            @php
+                $hasOAuth = isset($oauthTokens[$integration->email_address]);
+            @endphp
             <div style="padding:12px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <div>
-                        <div style="font-weight:600;color:var(--text-1);font-size:13px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                    <div style="min-width:0;">
+                        <div style="font-weight:600;color:var(--text-1);font-size:13px;
+                                    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                             {{ $integration->email_address }}
                         </div>
                         <div style="font-size:11px;color:var(--text-3);margin-top:2px;">
                             {{ ucfirst($integration->email_provider) }}
+                            @if($hasOAuth)
+                                · <span style="color:#1DBD7F;font-weight:600;">OAuth activo</span>
+                            @else
+                                · <span style="color:#F26F6F;">Sin OAuth</span>
+                            @endif
                         </div>
                     </div>
-                    <span style="padding:4px 10px;border-radius:12px;font-size:10px;font-weight:600;
-                               {{ $integration->is_active
-                                    ? 'background:rgba(29,189,127,0.12);color:#1DBD7F;'
-                                    : 'background:rgba(242,111,111,0.12);color:#F26F6F;' }}">
-                        {{ $integration->is_active ? 'Activa' : 'Inactiva' }}
-                    </span>
+                    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                        @if($hasOAuth)
+                            <span style="padding:3px 8px;border-radius:10px;font-size:10px;font-weight:600;
+                                         background:rgba(29,189,127,0.12);color:#1DBD7F;">
+                                Conectada
+                            </span>
+                            <form method="POST"
+                                  action="{{ route('emails.oauthRevoke') }}?email={{ urlencode($integration->email_address) }}"
+                                  style="margin:0;"
+                                  onsubmit="return confirm('¿Desconectar esta cuenta?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit"
+                                        style="padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;
+                                               border:1px solid var(--border);background:var(--bg-input);
+                                               color:var(--text-2);">
+                                    Desconectar
+                                </button>
+                            </form>
+                        @else
+                            <a href="{{ route('emails.oauthSetup', ['email' => $integration->email_address]) }}"
+                               style="padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;
+                                      background:#4B78FF;color:white;text-decoration:none;
+                                      display:inline-flex;align-items:center;gap:5px;">
+                                <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                                    <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Conectar
+                            </a>
+                        @endif
+                    </div>
                 </div>
             </div>
         @endforeach

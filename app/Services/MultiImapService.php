@@ -7,80 +7,197 @@ use App\Models\EmailLog;
 use App\Models\Caso;
 use App\Models\Bitacora;
 use App\Services\AutoCaseCreationService;
+use App\Services\MicrosoftDeviceCodeService;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class MultiImapService
 {
-    private $accounts = [];
-    private $connection;
+    private array $accounts = [];
+    private MicrosoftDeviceCodeService $oauthService;
 
     public function __construct()
     {
+        $this->oauthService = new MicrosoftDeviceCodeService();
         $this->loadAccounts();
     }
 
-    private function loadAccounts()
+    private function loadAccounts(): void
     {
-        // Cargar solo las 2 cuentas principales con ALTA PRIORIDAD
         $this->accounts = [
             [
-                'name' => 'gestionsoat365',
-                'email' => env('GESTION_EMAIL'),
+                'name'     => 'gestionsoat365',
+                'email'    => env('GESTION_EMAIL'),
                 'password' => env('GESTION_PASSWORD'),
-                'priority' => 'high', // Respuestas aseguradoras, tutelas, honorarios
-                'types' => ['respuesta_positiva', 'respuesta_negativa', 'en_proceso', 'citacion', 'pago_honorarios', 'fallo_tutela']
+                'priority' => 'high',
+                'types'    => ['respuesta_positiva', 'respuesta_negativa', 'en_proceso', 'citacion', 'pago_honorarios', 'fallo_tutela'],
             ],
             [
-                'name' => 'reclamaciones',
-                'email' => env('RECLAMACIONES_EMAIL'),
+                'name'     => 'reclamaciones',
+                'email'    => env('RECLAMACIONES_EMAIL'),
                 'password' => env('RECLAMACIONES_PASSWORD'),
-                'priority' => 'high', // Pagos e indemnizaciones - ahora ALTA PRIORIDAD
-                'types' => ['pago_indemnizacion', 'aviso_pago', 'comprobante', 'soporte_pago']
-            ]
+                'priority' => 'high',
+                'types'    => ['pago_indemnizacion', 'aviso_pago', 'comprobante', 'soporte_pago'],
+            ],
         ];
 
-        // Filtrar cuentas que tengan credenciales configuradas
-        $this->accounts = array_filter($this->accounts, function($account) {
-            return $account['email'] && $account['password'];
-        });
+        $this->accounts = array_values(array_filter($this->accounts, fn($a) => !empty($a['email'])));
     }
 
-    public function processAllAccounts()
+    // ────────────────────────────────────────────────────────────────────────────
+    // Punto de entrada principal
+    // ────────────────────────────────────────────────────────────────────────────
+    public function processAllAccounts(): array
     {
         $totalProcessed = 0;
-        $results = [];
+        $results        = [];
 
-        // Ordenar por prioridad
-        $highPriority = array_filter($this->accounts, fn($a) => $a['priority'] === 'high');
-        $mediumPriority = array_filter($this->accounts, fn($a) => $a['priority'] === 'medium');
-        $lowPriority = array_filter($this->accounts, fn($a) => $a['priority'] === 'low');
+        $sorted = array_merge(
+            array_values(array_filter($this->accounts, fn($a) => $a['priority'] === 'high')),
+            array_values(array_filter($this->accounts, fn($a) => $a['priority'] === 'medium')),
+            array_values(array_filter($this->accounts, fn($a) => $a['priority'] === 'low')),
+        );
 
-        // Procesar en orden de prioridad
-        foreach (array_merge($highPriority, $mediumPriority, $lowPriority) as $account) {
+        foreach ($sorted as $account) {
             try {
-                $processed = $this->processAccount($account);
+                $accessToken = $this->oauthService->getValidToken($account['email']);
+
+                if ($accessToken) {
+                    $processed = $this->processAccountViaGraph($account, $accessToken);
+                    $method    = 'OAuth/Graph';
+                } else {
+                    // Sin token OAuth → intentar IMAP (puede fallar en cuentas personales Microsoft)
+                    $processed = $this->processAccountViaImap($account);
+                    $method    = 'IMAP';
+                }
+
                 $totalProcessed += $processed;
                 $results[$account['name']] = [
-                    'success' => true,
+                    'success'   => true,
                     'processed' => $processed,
-                    'message' => "Procesados {$processed} correos"
+                    'message'   => "Procesados {$processed} correos vía {$method}",
                 ];
             } catch (\Exception $e) {
                 $results[$account['name']] = [
-                    'success' => false,
+                    'success'   => false,
                     'processed' => 0,
-                    'message' => 'Error: ' . $e->getMessage()
+                    'message'   => $e->getMessage(),
                 ];
-                \Log::error("Error procesando cuenta {$account['name']}: " . $e->getMessage());
+                Log::error("Error procesando cuenta {$account['name']}: " . $e->getMessage());
             }
         }
 
-        return [
-            'total_processed' => $totalProcessed,
-            'results' => $results
-        ];
+        return ['total_processed' => $totalProcessed, 'results' => $results];
     }
 
-    private function processAccount($account)
+    // ────────────────────────────────────────────────────────────────────────────
+    // Lectura vía Microsoft Graph API (requiere token OAuth)
+    // ────────────────────────────────────────────────────────────────────────────
+    private function processAccountViaGraph(array $account, string $accessToken): int
+    {
+        $processedCount   = 0;
+        $limit            = 200;
+        $autoCaseService  = new AutoCaseCreationService();
+
+        $alreadyProcessed = EmailLog::whereNotNull('email_id')
+            ->pluck('email_id')
+            ->flip()
+            ->all();
+
+        $since   = now()->subMonths(6)->format('Y-m-d\TH:i:s\Z');
+        $nextUrl = 'https://graph.microsoft.com/v1.0/me/messages?' . http_build_query([
+            '$top'     => 50,
+            '$select'  => 'id,subject,body,from,receivedDateTime,isRead',
+            '$orderby' => 'receivedDateTime desc',
+            '$filter'  => "receivedDateTime ge {$since}",
+        ]);
+
+        while ($nextUrl && $processedCount < $limit) {
+            $response = Http::withToken($accessToken)
+                ->timeout(30)
+                ->get($nextUrl);
+
+            if ($response->failed()) {
+                Log::error("Graph API error para {$account['email']}: " . $response->body());
+                break;
+            }
+
+            $data     = $response->json();
+            $messages = $data['value'] ?? [];
+            $nextUrl  = $data['@odata.nextLink'] ?? null;
+
+            foreach ($messages as $message) {
+                if ($processedCount >= $limit) break;
+
+                $messageId = $message['id'];
+                if (isset($alreadyProcessed[$messageId])) continue;
+
+                $subject   = $message['subject'] ?? 'Sin asunto';
+                $bodyHtml  = $message['body']['content'] ?? '';
+                $bodyText  = trim(preg_replace('/\s+/', ' ', strip_tags($bodyHtml)));
+                $fromEmail = $message['from']['emailAddress']['address'] ?? '';
+                $fromName  = $message['from']['emailAddress']['name'] ?? '';
+                $emailDate = new \DateTime($message['receivedDateTime']);
+
+                // Objeto mock para reutilizar clasificadores
+                $emailObj = (object)[
+                    'subject'     => $subject,
+                    'textPlain'   => $bodyText,
+                    'fromAddress' => $fromEmail,
+                    'fromName'    => $fromName,
+                    'date'        => $message['receivedDateTime'],
+                ];
+
+                $emailType = $this->classifyEmailByAccount($emailObj, $account);
+                $insurance = EmailLog::detectInsurance($fromEmail, $subject, $bodyText);
+
+                $emailData = [
+                    'id'         => $messageId,
+                    'message_id' => $messageId,
+                    'subject'    => $subject,
+                    'body'       => $bodyText,
+                    'from_email' => $fromEmail,
+                    'from_name'  => $fromName,
+                    'date'       => $emailDate,
+                ];
+
+                $caso = $this->findRelatedCase($subject, $bodyText);
+
+                if ($caso) {
+                    EmailLog::create([
+                        'caso_id'            => $caso->id,
+                        'email_id'           => $messageId,
+                        'subject'            => $subject,
+                        'body'               => substr($bodyText, 0, 5000),
+                        'from_email'         => $fromEmail,
+                        'from_name'          => $fromName,
+                        'email_date'         => $emailDate,
+                        'detected_insurance' => $insurance,
+                        'email_type'         => $emailType,
+                        'extracted_data'     => $this->extractData($subject, $bodyText),
+                        'processed'          => true,
+                    ]);
+
+                    $this->updateCaseStatusByAccount($caso, $emailType, $account, $emailObj);
+                    $processedCount++;
+                } else {
+                    $result = $autoCaseService->processEmailForNewCase($emailData, $account['name']);
+                    if ($result && $result['success']) {
+                        $processedCount++;
+                    }
+                }
+
+                $alreadyProcessed[$messageId] = true;
+            }
+        }
+
+        return $processedCount;
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────
+    // Lectura vía IMAP (fallback — puede fallar en cuentas personales Microsoft)
+    // ────────────────────────────────────────────────────────────────────────────
+    private function processAccountViaImap(array $account): int
     {
         $hostname = '{outlook.office365.com:993/imap/ssl/novalidate-cert}INBOX';
 
@@ -88,47 +205,39 @@ class MultiImapService
             $mailbox = new Mailbox($hostname, $account['email'], $account['password'], '', 'UTF-8');
             $mailbox->getImapStream();
 
-            // Traer TODOS los correos (no solo no leídos) — limitamos por fecha: últimos 6 meses
-            $since = date('d-M-Y', strtotime('-6 months'));
-            $emailsIds = $mailbox->searchMailbox("SINCE \"{$since}\"");
-
-            // Ordenar de más reciente a más antiguo (los IDs más altos son más recientes en IMAP)
-            rsort($emailsIds);
-
+            $since    = date('d-M-Y', strtotime('-6 months'));
+            $emailIds = $mailbox->searchMailbox("SINCE \"{$since}\"");
+            rsort($emailIds);
         } catch (\Exception $e) {
-            \Log::error("IMAP conexión fallida para {$account['email']}: " . $e->getMessage());
-            throw new \Exception("No se pudo conectar a {$account['email']}: " . $e->getMessage());
+            Log::error("IMAP conexión fallida para {$account['email']}: " . $e->getMessage());
+            throw new \Exception("No se pudo conectar a {$account['email']} vía IMAP: " . $e->getMessage());
         }
 
-        if (empty($emailsIds)) {
+        if (empty($emailIds)) {
             try { $mailbox->disconnect(); } catch (\Exception $e) {}
             return 0;
         }
 
-        // IDs de correos ya procesados (evitar duplicados)
         $alreadyProcessed = EmailLog::whereNotNull('email_id')
             ->pluck('email_id')
             ->flip()
             ->all();
 
-        $processedCount = 0;
-        $limit = $account['priority'] === 'high' ? 200 : 100;
+        $processedCount  = 0;
+        $limit           = $account['priority'] === 'high' ? 200 : 100;
         $autoCaseService = new AutoCaseCreationService();
 
-        foreach ($emailsIds as $emailId) {
+        foreach ($emailIds as $emailId) {
             if ($processedCount >= $limit) break;
 
             try {
-                $email = $mailbox->getMail($emailId, false);
+                $email     = $mailbox->getMail($emailId, false);
                 $messageId = $email->messageId ?: ('imap-' . $emailId . '-' . $account['email']);
 
-                // Skip correos ya procesados
-                if (isset($alreadyProcessed[$messageId])) {
-                    continue;
-                }
+                if (isset($alreadyProcessed[$messageId])) continue;
 
-                $subject  = $this->cleanSubject($email->subject);
-                $bodyText = $this->cleanBody($email->textHtml ?: $email->textPlain);
+                $subject   = $this->cleanSubject($email->subject);
+                $bodyText  = $this->cleanBody($email->textHtml ?: $email->textPlain);
                 $emailType = $this->classifyEmailByAccount($email, $account);
                 $insurance = EmailLog::detectInsurance($email->fromAddress, $subject, $bodyText);
 
@@ -142,11 +251,9 @@ class MultiImapService
                     'date'       => $email->date ? new \DateTime($email->date) : now(),
                 ];
 
-                // ¿Existe caso relacionado?
                 $caso = $this->findRelatedCase($subject, $bodyText);
 
                 if ($caso) {
-                    // Caso existente — registrar email y actualizar estado
                     EmailLog::create([
                         'caso_id'            => $caso->id,
                         'email_id'           => $messageId,
@@ -163,22 +270,16 @@ class MultiImapService
 
                     $this->updateCaseStatusByAccount($caso, $emailType, $account, $email);
                     $processedCount++;
-
                 } else {
-                    // Sin caso relacionado — intentar crear automáticamente
-                    $autoCaseResult = $autoCaseService->processEmailForNewCase($emailData, $account['name']);
-
-                    if ($autoCaseResult && $autoCaseResult['success']) {
+                    $result = $autoCaseService->processEmailForNewCase($emailData, $account['name']);
+                    if ($result && $result['success']) {
                         $processedCount++;
-                        \Log::info("Caso automático creado: " . $autoCaseResult['message']);
                     }
                 }
 
-                // Marcar como leído para no reprocesar en siguientes UNSEEN runs
                 try { $mailbox->markMailAsRead($emailId); } catch (\Exception $e) {}
-
             } catch (\Exception $e) {
-                \Log::error("Error procesando email #{$emailId} en {$account['name']}: " . $e->getMessage());
+                Log::error("Error procesando email #{$emailId} en {$account['name']}: " . $e->getMessage());
                 continue;
             }
         }
@@ -188,149 +289,156 @@ class MultiImapService
         return $processedCount;
     }
 
-    private function classifyEmailByAccount($email, $account)
+    // ────────────────────────────────────────────────────────────────────────────
+    // Test de conexión (muestra estado OAuth + IMAP)
+    // ────────────────────────────────────────────────────────────────────────────
+    public function testAllConnections(): array
     {
-        $subject = strtolower($email->subject);
-        $body = strtolower($email->textPlain ?: '');
+        $results = [];
 
-        // Clasificación específica por cuenta
-        switch ($account['name']) {
-            case 'gestionsoat365':
-                // Respuestas de aseguradoras, tutelas, honorarios
-                if (preg_match('/(tutela|fallo|sentencia|decision)/', $subject . ' ' . $body)) {
-                    return 'fallo_tutela';
-                }
-                if (preg_match('/(honorarios|pago|comision|remuneracion)/', $subject . ' ' . $body)) {
-                    return 'pago_honorarios';
-                }
-                if (preg_match('/(aprobad[ao]|aceptad[ao]|procede|concedid[ao])/i', $subject . ' ' . $body)) {
-                    return 'respuesta_positiva';
-                }
-                if (preg_match('/(niega|rechazad[ao]|negad[ao]|improcedente)/i', $subject . ' ' . $body)) {
-                    return 'respuesta_negativa';
-                }
-                break;
+        foreach ($this->accounts as $account) {
+            // Primero intentar OAuth
+            $accessToken = $this->oauthService->getValidToken($account['email']);
 
-            case 'labatalla':
-                // Dictámenes de junta de invalidez
-                if (preg_match('/(dictamen|junta|invalidez|calificacion|perdida)/', $subject . ' ' . $body)) {
-                    return 'dictamen_junta';
-                }
-                if (preg_match('/(pago|soporte|comprobante|recibo)/', $subject . ' ' . $body)) {
-                    return 'soporte_pago';
-                }
-                break;
+            if ($accessToken) {
+                $response = Http::withToken($accessToken)
+                    ->timeout(15)
+                    ->get('https://graph.microsoft.com/v1.0/me/messages?$top=1&$select=id');
 
-            case 'reclamaciones':
-                // Pagos e indemnizaciones (ALTA PRIORIDAD)
-                if (preg_match('/(indemnizacion|indemnizaci[oó]n|pago|abono)/', $subject . ' ' . $body)) {
-                    return 'pago_indemnizacion';
-                }
-                if (preg_match('/(aviso|notificacion|confirmacion)/', $subject . ' ' . $body)) {
-                    return 'aviso_pago';
-                }
-                if (preg_match('/(soporte|comprobante|recibo)/', $subject . ' ' . $body)) {
-                    return 'soporte_pago';
-                }
-                break;
+                $results[$account['name']] = [
+                    'success'      => $response->successful(),
+                    'email'        => $account['email'],
+                    'priority'     => $account['priority'],
+                    'method'       => 'OAuth/Graph',
+                    'oauth_active' => true,
+                    'message'      => $response->successful() ? 'Conexión OAuth activa' : 'Error Graph: ' . $response->body(),
+                ];
+                continue;
+            }
 
-            case 'dicami':
-                return 'info_general';
+            // Fallback: IMAP
+            try {
+                $hostname = '{outlook.office365.com:993/imap/ssl/novalidate-cert}INBOX';
+                $mailbox  = new Mailbox($hostname, $account['email'], $account['password'], '', 'UTF-8');
+                $mailbox->getImapStream();
 
-            case 'seg_asesorias':
-                return 'documento_legal';
+                $total  = count($mailbox->searchMailbox('ALL'));
+                $unseen = count($mailbox->searchMailbox('UNSEEN'));
+                $mailbox->disconnect();
+
+                $results[$account['name']] = [
+                    'success'       => true,
+                    'email'         => $account['email'],
+                    'priority'      => $account['priority'],
+                    'method'        => 'IMAP',
+                    'oauth_active'  => false,
+                    'total_emails'  => $total,
+                    'unread_emails' => $unseen,
+                    'message'       => 'Conexión IMAP exitosa',
+                ];
+            } catch (\Exception $e) {
+                $results[$account['name']] = [
+                    'success'      => false,
+                    'email'        => $account['email'],
+                    'priority'     => $account['priority'],
+                    'method'       => 'IMAP',
+                    'oauth_active' => false,
+                    'message'      => 'Sin OAuth y IMAP falló: ' . $e->getMessage(),
+                    'hint'         => 'Conecta esta cuenta con OAuth en /emails',
+                ];
+            }
         }
 
-        // Clasificación general si no coincide con nada específico
-        return EmailLog::classifyEmail($email->subject, $email->textPlain);
+        return $results;
     }
 
-    private function updateCaseStatusByAccount($caso, $emailType, $account, $email)
+    // ────────────────────────────────────────────────────────────────────────────
+    // Clasificación de correos
+    // ────────────────────────────────────────────────────────────────────────────
+    private function classifyEmailByAccount($email, array $account): string
     {
-        $descripcion = "Correo de {$account['email']}: {$email->subject}";
-        
-        // Actualizaciones específicas por cuenta
+        $subject = strtolower($email->subject ?? '');
+        $body    = strtolower($email->textPlain ?? '');
+        $full    = $subject . ' ' . $body;
+
         switch ($account['name']) {
             case 'gestionsoat365':
-                switch ($emailType) {
-                    case 'fallo_tutela':
-                        $caso->estado = 'Fallo de tutela recibido';
-                        $caso->fecha_fallo_tutela = now();
-                        break;
-                    case 'pago_honorarios':
-                        $caso->estado = 'Honorarios pagados';
-                        $caso->fecha_pago_honorarios = now();
-                        break;
-                    case 'respuesta_positiva':
-                        $caso->estado = 'Respuesta favorable de aseguradora';
-                        $caso->fecha_respuesta_aseguradora = now();
-                        break;
-                    case 'respuesta_negativa':
-                        $caso->estado = 'Respuesta negativa - Preparar tutela';
-                        $caso->fecha_respuesta_aseguradora = now();
-                        break;
-                }
-                break;
-
-            case 'labatalla':
-                if ($emailType === 'dictamen_junta') {
-                    $caso->estado = 'Dictamen de junta recibido';
-                    $caso->fecha_dictamen_junta = now();
-                }
+                if (preg_match('/(tutela|fallo|sentencia|decision)/i', $full))        return 'fallo_tutela';
+                if (preg_match('/(honorarios|pago|comision|remuneracion)/i', $full))  return 'pago_honorarios';
+                if (preg_match('/(aprobad[ao]|aceptad[ao]|procede|concedid[ao])/i', $full)) return 'respuesta_positiva';
+                if (preg_match('/(niega|rechazad[ao]|negad[ao]|improcedente)/i', $full))     return 'respuesta_negativa';
                 break;
 
             case 'reclamaciones':
-                if ($emailType === 'pago_indemnizacion') {
-                    $caso->estado = 'Indemnización pagada';
-                    $caso->fecha_indemnizacion = now();
-                }
-                if ($emailType === 'aviso_pago') {
-                    $caso->estado = 'Aviso de pago recibido';
-                    $caso->fecha_aviso_pago = now();
-                }
-                if ($emailType === 'soporte_pago') {
-                    $caso->estado = 'Soporte de pago recibido';
-                    $caso->fecha_soporte_pago = now();
-                }
+                if (preg_match('/(indemnizaci[oó]n|pago|abono)/i', $full))          return 'pago_indemnizacion';
+                if (preg_match('/(aviso|notificacion|confirmacion)/i', $full))       return 'aviso_pago';
+                if (preg_match('/(soporte|comprobante|recibo)/i', $full))            return 'soporte_pago';
+                break;
+        }
+
+        return EmailLog::classifyEmail($email->subject ?? '', $email->textPlain ?? '');
+    }
+
+    private function updateCaseStatusByAccount(Caso $caso, string $emailType, array $account, $email): void
+    {
+        $descripcion = "Correo de {$account['email']}: " . ($email->subject ?? '');
+
+        switch ($account['name']) {
+            case 'gestionsoat365':
+                match ($emailType) {
+                    'fallo_tutela'       => [$caso->estado = 'Fallo de tutela recibido',                $caso->fecha_fallo_tutela = now()],
+                    'pago_honorarios'    => [$caso->estado = 'Honorarios pagados',                      $caso->fecha_pago_honorarios = now()],
+                    'respuesta_positiva' => [$caso->estado = 'Respuesta favorable de aseguradora',      $caso->fecha_respuesta_aseguradora = now()],
+                    'respuesta_negativa' => [$caso->estado = 'Respuesta negativa - Preparar tutela',    $caso->fecha_respuesta_aseguradora = now()],
+                    default              => null,
+                };
+                break;
+
+            case 'reclamaciones':
+                if ($emailType === 'pago_indemnizacion') { $caso->estado = 'Indemnización pagada';      $caso->fecha_indemnizacion = now(); }
+                if ($emailType === 'aviso_pago')         { $caso->estado = 'Aviso de pago recibido';   $caso->fecha_aviso_pago = now(); }
+                if ($emailType === 'soporte_pago')       { $caso->estado = 'Soporte de pago recibido'; $caso->fecha_soporte_pago = now(); }
                 break;
         }
 
         $caso->save();
 
-        // Agregar a bitácora
+        $fechaEvento = null;
+        try {
+            $fechaEvento = $email->date ? new \DateTime($email->date) : now();
+        } catch (\Exception $e) {
+            $fechaEvento = now();
+        }
+
         Bitacora::create([
-            'caso_id' => $caso->id,
-            'titulo' => "Correo automático: {$emailType} ({$account['name']})",
-            'descripcion' => $descripcion,
-            'fecha_evento' => new \DateTime($email->date),
+            'caso_id'      => $caso->id,
+            'titulo'       => "Correo automático: {$emailType} ({$account['name']})",
+            'descripcion'  => $descripcion,
+            'fecha_evento' => $fechaEvento,
         ]);
     }
 
-    private function findRelatedCase($subject, $body)
+    private function findRelatedCase(string $subject, string $body): ?Caso
     {
-        $text = $subject . ' ' . $body;
-        
+        $text     = $subject . ' ' . $body;
         $patterns = [
             '/caso[:\s#]+([A-Z0-9\-]+)/i',
             '/expediente[:\s#]+([A-Z0-9\-]+)/i',
             '/radicado[:\s#]+([A-Z0-9\-]+)/i',
             '/([A-Z]{2,4}\d{4,6})/',
         ];
-        
+
         foreach ($patterns as $pattern) {
             if (preg_match($pattern, $text, $matches)) {
-                $numeroCaso = $matches[1];
-                $caso = Caso::where('numero_caso', 'LIKE', "%{$numeroCaso}%")->first();
-                if ($caso) {
-                    return $caso;
-                }
+                $caso = Caso::where('numero_caso', 'LIKE', "%{$matches[1]}%")->first();
+                if ($caso) return $caso;
             }
         }
-        
+
         return null;
     }
 
-    private function cleanSubject($subject)
+    private function cleanSubject(?string $subject): string
     {
         if (!$subject) return 'Sin asunto';
         $subject = mb_decode_mimeheader($subject);
@@ -338,7 +446,7 @@ class MultiImapService
         return trim($subject);
     }
 
-    private function cleanBody($body)
+    private function cleanBody(?string $body): string
     {
         if (!$body) return '';
         $body = strip_tags($body);
@@ -347,62 +455,22 @@ class MultiImapService
         return trim($body);
     }
 
-    private function extractData($subject, $body)
+    private function extractData(string $subject, string $body): array
     {
         $data = [];
-        
-        // Extraer fechas
-        if (preg_match('/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/', $body, $matches)) {
-            $data['fecha_mencionada'] = $matches[0];
-        }
-        
-        // Extraer montos
-        if (preg_match('/\$?\s*(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/', $body, $matches)) {
-            $data['monto_mencionado'] = $matches[1];
-        }
-        
-        // Extraer porcentajes
-        if (preg_match('/(\d+)%/', $body, $matches)) {
-            $data['porcentaje_mencionado'] = $matches[1];
-        }
-        
-        return $data;
-    }
 
-    public function testAllConnections()
-    {
-        $results = [];
-        
-        foreach ($this->accounts as $account) {
-            try {
-                $hostname = '{outlook.office365.com:993/imap/ssl/novalidate-cert}INBOX';
-                $mailbox = new Mailbox($hostname, $account['email'], $account['password'], '', 'UTF-8');
-                $mailbox->getImapStream();
-                
-                $totalEmails = count($mailbox->searchMailbox('ALL'));
-                $unreadEmails = count($mailbox->searchMailbox('UNSEEN'));
-                
-                $results[$account['name']] = [
-                    'success' => true,
-                    'email' => $account['email'],
-                    'priority' => $account['priority'],
-                    'total_emails' => $totalEmails,
-                    'unread_emails' => $unreadEmails,
-                    'message' => 'Conexión exitosa'
-                ];
-                
-                $mailbox->disconnect();
-                
-            } catch (\Exception $e) {
-                $results[$account['name']] = [
-                    'success' => false,
-                    'email' => $account['email'],
-                    'priority' => $account['priority'],
-                    'message' => 'Error: ' . $e->getMessage()
-                ];
-            }
+        if (preg_match('/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/', $body, $m)) {
+            $data['fecha_mencionada'] = $m[0];
         }
-        
-        return $results;
+
+        if (preg_match('/\$?\s*(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/', $body, $m)) {
+            $data['monto_mencionado'] = $m[1];
+        }
+
+        if (preg_match('/(\d+)%/', $body, $m)) {
+            $data['porcentaje_mencionado'] = $m[1];
+        }
+
+        return $data;
     }
 }
