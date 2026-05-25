@@ -82,10 +82,11 @@ class MultiImapService
 
     private function processAccount($account)
     {
-        $hostname = '{outlook.office365.com:993/imap/ssl/novalidate-cert}INBOX';
+        // DISABLE_AUTHENTICATOR=GSSAPI fuerza LOGIN/PLAIN básico en vez de Kerberos
+        $hostname = '{outlook.office365.com:993/imap/ssl/novalidate-cert/DISABLE_AUTHENTICATOR=GSSAPI}INBOX';
 
         try {
-            $mailbox = new Mailbox($hostname, $account['email'], $account['password'], null, 'UTF-8');
+            $mailbox = new Mailbox($hostname, $account['email'], $account['password'], '', 'UTF-8');
             $mailbox->getImapStream();
 
             // Traer TODOS los correos (no solo no leídos) — limitamos por fecha: últimos 6 meses
@@ -375,9 +376,9 @@ class MultiImapService
         
         foreach ($this->accounts as $account) {
             try {
-                $hostname = '{outlook.office365.com:993/imap/ssl}INBOX';
-                $mailbox = new Mailbox($hostname, $account['email'], $account['password']);
-                $mailbox->checkImapStream();
+                $hostname = '{outlook.office365.com:993/imap/ssl/novalidate-cert/DISABLE_AUTHENTICATOR=GSSAPI}INBOX';
+                $mailbox = new Mailbox($hostname, $account['email'], $account['password'], '', 'UTF-8');
+                $mailbox->getImapStream();
                 
                 $totalEmails = count($mailbox->searchMailbox('ALL'));
                 $unreadEmails = count($mailbox->searchMailbox('UNSEEN'));

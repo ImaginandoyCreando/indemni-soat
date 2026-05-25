@@ -30,6 +30,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/add-account',  [EmailController::class, 'addAccount'])->name('addAccount');
         Route::post('/save-config',  [EmailController::class, 'saveConfig'])->name('saveConfig');
         Route::delete('/account/{id}', [EmailController::class, 'removeAccount'])->name('removeAccount');
+        Route::get('/test-connection',   [EmailController::class, 'testConnection'])->name('testConnection');
     });
 
     // ── Outlook OAuth ─────────────────────────────────────────────────────────

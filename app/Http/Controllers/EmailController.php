@@ -234,6 +234,16 @@ class EmailController extends Controller
             ->with('success', '✅ Configuración guardada correctamente.');
     }
 
+    // ────────────────────────────────────────────────────────────────────────
+    // testConnection()  →  GET /emails/test-connection
+    // ────────────────────────────────────────────────────────────────────────
+    public function testConnection()
+    {
+        $service = new MultiImapService();
+        $results = $service->testAllConnections();
+        return response()->json($results, 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
     // ════════════════════════════════════════════════════════════════════════
     // MÉTODOS PRIVADOS
     // ════════════════════════════════════════════════════════════════════════
