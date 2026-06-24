@@ -169,10 +169,16 @@ class CasoController extends Controller
         return redirect()->route('casos.index')->with('success', 'Caso creado correctamente.');
     }
 
-    public function show(Caso $caso)
+     public function show(Caso $caso)
     {
-        return view('casos.show', compact('caso'));
+        $tiposDocumento = \App\Models\PlantillaDocumento::$tiposDisponibles;
+        $plantillasActivas = \App\Models\PlantillaDocumento::select('tipo')
+            ->orderByDesc('created_at')
+            ->get()->pluck('tipo')->unique()->toArray();
+
+        return view('casos.show', compact('caso', 'tiposDocumento', 'plantillasActivas'));
     }
+
 
     public function edit(Caso $caso)
     {
