@@ -879,4 +879,114 @@
     </div>
 </div>
 
+<style>
+.is-gendoc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #1B4FFF, #3A6FFF);
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity .2s, transform .15s;
+    white-space: nowrap;
+}
+.is-gendoc-btn:hover { opacity: .88; transform: translateY(-1px); }
+.is-gendoc-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-top: 24px;
+}
+.is-gendoc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+}
+.is-gendoc-item {
+    background: var(--bg-input);
+    border: 1px solid var(--border-2);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.is-gendoc-item-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-1);
+    line-height: 1.3;
+}
+.no-plantilla-tag {
+    font-size: 10px; padding: 2px 7px; border-radius: 20px;
+    background: rgba(245,158,11,.12); color: #F5B942;
+    font-weight: 700; width: fit-content;
+}
+.con-plantilla-tag {
+    font-size: 10px; padding: 2px 7px; border-radius: 20px;
+    background: rgba(5,150,105,.12); color: #1DBD7F;
+    font-weight: 700; width: fit-content;
+}
+</style>
+
+@if(auth()->user()->puedeEditar())
+<div class="is-gendoc-section is-animate-rise">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+            <div style="font-family:'Playfair Display',serif;font-size:16px;
+                        font-weight:700;color:var(--text-1);">
+                Generación de documentos jurídicos
+            </div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:3px;">
+                Genera documentos con los datos del caso pre-rellenados automáticamente.
+            </div>
+        </div>
+        @if(auth()->user()->hasRole('admin'))
+            <a href="{{ route('plantillas.index') }}"
+               style="font-size:12px;color:#4B78FF;text-decoration:none;font-weight:600;">
+                ⚙ Gestionar plantillas →
+            </a>
+        @endif
+    </div>
+
+    <div class="is-gendoc-grid">
+        @foreach($tiposDocumento as $tipoKey => $tipoLabel)
+            @php $tienePlantilla = in_array($tipoKey, $plantillasActivas); @endphp
+            <div class="is-gendoc-item">
+                <div class="is-gendoc-item-title">{{ $tipoLabel }}</div>
+                @if($tienePlantilla)
+                    <span class="con-plantilla-tag">✓ Plantilla lista</span>
+                    <a href="{{ route('casos.generar.form', [$caso, $tipoKey]) }}"
+                       class="is-gendoc-btn">
+                        📄 Generar
+                    </a>
+                @else
+                    <span class="no-plantilla-tag">Sin plantilla</span>
+                    @if(auth()->user()->hasRole('admin'))
+                        <a href="{{ route('plantillas.index') }}"
+                           class="is-gendoc-btn"
+                           style="background:linear-gradient(135deg,#6B7280,#9CA3AF);">
+                            ⬆ Subir plantilla
+                        </a>
+                    @else
+                        <span style="font-size:11px;color:var(--text-3);">
+                            Pide al admin que suba la plantilla
+                        </span>
+                    @endif
+                @endif
+            </div>
+        @endforeach
+    </div>
+</div>
+@endif
+
 @endsection
+
