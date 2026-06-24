@@ -11,6 +11,8 @@ use App\Http\Controllers\OutlookAuthController;
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\PlantillaDocumentoController;
+use App\Http\Controllers\DocumentoGeneradoController;
 
 // ── Rutas públicas ────────────────────────────────────────────────────────────
 Route::get('/login',  [LoginController::class, 'showLogin'])->name('login');
@@ -115,6 +117,23 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/usuarios/{user}/editar', [UserController::class, 'edit'])->name('users.edit');
         Route::put('/usuarios/{user}',        [UserController::class, 'update'])->name('users.update');
         Route::delete('/usuarios/{user}',     [UserController::class, 'destroy'])->name('users.destroy');
+
+        
     });
 
+    // ── Plantillas de documentos (solo admin) ─────────────────────────────
+    Route::middleware('role:admin')->prefix('plantillas')->name('plantillas.')->group(function () {
+        Route::get('/',             [PlantillaDocumentoController::class, 'index'])->name('index');
+        Route::post('/',            [PlantillaDocumentoController::class, 'store'])->name('store');
+        Route::delete('/{plantilla}',[PlantillaDocumentoController::class, 'destroy'])->name('destroy');
+    });
+
+    // ── Generación de documentos (admin + abogado) ────────────────────────
+    Route::middleware('role:admin,abogado')->prefix('casos/{caso}/generar')->name('casos.generar.')->group(function () {
+        Route::get('/{tipo}',                  [DocumentoGeneradoController::class, 'form'])->name('form');
+        Route::post('/{tipo}',                 [DocumentoGeneradoController::class, 'generar'])->name('generar');
+        Route::get('/descarga/{documento}',    [DocumentoGeneradoController::class, 'descargar'])->name('descargar');
+        Route::delete('/eliminar/{documento}', [DocumentoGeneradoController::class, 'destroy'])->name('destroy');
+    });
+    
 });
