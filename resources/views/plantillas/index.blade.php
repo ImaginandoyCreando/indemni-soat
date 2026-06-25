@@ -46,7 +46,7 @@
     <div>
         <div class="is-page-title">Plantillas de Documentos</div>
         <div style="font-size:12px;color:var(--text-2);margin-top:4px;">
-            Sube las plantillas DOCX, PDF o XLSX con variables <code>{{nombre_variable}}</code>.
+            Sube las plantillas DOCX, PDF o XLSX con variables <code>&#123;&#123;nombre_variable&#125;&#125;</code>.
             El sistema las detecta automáticamente.
         </div>
     </div>
@@ -162,10 +162,10 @@
                     border-radius:8px;padding:12px 14px;margin-bottom:18px;font-size:12px;
                     color:var(--text-2);line-height:1.6;">
             <strong style="color:#4B78FF;">Formato de variables:</strong> En tu documento escribe
-            <code style="background:rgba(27,79,255,.12);padding:1px 5px;border-radius:4px;">{{'{{'}}nombre_variable{{'}}'}}</code>
+            <code style="background:rgba(27,79,255,.12);padding:1px 5px;border-radius:4px;">&#123;&#123;nombre_variable&#125;&#125;</code>
             donde quieras que aparezca un dato variable. Ejemplo:
-            <code>{{'{{'}}nombre_victima{{'}}'}}</code>, <code>{{'{{'}}aseguradora{{'}}'}}</code>,
-            <code>{{'{{'}}fecha_accidente{{'}}'}}</code>.
+            <code>&#123;&#123;nombre_victima&#125;&#125;</code>, <code>&#123;&#123;aseguradora&#125;&#125;</code>,
+            <code>&#123;&#123;fecha_accidente&#125;&#125;</code>.
             <br><br>
             Variables que se pre-rellenan automáticamente desde el caso:
             <code>nombre_victima</code>, <code>cedula</code>, <code>aseguradora</code>,
