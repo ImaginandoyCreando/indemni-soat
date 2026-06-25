@@ -141,4 +141,26 @@ class PlantillaAnalizadorService
         $contenido = file_get_contents($ruta);
         if ($contenido === false) return '';
 
-        preg_match_all('/BT(.+?)...
+        preg_match_all('/BT(.+?)ET/s', $contenido, $matches);
+        $texto = implode(' ', $matches[1] ?? []);
+
+        preg_match_all('/\(([^)]+)\)/', $texto, $cadenas);
+        return implode(' ', $cadenas[1] ?? []);
+    }
+
+    private function limpiarTagsFragmentados(string $xml): string
+    {
+        // Elimina todos los tags XML que aparezcan dentro de {{...}},
+        // incluyendo casos donde el placeholder está partido en múltiples runs XML.
+        // Ejemplo: {{porcentaje_</w:t></w:r><w:r><w:t>pcl}} → {{porcentaje_pcl}}
+        $xml = preg_replace_callback(
+            '/\{\{[^}]*(?:<[^>]+>[^}]*)*\}\}/',
+            function ($m) {
+                return preg_replace('/<[^>]+>/', '', $m[0]) ?? $m[0];
+            },
+            $xml
+        ) ?? $xml;
+
+        return $xml;
+    }
+}
