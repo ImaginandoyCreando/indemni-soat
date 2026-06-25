@@ -106,12 +106,12 @@
                                             Variables detectadas:
                                         </span>
                                         @foreach($plantilla->variables_detectadas as $v)
-                                            <span class="is-var-chip">{{'{{'}}{{ $v }}{{'}}'}}</span>
+                                            <span class="is-var-chip">&#123;&#123;{{ $v }}&#125;&#125;</span>
                                         @endforeach
                                     </div>
                                 @else
                                     <div style="font-size:11px;color:var(--text-3);margin-top:4px;">
-                                        ⚠ No se detectaron variables. Asegúrate de usar el formato <code>{{'{{'}}variable{{'}}'}}</code>
+                                        ⚠ No se detectaron variables. Asegúrate de usar el formato <code>&#123;&#123;variable&#125;&#125;</code>
                                     </div>
                                 @endif
                             </div>
