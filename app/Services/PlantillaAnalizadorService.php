@@ -150,13 +150,13 @@ class PlantillaAnalizadorService
 
     private function limpiarTagsFragmentados(string $xml): string
     {
+        // Elimina todos los tags XML que aparezcan dentro de {{...}},
+        // incluyendo casos donde el placeholder está partido en múltiples runs XML.
+        // Ejemplo: {{porcentaje_</w:t></w:r><w:r><w:t>pcl}} → {{porcentaje_pcl}}
         $xml = preg_replace_callback(
-            '/\{\{[^}]*\}\}|(\{\{[^}]*?)(<[^>]+>)([^}]*?\}\})/',
+            '/\{\{[^}]*(?:<[^>]+>[^}]*)*\}\}/',
             function ($m) {
-                if (isset($m[1]) && $m[1] !== '') {
-                    return $m[1] . $m[3];
-                }
-                return $m[0];
+                return preg_replace('/<[^>]+>/', '', $m[0]) ?? $m[0];
             },
             $xml
         ) ?? $xml;
