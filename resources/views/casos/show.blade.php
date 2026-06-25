@@ -949,7 +949,7 @@
                 Genera documentos con los datos del caso pre-rellenados automáticamente.
             </div>
         </div>
-        @if(auth()->user()->hasRole('admin'))
+        @ifauth()->user()->role === 'admin'
             <a href="{{ route('plantillas.index') }}"
                style="font-size:12px;color:#4B78FF;text-decoration:none;font-weight:600;">
                 ⚙ Gestionar plantillas →
@@ -970,7 +970,7 @@
                     </a>
                 @else
                     <span class="no-plantilla-tag">Sin plantilla</span>
-                    @if(auth()->user()->hasRole('admin'))
+                    @ifauth()->user()->role === 'admin'
                         <a href="{{ route('plantillas.index') }}"
                            class="is-gendoc-btn"
                            style="background:linear-gradient(135deg,#6B7280,#9CA3AF);">
@@ -989,4 +989,3 @@
 @endif
 
 @endsection
-
