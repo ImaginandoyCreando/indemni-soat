@@ -439,12 +439,20 @@ class CasoController extends Controller
      */
     public function generarVoucherPdf(Caso $caso)
     {
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('casos.voucher-pdf', compact('caso'));
-        $pdf->setPaper('A4', 'portrait');
-
-        $nombreArchivo = 'voucher-' . $caso->numero_caso . '-' . now()->format('Ymd') . '.pdf';
-
-        return $pdf->download($nombreArchivo);
+        try {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('casos.voucher-pdf', compact('caso'));
+            $pdf->setPaper('A4', 'portrait');
+            $nombreArchivo = 'voucher-' . $caso->numero_caso . '-' . now()->format('Ymd') . '.pdf';
+            return $pdf->download($nombreArchivo);
+        } catch (\Throwable $e) {
+            return response(
+                '<h2 style="font-family:monospace;color:red">Error generando PDF:</h2>'
+                . '<pre style="font-family:monospace;font-size:13px">'
+                . htmlspecialchars($e->getMessage() . "\n\n" . $e->getTraceAsString())
+                . '</pre>',
+                500
+            )->header('Content-Type', 'text/html');
+        }
     }
 
     // =========================================================================
