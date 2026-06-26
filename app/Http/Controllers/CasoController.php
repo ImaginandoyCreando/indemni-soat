@@ -60,31 +60,57 @@ class CasoController extends Controller
             ->select('estado')->distinct()->orderBy('estado')->pluck('estado');
 
         $alertasDisponibles = collect([
-            ['valor' => 'documentacion_inicial',         'texto' => 'Falta poder / contrato'],
-            ['valor' => 'poder_pendiente',               'texto' => 'Poder pendiente'],
-            ['valor' => 'contrato_pendiente',            'texto' => 'Contrato pendiente'],
-            ['valor' => 'sin_respuesta',                 'texto' => 'Sin respuesta de aseguradora'],
-            ['valor' => 'apelar_dictamen',               'texto' => 'Apelar dictamen'],
-            ['valor' => 'tutela',                        'texto' => 'Presentar tutela'],
-            ['valor' => 'seguimiento_tutela',            'texto' => 'Seguimiento tutela'],
-            ['valor' => 'cumplimiento_tutela',           'texto' => 'Esperando cumplimiento tutela'],
-            ['valor' => 'desacato',                      'texto' => 'Incidente de desacato'],
-            ['valor' => 'impugnacion',                   'texto' => 'Impugnación pendiente'],
-            ['valor' => 'segunda_instancia',             'texto' => 'Pendiente segunda instancia'],
-            ['valor' => 'caso_cerrado',                  'texto' => 'Caso cerrado segunda instancia'],
-            ['valor' => 'cumplimiento_segunda_instancia','texto' => 'Cumplimiento segunda instancia'],
-            ['valor' => 'honorarios_junta',              'texto' => 'Pagar honorarios junta'],
-            ['valor' => 'alta_ortopedia_pendiente',      'texto' => 'Alta ortopedia pendiente'],
-            ['valor' => 'solicitud_junta',               'texto' => 'Solicitar a junta'],
-            ['valor' => 'furpen_pendiente',              'texto' => 'FURPEN pendiente'],
-            ['valor' => 'reclamacion',                   'texto' => 'Cobrar a aseguradora'],
-            ['valor' => 'pago_pendiente',                'texto' => 'Pago pendiente'],
-            ['valor' => 'queja',                         'texto' => 'Queja por no pago'],
-            ['valor' => 'prescripcion_critica',          'texto' => 'Prescripción próxima'],
-            ['valor' => 'prescrito',                     'texto' => 'Caso prescrito'],
-            ['valor' => 'pagado',                        'texto' => 'Pagado'],
-            ['valor' => 'normal',                        'texto' => 'Normal'],
-        ]);
+
+    // ── DOCUMENTACIÓN ────────────────────────────────────────────────────────
+    ['valor' => 'documentacion_inicial',      'texto' => '📄 Falta poder / contrato'],
+    ['valor' => 'poder_pendiente',            'texto' => '📄 Poder pendiente'],
+    ['valor' => 'contrato_pendiente',         'texto' => '📄 Contrato pendiente'],
+    ['valor' => 'furpen_pendiente',           'texto' => '📄 FURPEN pendiente'],
+
+    // ── ASEGURADORA ──────────────────────────────────────────────────────────
+    ['valor' => 'sin_respuesta',              'texto' => '⏰ Sin respuesta de aseguradora'],
+    ['valor' => 'aseguradora_nego',           'texto' => '🚫 Aseguradora negó — presentar tutela'],
+    ['valor' => 'aseguradora_no_respondio',   'texto' => '⚠️ Aseguradora no respondió — presentar tutela'],
+    ['valor' => 'dictamen_aseguradora',       'texto' => '📝 Dictamen aseguradora — manifestar inconformidad'],
+    ['valor' => 'apelar_dictamen',            'texto' => '🏛️ Apelar dictamen'],
+
+    // ── TUTELA ───────────────────────────────────────────────────────────────
+    ['valor' => 'tutela',                     'texto' => '📋 Tutela presentada — espera fallo'],
+    ['valor' => 'impugnar_fallo',             'texto' => '🚨 Fallo negado — impugnar (3 días hábiles)'],
+    ['valor' => 'cumplimiento_tutela',        'texto' => '⚖️ Fallo concedido — esperando cumplimiento'],
+    ['valor' => 'fallo_tutela_registrado',    'texto' => '📋 Fallo de tutela registrado — definir resultado'],
+    ['valor' => 'cumplimiento_segunda_instancia', 'texto' => '🏥 Tutela cumplida — pendiente dictamen / honorarios'],
+
+    // ── DESACATO ─────────────────────────────────────────────────────────────
+    ['valor' => 'desacato',                   'texto' => '🚨 Incidente de desacato presentado'],
+
+    // ── SEGUNDA INSTANCIA ────────────────────────────────────────────────────
+    ['valor' => 'impugnacion',                'texto' => '🏛️ Impugnación presentada — espera fallo 2ª inst.'],
+    ['valor' => 'segunda_instancia',          'texto' => '📋 Esperando fallo de segunda instancia'],
+    ['valor' => 'segunda_revoca_calificar',   'texto' => '⚖️ 2ª instancia revoca — aseg. debe calificar'],
+    ['valor' => 'segunda_revoca_honorarios',  'texto' => '💰 2ª instancia revoca — aseg. debe pagar honorarios'],
+    ['valor' => 'caso_cerrado',               'texto' => '✅ Caso cerrado en segunda instancia'],
+
+    // ── ORTOPEDIA Y JUNTA ────────────────────────────────────────────────────
+    ['valor' => 'alta_ortopedia_pendiente',   'texto' => '🩺 Alta ortopedia pendiente'],
+    ['valor' => 'honorarios_junta',           'texto' => '💰 Pagar honorarios junta'],
+    ['valor' => 'solicitud_junta',            'texto' => '📬 Solicitar / seguimiento a junta'],
+    ['valor' => 'dictamen_junta',             'texto' => '🏥 Dictamen junta recibido — pendiente FURPEN / cobro'],
+
+    // ── COBRO Y PAGO ─────────────────────────────────────────────────────────
+    ['valor' => 'reclamacion',                'texto' => '💼 Listo para cobrar a aseguradora'],
+    ['valor' => 'pago_pendiente',             'texto' => '💳 Cobro enviado — pago pendiente'],
+    ['valor' => 'queja',                      'texto' => '📢 Queja por no pago (30+ días)'],
+
+    // ── PRESCRIPCIÓN ─────────────────────────────────────────────────────────
+    ['valor' => 'prescripcion_critica',       'texto' => '⏳ Prescripción próxima (≤ 90 días)'],
+    ['valor' => 'prescrito',                  'texto' => '🔴 Caso prescrito'],
+
+    // ── ESTADOS FINALES ──────────────────────────────────────────────────────
+    ['valor' => 'pagado',                     'texto' => '✅ Pagado'],
+    ['valor' => 'normal',                     'texto' => '🟢 Normal / sin alertas críticas'],
+]);
+
 
         return view('casos.index', compact(
             'casos', 'aseguradoras', 'estados',
