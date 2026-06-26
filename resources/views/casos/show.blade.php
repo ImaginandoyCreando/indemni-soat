@@ -319,6 +319,8 @@
     </div>
 </div>
 
+@include('casos._alertas-temporales', ['caso' => $caso])
+
 {{-- ── Barra de flujo (dots) ── --}}
 <div class="is-flujo-bar is-animate-rise is-stagger-1">
     @php
