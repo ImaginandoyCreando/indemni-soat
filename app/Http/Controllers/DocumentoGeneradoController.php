@@ -24,7 +24,6 @@ class DocumentoGeneradoController extends Controller
     {
         abort_unless(array_key_exists($tipo, PlantillaDocumento::$tiposDisponibles), 404);
 
-        // Buscar la plantilla más reciente para este tipo
         $plantilla = PlantillaDocumento::where('tipo', $tipo)
             ->orderByDesc('created_at')
             ->first();
@@ -38,16 +37,18 @@ class DocumentoGeneradoController extends Controller
             $preRellenos = $this->analizador->preLlenarDesde($caso, $variables);
         }
 
-        // Documentos generados previos para este caso y tipo
         $generadosPrevios = DocumentoGenerado::where('caso_id', $caso->id)
             ->where('tipo', $tipo)
             ->orderByDesc('created_at')
             ->take(5)
             ->get();
 
+        // Opciones para variables tipo select/desplegable
+        $opcionesSelect = PlantillaAnalizadorService::$opcionesSelect;
+
         return view('documentos-generados.form', compact(
             'caso', 'tipo', 'plantilla', 'variables',
-            'preRellenos', 'nombreTipo', 'generadosPrevios'
+            'preRellenos', 'nombreTipo', 'generadosPrevios', 'opcionesSelect'
         ));
     }
 
@@ -63,7 +64,6 @@ class DocumentoGeneradoController extends Controller
             ->orderByDesc('created_at')
             ->firstOrFail();
 
-        // Validar: todos los campos del formulario son strings opcionales
         $valores = $request->only($plantilla->variables_detectadas ?? []);
         foreach ($valores as $k => $v) {
             $valores[$k] = is_string($v) ? trim($v) : '';
@@ -75,37 +75,30 @@ class DocumentoGeneradoController extends Controller
             return back()->withErrors(['error' => 'No se encontró el archivo de la plantilla en el servidor.']);
         }
 
-        // Por ahora solo DOCX admite reemplazo completo.
-        // PDF y XLSX: se devuelve la plantilla original con advertencia.
         if ($plantilla->extension === 'docx') {
             $tmpPath = $this->analizador->generarDocx($rutaPlantilla, $valores);
         } else {
-            // Para PDF/XLSX la plantilla se descarga tal cual (flujo futuro)
             $tmpPath = $rutaPlantilla;
         }
 
-        // Nombre del archivo de salida
-        $nombreTipo   = Str::slug(PlantillaDocumento::$tiposDisponibles[$tipo]);
-        $numeroCaso   = Str::slug($caso->numero_caso);
-        $fecha        = now()->format('Ymd_His');
+        $nombreTipo    = Str::slug(PlantillaDocumento::$tiposDisponibles[$tipo]);
+        $numeroCaso    = Str::slug($caso->numero_caso);
+        $fecha         = now()->format('Ymd_His');
         $nombreArchivo = "{$nombreTipo}_{$numeroCaso}_{$fecha}.{$plantilla->extension}";
 
-        // Guardar copia en storage
         $rutaAlmacenada = "documentos_generados/{$nombreArchivo}";
         Storage::disk('public')->put($rutaAlmacenada, file_get_contents($tmpPath));
 
-        // Registrar en base de datos
         DocumentoGenerado::create([
-            'caso_id'       => $caso->id,
-            'plantilla_id'  => $plantilla->id,
-            'tipo'          => $tipo,
-            'nombre_archivo'=> $nombreArchivo,
-            'archivo'       => $rutaAlmacenada,
-            'valores_usados'=> $valores,
-            'user_id'       => auth()->id(),
+            'caso_id'        => $caso->id,
+            'plantilla_id'   => $plantilla->id,
+            'tipo'           => $tipo,
+            'nombre_archivo' => $nombreArchivo,
+            'archivo'        => $rutaAlmacenada,
+            'valores_usados' => $valores,
+            'user_id'        => auth()->id(),
         ]);
 
-        // Bitácora
         Bitacora::create([
             'caso_id'      => $caso->id,
             'titulo'       => 'Documento generado',
@@ -113,7 +106,6 @@ class DocumentoGeneradoController extends Controller
             'fecha_evento' => now()->toDateString(),
         ]);
 
-        // Limpiar tmp si aplica
         if ($plantilla->extension === 'docx' && file_exists($tmpPath)) {
             @unlink($tmpPath);
         }
