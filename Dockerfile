@@ -31,9 +31,12 @@ RUN docker-php-ext-install \
     zip \
     imap
 
-# Configuración PHP
-RUN echo "memory_limit=256M" > /usr/local/etc/php/conf.d/custom.ini \
- && echo "max_execution_time=120" >> /usr/local/etc/php/conf.d/custom.ini
+# Configuracion PHP — memoria y tiempos aumentados para evitar corte de respuesta
+RUN echo "memory_limit=512M" > /usr/local/etc/php/conf.d/custom.ini \
+ && echo "max_execution_time=120" >> /usr/local/etc/php/conf.d/custom.ini \
+ && echo "output_buffering=65536" >> /usr/local/etc/php/conf.d/custom.ini \
+ && echo "zlib.output_compression=Off" >> /usr/local/etc/php/conf.d/custom.ini \
+ && echo "implicit_flush=Off" >> /usr/local/etc/php/conf.d/custom.ini
 
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -48,17 +51,17 @@ COPY . .
 RUN composer install --no-dev --optimize-autoloader --no-interaction \
     || composer install --no-dev --optimize-autoloader --no-interaction --prefer-source
 
-# ── VITE BUILD ── Compilar assets CSS/JS para producción
+# VITE BUILD — Compilar assets CSS/JS para produccion
 RUN npm install && npm run build
 
 # Permisos
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Configuración Nginx
+# Configuracion Nginx
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 
-# Configuración Supervisor
+# Configuracion Supervisor
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Script de entrada
