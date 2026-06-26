@@ -22,21 +22,19 @@ table { border-collapse: collapse; }
 </head>
 <body>
 
-{{-- ENCABEZADO --}}
 <table class="w100" style="background:#1a1a2e; padding:20px 24px;" cellpadding="0" cellspacing="0">
 <tr>
   <td style="vertical-align:middle; width:55%;">
     <div style="font-size:20px; font-weight:bold; color:#f0c040; letter-spacing:1px;">INDEMNI SOAT</div>
-    <div style="font-size:9px; color:#aab0c0; margin-top:4px;">Gestión Jurídica de Casos SOAT</div>
+    <div style="font-size:9px; color:#aab0c0; margin-top:4px;">Gestion Juridica de Casos SOAT</div>
   </td>
   <td style="vertical-align:middle; width:45%; text-align:right;">
-    <div style="font-size:9px; color:#aab0c0; text-transform:uppercase; letter-spacing:1px;">Comprobante de Radicación</div>
+    <div style="font-size:9px; color:#aab0c0; text-transform:uppercase; letter-spacing:1px;">Comprobante de Radicacion</div>
     <div style="font-size:16px; font-weight:bold; color:#f0c040; margin-top:4px;">{{ $caso->numero_caso }}</div>
   </td>
 </tr>
 </table>
 
-{{-- BANDA ESTADO --}}
 <table class="w100" cellpadding="0" cellspacing="0">
 <tr>
   <td style="background:#f0c040; color:#1a1a2e; text-align:center; padding:9px 24px; font-size:12px; font-weight:bold;">
@@ -47,9 +45,8 @@ table { border-collapse: collapse; }
 
 <div style="height:18px;"></div>
 
-{{-- DATOS DE LA VÍCTIMA --}}
 <table class="w100" cellpadding="0" cellspacing="0" style="border:1px solid #d1d5db; margin-bottom:16px;">
-<tr><td class="sec-head" colspan="2">Datos de la Víctima</td></tr>
+<tr><td class="sec-head" colspan="2">Datos de la Victima</td></tr>
 <tr>
   <td class="sec-body" colspan="2">
     <div class="lbl">Nombre completo</div>
@@ -58,11 +55,11 @@ table { border-collapse: collapse; }
 </tr>
 <tr>
   <td class="sec-body" style="width:50%;">
-    <div class="lbl">Cédula de ciudadanía</div>
+    <div class="lbl">Cedula de ciudadania</div>
     <div class="val">{{ $caso->cedula ?? '—' }}</div>
   </td>
   <td class="sec-body" style="width:50%;">
-    <div class="lbl">Teléfono / Celular</div>
+    <div class="lbl">Telefono / Celular</div>
     <div class="val">{{ $caso->telefono ?? '—' }}</div>
   </td>
 </tr>
@@ -86,7 +83,7 @@ table { border-collapse: collapse; }
   </td>
   <td class="sec-body" style="width:50%;">
     @if($caso->junta_asignada)
-    <div class="lbl">Junta médica asignada</div>
+    <div class="lbl">Junta medica asignada</div>
     <div class="val">{{ $caso->junta_asignada }}</div>
     @endif
   </td>
@@ -94,18 +91,15 @@ table { border-collapse: collapse; }
 @endif
 </table>
 
-{{-- FECHAS DEL PROCESO --}}
 <table class="w100" cellpadding="0" cellspacing="0" style="border:1px solid #d1d5db; margin-bottom:16px;">
 <tr><td class="sec-head" colspan="4">Fechas del Proceso</td></tr>
 <tr>
-  {{-- Fecha radicación siempre --}}
   <td style="width:25%; padding:4px;">
     <div class="fecha-dest">
-      <div class="lbl-dest">Fecha de Radicación</div>
+      <div class="lbl-dest">Fecha de Radicacion</div>
       <div class="val-dest">{{ \Carbon\Carbon::parse($caso->created_at)->format('d/m/Y') }}</div>
     </div>
   </td>
-  {{-- Solicitud aseguradora siempre --}}
   <td style="width:25%; padding:4px;">
     <div class="fecha-norm">
       <div class="lbl">Solicitud a Aseguradora</div>
@@ -118,7 +112,6 @@ table { border-collapse: collapse; }
       </div>
     </div>
   </td>
-  {{-- Tutela si existe --}}
   <td style="width:25%; padding:4px;">
     @if($caso->fecha_tutela)
     <div class="fecha-norm">
@@ -127,7 +120,6 @@ table { border-collapse: collapse; }
     </div>
     @endif
   </td>
-  {{-- Pago final si existe --}}
   <td style="width:25%; padding:4px;">
     @if($caso->fecha_pago_final)
     <div class="fecha-norm">
@@ -139,7 +131,6 @@ table { border-collapse: collapse; }
 </tr>
 </table>
 
-{{-- OBSERVACIONES --}}
 @if($caso->observaciones)
 <table class="w100" cellpadding="0" cellspacing="0" style="border:1px solid #d1d5db; margin-bottom:16px;">
 <tr><td class="sec-head">Observaciones</td></tr>
@@ -151,24 +142,22 @@ table { border-collapse: collapse; }
 </table>
 @endif
 
-{{-- AVISO LEGAL --}}
 <table class="w100" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
 <tr>
   <td style="background:#fffbeb; border-left:3px solid #f0c040; padding:10px 14px; font-size:9px; color:#92400e; line-height:1.6;">
-    Este comprobante certifica la radicación del caso <b>{{ $caso->numero_caso }}</b>
-    en el sistema de gestión jurídica INDEMNI SOAT.
+    Este comprobante certifica la radicacion del caso <b>{{ $caso->numero_caso }}</b>
+    en el sistema de gestion juridica INDEMNI SOAT.
     Generado el {{ now()->format('d/m/Y') }} a las {{ now()->format('H:i') }}.
-    Válido como constancia interna de seguimiento.
+    Valido como constancia interna de seguimiento.
   </td>
 </tr>
 </table>
 
-{{-- PIE --}}
 <table class="w100" cellpadding="0" cellspacing="0" style="border-top:1px solid #d1d5db; padding-top:12px; margin-top:4px;">
 <tr>
   <td style="vertical-align:middle; width:70%;">
     <div style="font-size:8px; color:#9ca3af; line-height:1.7;">
-      <b>INDEMNI SOAT</b> — Sistema de Gestión Jurídica<br>
+      <b>INDEMNI SOAT</b> — Sistema de Gestion Juridica<br>
       Generado por: {{ auth()->check() ? auth()->user()->name : 'Sistema' }}<br>
       {{ now()->format('d/m/Y H:i') }}
     </div>
