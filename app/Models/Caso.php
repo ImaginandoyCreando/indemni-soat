@@ -37,10 +37,10 @@ class Caso extends Model
         'fecha_accidente',
         'fecha_solicitud_aseguradora',
         'fecha_respuesta_aseguradora',
-        'tipo_respuesta_aseguradora',
+        'tipo_respuesta_aseguradora',       // NUEVO: emitio_dictamen | nego | no_respondio
         'fecha_apelacion',
         'fecha_tutela',
-        'tipo_tutela',
+        'tipo_tutela',                      // NUEVO: tutela_calificacion | tutela_debido_proceso
         'fecha_pago_honorarios',
         'fecha_envio_junta',
         'fecha_dictamen_junta',
@@ -70,11 +70,11 @@ class Caso extends Model
         'fecha_fallo_tutela',
         'resultado_fallo_tutela',
         'fecha_incidente_desacato',
-        'fecha_cumplimiento_tutela',
-        'tipo_cumplimiento_tutela',
+        'fecha_cumplimiento_tutela',        // NUEVO: fecha en que la aseguradora cumplió el fallo
+        'tipo_cumplimiento_tutela',         // NUEVO: voluntario | desacato
         'fecha_impugnacion',
-        'fecha_fallo_segunda_instancia',
-        'resultado_fallo_segunda_instancia',
+        'fecha_fallo_segunda_instancia',    // NUEVO: fallo de segunda instancia tras impugnación
+        'resultado_fallo_segunda_instancia',// NUEVO: confirma | revoca
         'fecha_prescripcion',
     ];
 
@@ -97,9 +97,9 @@ class Caso extends Model
         'fecha_furpen_recibido'             => 'date',
         'fecha_fallo_tutela'                => 'date',
         'fecha_incidente_desacato'          => 'date',
-        'fecha_cumplimiento_tutela'         => 'date',
+        'fecha_cumplimiento_tutela'         => 'date',  // NUEVO
         'fecha_impugnacion'                 => 'date',
-        'fecha_fallo_segunda_instancia'     => 'date',
+        'fecha_fallo_segunda_instancia'     => 'date',  // NUEVO
         'fecha_prescripcion'                => 'date',
         'tiene_poder'                       => 'boolean',
         'tiene_contrato'                    => 'boolean',
@@ -149,26 +149,33 @@ class Caso extends Model
 
     /**
      * Devuelve el código de alerta de mayor prioridad para este caso.
+     * El orden define la prioridad: el primero que aplique gana.
      */
     public function getAlertaValorAttribute()
     {
-        if ($this->estaPagado())            return 'pagado';
-        if ($this->estaPrescrito())         return 'prescrito';
-        if ($this->prescripcionCritica())   return 'prescripcion_critica';
+        if ($this->estaPagado())           return 'pagado';
+        if ($this->estaPrescrito())        return 'prescrito';
+        if ($this->prescripcionCritica())  return 'prescripcion_critica';
         if ($this->requierePoderContrato()) return 'documentacion_inicial';
-        if ($this->requiereFirmaPoder())    return 'poder_pendiente';
+        if ($this->requiereFirmaPoder())   return 'poder_pendiente';
         if ($this->requiereFirmaContrato()) return 'contrato_pendiente';
 
+        // Caso cerrado en segunda instancia (confirma) - no se puede hacer nada
         if ($this->casoCerradoSegundaInstancia()) return 'caso_cerrado';
 
+        // Segunda instancia revocó → aseguradora debe cumplir
         if ($this->requiereCumplimientoSegundaInstancia()) return 'cumplimiento_segunda_instancia';
 
+        // Desacato (prioridad alta: ya pasaron 14 días sin cumplir fallo concedido)
         if ($this->requiereIncidenteDesacato()) return 'desacato';
 
+        // Cumplimiento pendiente (dentro de las 2 semanas tras fallo concedido)
         if ($this->requiereCumplimientoTutela()) return 'cumplimiento_tutela';
 
+        // Impugnación
         if ($this->requiereImpugnacion()) return 'impugnacion';
 
+        // Segunda instancia pendiente (esperando fallo)
         if ($this->requiereSegundaInstancia()) return 'segunda_instancia';
 
         if ($this->requiereQuejaNoPago())         return 'queja';
@@ -297,19 +304,26 @@ class Caso extends Model
     public function requiereApelacion(): bool
     {
         if ($this->estaPagado()) return false;
+        // Solo aplica si la aseguradora emitió dictamen directamente
         if ($this->tipo_respuesta_aseguradora !== 'emitio_dictamen') return false;
         return !empty($this->fecha_respuesta_aseguradora) && empty($this->fecha_apelacion);
     }
 
+    /**
+     * Tutela de calificación: cuando la aseguradora negó o no respondió.
+     * Tutela de debido proceso: cuando apelaron pero no pagaron honorarios.
+     */
     public function requiereTutela(): bool
     {
         if ($this->estaPagado() || !empty($this->fecha_tutela)) return false;
 
+        // Sin respuesta o negó → tutela para calificación
         if ($this->requiereRespuestaAseguradora()) return true;
         if (in_array($this->tipo_respuesta_aseguradora, ['nego', 'no_respondio']) && empty($this->fecha_tutela)) {
             return true;
         }
 
+        // Apelaron y pasó un mes sin pagar honorarios → tutela por debido proceso
         if (!empty($this->fecha_apelacion) && empty($this->fecha_pago_honorarios)) {
             $limite = Carbon::parse($this->fecha_apelacion)->addDays(30);
             return Carbon::today()->gt($limite);
@@ -326,6 +340,10 @@ class Caso extends Model
             : false;
     }
 
+    /**
+     * Cumplimiento pendiente: fallo concedido, dentro de las 2 semanas,
+     * sin que la aseguradora haya cumplido todavía.
+     */
     public function requiereCumplimientoTutela(): bool
     {
         if ($this->estaPagado()) return false;
@@ -334,6 +352,7 @@ class Caso extends Model
         if (!empty($this->fecha_incidente_desacato)) return false;
         if ($this->cumplioFalloTutela()) return false;
 
+        // Está dentro del plazo de 2 semanas (aún no es desacato)
         return $this->fecha_limite_cumplimiento_fallo
             ? !Carbon::today()->gt($this->fecha_limite_cumplimiento_fallo)
             : true;
@@ -347,6 +366,9 @@ class Caso extends Model
             && empty($this->fecha_impugnacion);
     }
 
+    /**
+     * Esperando fallo de segunda instancia (después de impugnación).
+     */
     public function requiereSegundaInstancia(): bool
     {
         if ($this->estaPagado()) return false;
@@ -354,6 +376,9 @@ class Caso extends Model
             && empty($this->fecha_fallo_segunda_instancia);
     }
 
+    /**
+     * Segunda instancia revocó → aseguradora debe cumplir lo ordenado.
+     */
     public function requiereCumplimientoSegundaInstancia(): bool
     {
         if ($this->estaPagado()) return false;
@@ -363,6 +388,9 @@ class Caso extends Model
             && !$this->cumplioFalloTutela();
     }
 
+    /**
+     * Caso cerrado porque segunda instancia confirmó el fallo negado.
+     */
     public function casoCerradoSegundaInstancia(): bool
     {
         return !empty($this->fecha_fallo_segunda_instancia)
@@ -375,6 +403,7 @@ class Caso extends Model
         if (empty($this->fecha_fallo_tutela) || $this->resultado_fallo_tutela !== 'concedido') return false;
         if (!empty($this->fecha_incidente_desacato)) return false;
         if ($this->cumplioFalloTutela()) return false;
+        // Aplica también si segunda instancia revocó y no cumple
         if (!empty($this->fecha_fallo_segunda_instancia) &&
             $this->resultado_fallo_segunda_instancia === 'revoca' &&
             !$this->cumplioFalloTutela()) {
@@ -387,6 +416,7 @@ class Caso extends Model
 
     public function cumplioFalloTutela(): bool
     {
+        // Cumplió si pagó honorarios (tutela debido proceso) o si emitió dictamen (tutela calificación)
         if (!empty($this->fecha_cumplimiento_tutela)) return true;
         if (!empty($this->fecha_pago_honorarios)) return true;
         if ($this->tipo_tutela === 'tutela_calificacion' && !empty($this->fecha_respuesta_aseguradora)) return true;
@@ -493,7 +523,7 @@ class Caso extends Model
 
         return match ($alerta) {
 
-            // ── DOCUMENTACIÓN ──────────────────────────────────────────────────
+            // ── DOCUMENTACIÓN ─────────────────────────────────────────────────
             'documentacion_inicial' => $query->where(function ($q) {
                 $q->where('tiene_poder', false)->orWhere('tiene_contrato', false);
             }),
@@ -511,7 +541,7 @@ class Caso extends Model
                 ->where('furpen_completo', false)
                 ->whereNull('fecha_reclamacion_final'),
 
-            // ── ASEGURADORA ────────────────────────────────────────────────────
+            // ── ASEGURADORA ───────────────────────────────────────────────────
 
             // Solicitud enviada y NO ha respondido aún (sin importar el tiempo)
             'sin_respuesta' => $query
@@ -555,7 +585,7 @@ class Caso extends Model
                     $q->whereNull('estado')->orWhere('estado', '!=', 'Pagado');
                 }),
 
-            // ── TUTELA ─────────────────────────────────────────────────────────
+            // ── TUTELA ────────────────────────────────────────────────────────
 
             // Tutela presentada (cualquier tipo) → esperando fallo del juez
             'tutela' => $query
@@ -565,7 +595,7 @@ class Caso extends Model
                     $q->whereNull('estado')->orWhereNotIn('estado', ['Pagado', 'Cerrado']);
                 }),
 
-            // Seguimiento tutela (mismo que tutela — alias para compatibilidad)
+            // Seguimiento tutela (más de 30 días sin fallo)
             'seguimiento_tutela' => $query
                 ->whereNotNull('fecha_tutela')
                 ->whereNull('fecha_fallo_tutela')
@@ -603,17 +633,14 @@ class Caso extends Model
             // Tutela cumplida → pendiente dictamen aseguradora o pago de honorarios
             'cumplimiento_segunda_instancia' => $query->where(function ($q) {
                 $q->where(function ($sub) {
-                    // Tutela calificación cumplida: pendiente dictamen
                     $sub->whereNotNull('fecha_cumplimiento_tutela')
                         ->where('tipo_tutela', 'tutela_calificacion')
                         ->whereNull('fecha_pago_honorarios');
                 })->orWhere(function ($sub) {
-                    // Tutela debido proceso cumplida: pendiente honorarios
                     $sub->whereNotNull('fecha_cumplimiento_tutela')
                         ->where('tipo_tutela', 'tutela_debido_proceso')
                         ->whereNull('fecha_pago_honorarios');
                 })->orWhere(function ($sub) {
-                    // Segunda instancia revocó → aseguradora debe cumplir
                     $sub->whereNotNull('fecha_fallo_segunda_instancia')
                         ->where('resultado_fallo_segunda_instancia', 'revoca')
                         ->whereNull('fecha_cumplimiento_tutela')
@@ -621,7 +648,7 @@ class Caso extends Model
                 });
             }),
 
-            // ── DESACATO ───────────────────────────────────────────────────────
+            // ── DESACATO ──────────────────────────────────────────────────────
 
             // Fallo concedido hace más de 14 días sin cumplimiento → presentar desacato
             'desacato' => $query
@@ -632,7 +659,7 @@ class Caso extends Model
                 ->whereNull('fecha_cumplimiento_tutela')
                 ->whereDate('fecha_fallo_tutela', '<', $fechaLimite14Dias),
 
-            // ── IMPUGNACIÓN ────────────────────────────────────────────────────
+            // ── IMPUGNACIÓN ───────────────────────────────────────────────────
 
             // Fallo negado o parcial → pendiente impugnar
             'impugnacion' => $query
@@ -640,7 +667,7 @@ class Caso extends Model
                 ->whereIn('resultado_fallo_tutela', ['negado', 'parcial'])
                 ->whereNull('fecha_impugnacion'),
 
-            // ── SEGUNDA INSTANCIA ──────────────────────────────────────────────
+            // ── SEGUNDA INSTANCIA ─────────────────────────────────────────────
 
             // Impugnación presentada → esperando fallo de segunda instancia
             'segunda_instancia' => $query
@@ -655,14 +682,14 @@ class Caso extends Model
                       ->orWhere('resultado_fallo_segunda_instancia', '');
                 }),
 
-            // Segunda instancia revoca → aseguradora debe CALIFICAR (tutela calificación)
+            // Segunda instancia revoca → aseguradora debe CALIFICAR
             'segunda_revoca_calificar' => $query
                 ->whereNotNull('fecha_fallo_segunda_instancia')
                 ->where('resultado_fallo_segunda_instancia', 'revoca')
                 ->where('tipo_tutela', 'tutela_calificacion')
                 ->whereNull('fecha_pago_honorarios'),
 
-            // Segunda instancia revoca → aseguradora debe PAGAR HONORARIOS (tutela debido proceso)
+            // Segunda instancia revoca → aseguradora debe PAGAR HONORARIOS
             'segunda_revoca_honorarios' => $query
                 ->whereNotNull('fecha_fallo_segunda_instancia')
                 ->where('resultado_fallo_segunda_instancia', 'revoca')
@@ -674,7 +701,7 @@ class Caso extends Model
                 ->whereNotNull('fecha_fallo_segunda_instancia')
                 ->where('resultado_fallo_segunda_instancia', 'confirma'),
 
-            // ── ORTOPEDIA Y JUNTA ──────────────────────────────────────────────
+            // ── ORTOPEDIA Y JUNTA ─────────────────────────────────────────────
 
             // Pendiente alta por ortopedia
             'alta_ortopedia_pendiente' => $query
@@ -682,7 +709,7 @@ class Caso extends Model
                 ->where('alta_ortopedia', false)
                 ->whereNull('fecha_envio_junta'),
 
-            // Pago de honorarios a junta pendiente (apelaron pero no pagaron honorarios)
+            // Pago de honorarios a junta pendiente
             'honorarios_junta' => $query
                 ->whereNotNull('fecha_apelacion')
                 ->whereNull('fecha_pago_honorarios'),
@@ -690,12 +717,10 @@ class Caso extends Model
             // Listo para junta o solicitud ya enviada → seguimiento
             'solicitud_junta' => $query->where(function ($q) {
                 $q->where(function ($sub) {
-                    // Listo para solicitar (alta ortopedia OK pero no enviado)
                     $sub->whereNotNull('fecha_pago_honorarios')
                         ->where('alta_ortopedia', true)
                         ->whereNull('fecha_envio_junta');
                 })->orWhere(function ($sub) {
-                    // Ya enviado, esperando dictamen
                     $sub->whereNotNull('fecha_envio_junta')
                         ->whereNull('fecha_dictamen_junta');
                 });
@@ -706,9 +731,9 @@ class Caso extends Model
                 ->whereNotNull('fecha_dictamen_junta')
                 ->whereNull('fecha_reclamacion_final'),
 
-            // ── COBRO Y PAGO ───────────────────────────────────────────────────
+            // ── COBRO Y PAGO ──────────────────────────────────────────────────
 
-            // Listo para cobrar (dictamen + FURPEN completo) o cobro ya enviado
+            // Listo para cobrar o cobro ya enviado
             'reclamacion' => $query->where(function ($q) {
                 $q->where(function ($sub) {
                     $sub->whereNotNull('fecha_dictamen_junta')
@@ -731,7 +756,7 @@ class Caso extends Model
                 ->whereNull('fecha_pago_final')
                 ->whereDate('fecha_reclamacion_final', '<', $fechaLimite30Dias),
 
-            // ── PRESCRIPCIÓN ───────────────────────────────────────────────────
+            // ── PRESCRIPCIÓN ──────────────────────────────────────────────────
 
             // Prescripción en los próximos 90 días
             'prescripcion_critica' => $query
@@ -744,7 +769,7 @@ class Caso extends Model
                 ->whereNotNull('fecha_prescripcion')
                 ->whereDate('fecha_prescripcion', '<', $hoy),
 
-            // ── ESTADOS FINALES ────────────────────────────────────────────────
+            // ── ESTADOS FINALES ───────────────────────────────────────────────
 
             'pagado' => $query->where(function ($q) {
                 $q->where('estado', 'Pagado')->orWhereNotNull('fecha_pago_final');
@@ -754,8 +779,9 @@ class Caso extends Model
                 ->where(function ($q) {
                     $q->whereNull('estado')->orWhere('estado', '!=', 'Pagado');
                 })
-                ->where('tiene_poder', true)
-                ->where('tiene_contrato', true)
+                ->where(function ($q) {
+                    $q->where('tiene_poder', true)->where('tiene_contrato', true);
+                })
                 ->whereNull('fecha_tutela')
                 ->whereNull('fecha_incidente_desacato')
                 ->whereNull('fecha_impugnacion')
@@ -801,7 +827,7 @@ class Caso extends Model
             (bool) $caso->tiene_poder,
             (bool) $caso->tiene_contrato,
             !empty($caso->fecha_solicitud_aseguradora),
-            !empty($caso->tipo_respuesta_aseguradora),
+            !empty($caso->tipo_respuesta_aseguradora),          // antes: fecha_respuesta
             !empty($caso->fecha_apelacion) || !empty($caso->fecha_tutela),
             !empty($caso->fecha_fallo_tutela),
             !empty($caso->fecha_pago_honorarios),
@@ -817,3 +843,5 @@ class Caso extends Model
         $total       = count($pasos);
 
         return $total > 0 ? (int) round(($completados / $total) * 100) : 0;
+    }
+}
