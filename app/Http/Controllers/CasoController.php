@@ -431,7 +431,7 @@ class CasoController extends Controller
     }
 
     // =========================================================================
-    // VOUCHER PDF
+    // VOUCHER PDF — CORREGIDO
     // =========================================================================
 
     /**
@@ -440,10 +440,33 @@ class CasoController extends Controller
     public function generarVoucherPdf(Caso $caso)
     {
         try {
+            ini_set('memory_limit', '512M');
+            set_time_limit(120);
+
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('casos.voucher-pdf', compact('caso'));
+
             $pdf->setPaper('A4', 'portrait');
+
+            $pdf->setOptions([
+                'dpi'                     => 150,
+                'defaultFont'             => 'DejaVu Sans',
+                'isRemoteEnabled'         => false,
+                'isHtml5ParserEnabled'    => true,
+                'isFontSubsettingEnabled' => true,
+            ]);
+
             $nombreArchivo = 'voucher-' . $caso->numero_caso . '-' . now()->format('Ymd') . '.pdf';
-            return $pdf->download($nombreArchivo);
+
+            $contenido = $pdf->output();
+
+            return response($contenido, 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $nombreArchivo . '"',
+                'Content-Length'      => strlen($contenido),
+                'Cache-Control'       => 'no-store, no-cache',
+                'Pragma'              => 'no-cache',
+            ]);
+
         } catch (\Throwable $e) {
             return response(
                 '<h2 style="font-family:monospace;color:red">Error generando PDF:</h2>'
@@ -691,7 +714,7 @@ class CasoController extends Controller
 
             NotificacionService::enviarAlertaFlujo(
                 $caso,
-                '🚨 Incidente de desacato registrado',
+                'Incidente de desacato registrado',
                 "La aseguradora no cumplió el fallo en el plazo legal. Fecha desacato: {$fecha}.",
                 'critico'
             );
@@ -748,6 +771,7 @@ class CasoController extends Controller
                 'Fallo de segunda instancia con resultado: ' . $resultado . '.', $fecha);
         }
 
+        $resultado    = $request->resultado_fallo_segunda_instancia;
         $nivelSegunda = $resultado === 'confirma' ? 'critico' : 'urgente';
         $textoSegunda = match($resultado) {
             'confirma' => 'Segunda instancia CONFIRMA — caso cerrado desfavorablemente',
@@ -970,7 +994,7 @@ class CasoController extends Controller
 
             NotificacionService::enviarAlertaFlujo(
                 $caso,
-                '✅ CASO PAGADO — Gestión completada',
+                'CASO PAGADO — Gestión completada',
                 'Valor pagado: $' . number_format($request->valor_pagado, 0, ',', '.') .
                 '. Honorarios: ' . $porcentajeHonorarios . '%.' .
                 ' Ganancia equipo: $' . number_format($finanzas['ganancia_equipo'] ?? 0, 0, ',', '.') . '.',
