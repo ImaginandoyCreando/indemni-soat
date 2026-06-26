@@ -49,24 +49,7 @@ class CasoController extends Controller
         if ($request->filled('alta_ortopedia')) $query->where('alta_ortopedia', $request->alta_ortopedia === '1');
         if ($request->filled('furpen_completo')) $query->where('furpen_completo', $request->furpen_completo === '1');
 
-        // Solo traemos las columnas necesarias para la vista de lista
         $casos = $query
-            ->select([
-                'id', 'numero_caso', 'nombres', 'apellidos', 'cedula',
-                'aseguradora', 'estado', 'valor_estimado', 'valor_pagado',
-                'porcentaje_pcl', 'ganancia_equipo', 'porcentaje_honorarios',
-                'tiene_poder', 'tiene_contrato', 'alta_ortopedia', 'furpen_completo',
-                'fecha_accidente', 'fecha_solicitud_aseguradora', 'fecha_respuesta_aseguradora',
-                'tipo_respuesta_aseguradora', 'fecha_apelacion', 'fecha_tutela',
-                'tipo_tutela', 'fecha_pago_honorarios', 'fecha_envio_junta',
-                'fecha_dictamen_junta', 'fecha_reclamacion_final', 'fecha_pago_final',
-                'fecha_prescripcion', 'fecha_entrega_poder', 'fecha_poder_firmado',
-                'fecha_entrega_contrato', 'fecha_contrato_firmado',
-                'fecha_fallo_tutela', 'resultado_fallo_tutela',
-                'fecha_incidente_desacato', 'fecha_cumplimiento_tutela', 'tipo_cumplimiento_tutela',
-                'fecha_impugnacion', 'fecha_fallo_segunda_instancia', 'resultado_fallo_segunda_instancia',
-                'fecha_alta_ortopedia', 'fecha_furpen_recibido', 'created_at',
-            ])
             ->orderBy($sort, $direction)
             ->paginate(10)
             ->withQueryString();
