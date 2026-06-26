@@ -311,7 +311,7 @@ form.inline { display:inline; }
 </div>
 
 {{-- ── Prioridades ── --}}
-<div class="is-priority-row is-animate-rise is-stagger-2"
+<div class="is-priority-row is-animate-rise is-stagger-1"
      style="margin-bottom:16px;padding:12px 16px;
             background:var(--bg-card);border:1px solid var(--border);border-radius:10px;">
     <span style="font-size:10px;font-weight:700;color:var(--text-3);
@@ -347,7 +347,7 @@ form.inline { display:inline; }
 </div>
 
 {{-- ── Tabla ── --}}
-<div class="is-table-wrap is-table is-animate-rise is-stagger-3">
+<div class="is-table-wrap is-table">
 
     <div class="is-table-header">
         <div style="font-size:13px;color:var(--text-2);">
