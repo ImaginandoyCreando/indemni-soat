@@ -39,6 +39,32 @@
     letter-spacing: .3px;
     text-transform: uppercase;
 }
+.is-gen-select {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border-2);
+    border-radius: 7px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--text-1);
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+    cursor: pointer;
+    transition: border-color .15s;
+}
+.is-gen-select:focus {
+    border-color: #4B78FF;
+    box-shadow: 0 0 0 3px rgba(75,120,255,.12);
+}
+.is-gen-select.is-auto {
+    background-color: rgba(5,150,105,.05);
+    border-color: rgba(5,150,105,.25);
+}
 .is-prev-doc {
     background: var(--bg-input);
     border: 1px solid var(--border-2);
@@ -148,21 +174,38 @@
                                 @php
                                     $esAuto     = ($preRellenos[$var] ?? '') !== '';
                                     $valorViejo = old($var, $preRellenos[$var] ?? '');
+                                    $esSelect   = isset($opcionesSelect[$var]);
+                                    $etiqueta   = str_replace('_', ' ', $var);
                                 @endphp
                                 <div class="is-gen-field">
                                     <label class="is-gen-label">
-                                        {{ str_replace('_', ' ', $var) }}
+                                        {{ $etiqueta }}
                                         @if($esAuto)
                                             <span class="auto-tag">AUTO</span>
                                         @else
                                             <span class="manual-tag">MANUAL</span>
                                         @endif
                                     </label>
-                                    <input type="text"
-                                           name="{{ $var }}"
-                                           class="is-input"
-                                           value="{{ $valorViejo }}"
-                                           placeholder="{{ str_replace('_', ' ', ucfirst($var)) }}">
+
+                                    @if($esSelect)
+                                        <select name="{{ $var }}"
+                                                class="is-gen-select {{ $esAuto ? 'is-auto' : '' }}">
+                                            <option value="">— Seleccionar —</option>
+                                            @foreach($opcionesSelect[$var] as $opcion)
+                                                <option value="{{ $opcion }}"
+                                                        {{ $valorViejo === $opcion ? 'selected' : '' }}>
+                                                    {{ $opcion }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    @else
+                                        <input type="text"
+                                               name="{{ $var }}"
+                                               class="is-input{{ $esAuto ? ' is-input-auto' : '' }}"
+                                               value="{{ $valorViejo }}"
+                                               placeholder="{{ ucfirst($etiqueta) }}"
+                                               style="{{ $esAuto ? 'background:rgba(5,150,105,.05);border-color:rgba(5,150,105,.25);' : '' }}">
+                                    @endif
                                 </div>
                             @endforeach
                         </div>
