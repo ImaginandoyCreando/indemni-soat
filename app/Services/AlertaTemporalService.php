@@ -6,22 +6,25 @@ use App\Models\Caso;
 use Carbon\Carbon;
 
 /**
- * AlertaTemporalService
+ * AlertaTemporalService — v2 CORREGIDA
  *
- * Genera alertas temporales por estado jurídico según el flujo SOAT.
- * Cada estado tiene su propia regla de tiempo y nivel de alerta.
+ * CAMBIOS APLICADOS:
+ *  1. BUG FIX: Solicitud a aseguradora ahora usa días CALENDARIO (no hábiles).
+ *     Antes mostraba ~24 (días hábiles). Ahora mostrará ~31-32 días correctos.
+ *
+ *  2. BUG FIX: Cada estado del flujo muestra su propia alerta dinámica.
+ *     Ya no se agrupan "Aseguradora negó" / "no respondió" con "Solicitud enviada".
+ *     Cada uno muestra la acción concreta que corresponde.
+ *
+ *  3. NUEVA LÓGICA: Alertas visibles desde el día 1 para estados críticos
+ *     (negó, no respondió, tutela presentada, fallo negado, etc.).
+ *     El contador es en tiempo real y siempre visible en estos estados.
  *
  * PLAZOS:
- *  - Impugnación de fallo negado : 3 días hábiles  (CRÍTICO)
- *  - Desacato sin cumplimiento   : 1 semana / 5 días hábiles (CRÍTICO)
- *  - Todos los demás procesos    : 1 mes / 30 días calendario (URGENTE → CRÍTICO)
- *
- * USO en Blade:
- *   @include('casos._alertas-temporales', ['caso' => $caso])
- *
- * USO en controlador:
- *   use App\Services\AlertaTemporalService;
- *   $alertas = AlertaTemporalService::calcular($caso);
+ *  - Impugnación de fallo negado : 3 días hábiles  (CRÍTICO desde día 0)
+ *  - Desacato sin cumplimiento   : 5 días hábiles  (CRÍTICO)
+ *  - Tutela presentada           : 10 días hábiles (juez debe fallar)
+ *  - Todos los demás procesos    : 30 días calendario (URGENTE → CRÍTICO)
  */
 class AlertaTemporalService
 {
@@ -29,11 +32,11 @@ class AlertaTemporalService
     const NIVEL_URGENTE = 'urgente';
     const NIVEL_INFO    = 'info';
 
-    // Días calendario considerados "1 mes" para la mayoría de procesos
-    const MES_DIAS = 30;
+    // Días calendario considerados "1 mes"
+    const MES_DIAS     = 30;
 
-    // Días hábiles de margen antes de empezar a alertar (evita alertas prematuras)
-    const AVISO_PREVIO_DIAS = 7;
+    // Días antes del vencimiento para empezar a alertar (aviso previo)
+    const AVISO_PREVIO = 7;
 
     /**
      * Retorna array de alertas activas para el caso.
@@ -56,57 +59,100 @@ class AlertaTemporalService
         $estado  = $caso->estado ?? '';
 
         // ══════════════════════════════════════════════════════════════════════
-        // BLOQUE A — FLUJO ASEGURADORA (solicitud → dictamen → apelación → tutela)
+        // BLOQUE A — FLUJO ASEGURADORA
         // ══════════════════════════════════════════════════════════════════════
 
-        // A1. Solicitud enviada sin respuesta — 1 mes hábil
-        if (in_array($estado, [
-            'Solicitud de calificación enviada',
-            'Aseguradora negó - presentar tutela para calificación',
-            'Aseguradora no respondió - presentar tutela para calificación',
-        ]) && $caso->fecha_solicitud_aseguradora) {
-            $dias = self::diasHabiles(Carbon::parse($caso->fecha_solicitud_aseguradora), $hoy);
-            if ($dias >= 20) {
-                $nivel = $dias >= 30 ? self::NIVEL_CRITICO : self::NIVEL_URGENTE;
+        // A1. Solicitud enviada — en espera de respuesta
+        //     CORRECCIÓN: usa diffInDays (calendario), NO diasHabiles.
+        //     Mayo 25 → Junio 26 = 32 días calendario ✓ (antes daba ~24 hábiles)
+        //     Muestra desde día 1 con nivel INFO, sube a URGENTE/CRITICO al acercarse al mes.
+        if ($estado === 'Solicitud de calificación enviada'
+            && $caso->fecha_solicitud_aseguradora) {
+
+            $dias = (int) Carbon::parse($caso->fecha_solicitud_aseguradora)->diffInDays($hoy);
+
+            $nivel = match(true) {
+                $dias >= self::MES_DIAS               => self::NIVEL_CRITICO,
+                $dias >= self::MES_DIAS - self::AVISO_PREVIO => self::NIVEL_URGENTE,
+                default                               => self::NIVEL_INFO,
+            };
+
+            $alertas[] = self::alerta(
+                $nivel,
+                '⏰',
+                'Sin respuesta de la aseguradora',
+                "Han pasado {$dias} días desde la solicitud de calificación.",
+                $dias >= self::MES_DIAS
+                    ? 'El plazo de 30 días se cumplió. Procede a presentar tutela de inmediato.'
+                    : ($dias >= self::MES_DIAS - self::AVISO_PREVIO
+                        ? 'El plazo de 30 días está próximo a vencer. Prepara la tutela.'
+                        : 'Esperando respuesta de la aseguradora (plazo: 30 días).'),
+                $dias
+            );
+        }
+
+        // A1b. Aseguradora NEGÓ la solicitud → presentar tutela para calificación
+        //      NUEVO: estado propio con alerta CRÍTICO visible desde el día 1.
+        if ($estado === 'Aseguradora negó - presentar tutela para calificación') {
+            $fechaRef = $caso->fecha_respuesta_aseguradora
+                        ?? $caso->fecha_solicitud_aseguradora
+                        ?? null;
+            if ($fechaRef) {
+                $dias = (int) Carbon::parse($fechaRef)->diffInDays($hoy);
                 $alertas[] = self::alerta(
-                    $nivel,
-                    '⏰',
-                    'Sin respuesta de la aseguradora',
-                    "Han pasado {$dias} días hábiles desde la solicitud de calificación enviada.",
-                    $dias >= 30
-                        ? 'El plazo de 1 mes hábil se cumplió. Procede a presentar tutela.'
-                        : 'El plazo es de 30 días hábiles. Prepara la tutela por si no responden.',
+                    self::NIVEL_CRITICO,
+                    '🚫',
+                    'Aseguradora NEGÓ — presentar tutela para calificación',
+                    "La aseguradora negó la solicitud (hace {$dias} día(s)).",
+                    'Presenta la tutela para calificación ante el juzgado competente.',
                     $dias
                 );
             }
         }
 
-        // A2. Dictamen recibido — plazo de 1 mes para manifestar inconformidad/apelar
-        if ($estado === 'Dictamen de aseguradora recibido' && $caso->fecha_solicitud_aseguradora) {
-            // Si el modelo tiene fecha_dictamen_aseguradora úsala; si no, usa la solicitud como proxy
-            $fechaRef = property_exists($caso, 'fecha_dictamen_aseguradora') && $caso->fecha_dictamen_aseguradora
-                        ? $caso->fecha_dictamen_aseguradora
-                        : $caso->fecha_solicitud_aseguradora;
-            $dias = Carbon::parse($fechaRef)->diffInDays($hoy);
-            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO_DIAS) {
-                $nivel = $dias >= self::MES_DIAS ? self::NIVEL_CRITICO : self::NIVEL_URGENTE;
-                $alertas[] = self::alerta(
-                    $nivel,
-                    '📝',
-                    'Dictamen recibido — manifestar inconformidad',
-                    "Llevan {$dias} días desde el dictamen de la aseguradora.",
-                    $dias >= self::MES_DIAS
-                        ? 'El plazo de 1 mes para manifestar inconformidad puede estar vencido.'
-                        : 'Tienes 1 mes para presentar inconformidad o apelación del dictamen.',
-                    $dias
-                );
-            }
+        // A1c. Aseguradora NO RESPONDIÓ → presentar tutela para calificación
+        //      NUEVO: estado propio con alerta CRÍTICO desde el día 1.
+        if ($estado === 'Aseguradora no respondió - presentar tutela para calificación'
+            && $caso->fecha_solicitud_aseguradora) {
+
+            $dias = (int) Carbon::parse($caso->fecha_solicitud_aseguradora)->diffInDays($hoy);
+            $alertas[] = self::alerta(
+                self::NIVEL_CRITICO,
+                '⚠️',
+                'Aseguradora NO RESPONDIÓ — presentar tutela',
+                "Han pasado {$dias} días desde la solicitud sin respuesta de la aseguradora.",
+                'Presenta la tutela para calificación ante el juzgado competente.',
+                $dias
+            );
         }
 
-        // A3. Apelación presentada sin resultado — 1 mes
-        if ($estado === 'Apelación de dictamen presentada' && $caso->fecha_apelacion) {
-            $dias = Carbon::parse($caso->fecha_apelacion)->diffInDays($hoy);
-            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO_DIAS) {
+        // A2. Dictamen recibido → manifestar inconformidad / apelar (30 días)
+        if ($estado === 'Dictamen de aseguradora recibido'
+            && $caso->fecha_solicitud_aseguradora) {
+
+            $fechaRef = $caso->fecha_respuesta_aseguradora
+                        ?? $caso->fecha_solicitud_aseguradora;
+            $dias = (int) Carbon::parse($fechaRef)->diffInDays($hoy);
+
+            $nivel = $dias >= self::MES_DIAS ? self::NIVEL_CRITICO : self::NIVEL_URGENTE;
+            $alertas[] = self::alerta(
+                $nivel,
+                '📝',
+                'Dictamen recibido — manifestar inconformidad o apelar',
+                "Han pasado {$dias} días desde el dictamen de la aseguradora.",
+                $dias >= self::MES_DIAS
+                    ? 'El plazo de 30 días venció. Presenta la apelación o inconformidad de inmediato.'
+                    : 'Tienes 30 días para presentar inconformidad o apelación del dictamen.',
+                $dias
+            );
+        }
+
+        // A3. Apelación presentada sin resultado — 30 días
+        if ($estado === 'Apelación de dictamen presentada'
+            && $caso->fecha_apelacion) {
+
+            $dias = (int) Carbon::parse($caso->fecha_apelacion)->diffInDays($hoy);
+            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO) {
                 $nivel = $dias >= self::MES_DIAS ? self::NIVEL_CRITICO : self::NIVEL_URGENTE;
                 $alertas[] = self::alerta(
                     $nivel,
@@ -114,8 +160,8 @@ class AlertaTemporalService
                     'Apelación sin respuesta del ente calificador',
                     "Han pasado {$dias} días desde la apelación del dictamen.",
                     $dias >= self::MES_DIAS
-                        ? 'El plazo de 1 mes venció. Haz seguimiento urgente ante la junta o aseguradora.'
-                        : 'El plazo esperado es de 1 mes.',
+                        ? 'El plazo de 30 días venció. Haz seguimiento urgente.'
+                        : 'El plazo esperado es de 30 días.',
                     $dias
                 );
             }
@@ -125,56 +171,67 @@ class AlertaTemporalService
         // BLOQUE B — FLUJO TUTELA
         // ══════════════════════════════════════════════════════════════════════
 
-        // B1. Tutela presentada sin fallo — 10 días hábiles (juez debe fallar en 10 días)
+        // B1. Tutela presentada — a la espera del fallo del juez (10 días hábiles)
+        //     NUEVO: visible desde el día 1 (no sólo después de 10 días).
         if (in_array($estado, [
             'Tutela para calificación presentada',
             'Tutela por debido proceso presentada',
         ]) && $caso->fecha_tutela) {
-            $dias = self::diasHabiles(Carbon::parse($caso->fecha_tutela), $hoy);
-            if ($dias >= 10) {
-                $nivel = $dias >= 20 ? self::NIVEL_CRITICO : self::NIVEL_URGENTE;
-                $alertas[] = self::alerta(
-                    $nivel,
-                    '📋',
-                    'Tutela presentada — en espera de fallo',
-                    "Han pasado {$dias} días hábiles desde la presentación de la tutela.",
-                    $dias >= 10
-                        ? '⚠️ El juez tiene 10 días hábiles para fallar. Haz seguimiento urgente con el juzgado.'
-                        : 'Haz seguimiento periódico con el juzgado.',
-                    $dias
-                );
-            }
+
+            $diasHab = self::diasHabiles(Carbon::parse($caso->fecha_tutela), $hoy);
+            $diasCal = (int) Carbon::parse($caso->fecha_tutela)->diffInDays($hoy);
+
+            $nivel = match(true) {
+                $diasHab >= 20 => self::NIVEL_CRITICO,
+                $diasHab >= 10 => self::NIVEL_URGENTE,
+                default        => self::NIVEL_INFO,
+            };
+
+            $alertas[] = self::alerta(
+                $nivel,
+                '📋',
+                'Tutela presentada — a la espera del fallo',
+                "Han pasado {$diasHab} días hábiles ({$diasCal} calendario) desde la presentación.",
+                $diasHab >= 10
+                    ? '⚠️ El juez debía fallar en 10 días hábiles. Haz seguimiento urgente con el juzgado.'
+                    : 'El juez tiene 10 días hábiles para fallar. Haz seguimiento periódico.',
+                $diasHab
+            );
         }
 
-        // B2. Fallo negado — IMPUGNAR en 3 días hábiles (MÁS CRÍTICO)
-        if ($estado === 'Fallo tutela negado - pendiente impugnación' && $caso->fecha_fallo_tutela) {
-            $dias = self::diasHabiles(Carbon::parse($caso->fecha_fallo_tutela), $hoy);
+        // B2. Fallo negado — IMPUGNAR en 3 días hábiles (MÁS CRÍTICO — visible desde día 0)
+        if ($estado === 'Fallo tutela negado - pendiente impugnación'
+            && $caso->fecha_fallo_tutela) {
+
+            $dias      = self::diasHabiles(Carbon::parse($caso->fecha_fallo_tutela), $hoy);
             $restantes = max(0, 3 - $dias);
             $alertas[] = self::alerta(
                 self::NIVEL_CRITICO,
                 '🚨',
                 '¡IMPUGNAR AHORA — 3 días hábiles!',
-                "El fallo de tutela fue NEGADO hace {$dias} día(s) hábil(es).",
+                "El fallo fue NEGADO hace {$dias} día(s) hábil(es).",
                 $dias >= 3
                     ? '⚠️ El plazo de 3 días hábiles para impugnar puede estar VENCIDO. Actúa de inmediato.'
-                    : "Quedan aproximadamente {$restantes} día(s) hábil(es) para impugnar. Es el plazo más corto del proceso.",
+                    : "Quedan aprox. {$restantes} día(s) hábil(es) para impugnar.",
                 $dias
             );
         }
 
-        // B3. Fallo concedido — aseguradora debe cumplir en 1 mes
-        if ($estado === 'Fallo tutela concedido - esperando cumplimiento' && $caso->fecha_fallo_tutela) {
-            $dias = Carbon::parse($caso->fecha_fallo_tutela)->diffInDays($hoy);
-            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO_DIAS) {
+        // B3. Fallo concedido — aseguradora debe cumplir en 30 días
+        if ($estado === 'Fallo tutela concedido - esperando cumplimiento'
+            && $caso->fecha_fallo_tutela) {
+
+            $dias = (int) Carbon::parse($caso->fecha_fallo_tutela)->diffInDays($hoy);
+            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO) {
                 $nivel = $dias >= self::MES_DIAS ? self::NIVEL_CRITICO : self::NIVEL_URGENTE;
                 $alertas[] = self::alerta(
                     $nivel,
                     '⚖️',
                     'Aseguradora debe cumplir fallo concedido',
-                    "Han pasado {$dias} días desde el fallo de tutela CONCEDIDO sin que la aseguradora cumpla.",
+                    "Han pasado {$dias} días desde el fallo CONCEDIDO sin cumplimiento.",
                     $dias >= self::MES_DIAS
-                        ? 'El plazo de 1 mes venció. Presenta incidente de desacato de inmediato.'
-                        : 'Plazo de 1 mes para cumplir. Prepara el incidente de desacato.',
+                        ? 'El plazo de 30 días venció. Presenta incidente de desacato de inmediato.'
+                        : 'Plazo de 30 días para cumplir. Prepara el incidente de desacato.',
                     $dias
                 );
             }
@@ -182,8 +239,8 @@ class AlertaTemporalService
 
         // B4. Fallo de tutela registrado (estado intermedio) — seguimiento
         if ($estado === 'Fallo de tutela registrado' && $caso->fecha_fallo_tutela) {
-            $dias = Carbon::parse($caso->fecha_fallo_tutela)->diffInDays($hoy);
-            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO_DIAS) {
+            $dias = (int) Carbon::parse($caso->fecha_fallo_tutela)->diffInDays($hoy);
+            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO) {
                 $alertas[] = self::alerta(
                     self::NIVEL_INFO,
                     '📋',
@@ -199,8 +256,10 @@ class AlertaTemporalService
         // BLOQUE C — DESACATO
         // ══════════════════════════════════════════════════════════════════════
 
-        // C1. Desacato presentado sin cumplimiento — 1 semana (5 días hábiles)
-        if ($estado === 'Incidente de desacato presentado' && $caso->fecha_incidente_desacato) {
+        // C1. Desacato presentado sin cumplimiento — 5 días hábiles (~1 semana)
+        if ($estado === 'Incidente de desacato presentado'
+            && $caso->fecha_incidente_desacato) {
+
             $dias = self::diasHabiles(Carbon::parse($caso->fecha_incidente_desacato), $hoy);
             if ($dias >= 5) {
                 $alertas[] = self::alerta(
@@ -218,10 +277,10 @@ class AlertaTemporalService
         // BLOQUE D — SEGUNDA INSTANCIA
         // ══════════════════════════════════════════════════════════════════════
 
-        // D1. Impugnación presentada sin fallo segunda instancia — 1 mes
+        // D1. Impugnación presentada sin fallo de segunda instancia — 30 días
         if ($estado === 'Impugnación presentada' && $caso->fecha_impugnacion) {
-            $dias = Carbon::parse($caso->fecha_impugnacion)->diffInDays($hoy);
-            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO_DIAS) {
+            $dias = (int) Carbon::parse($caso->fecha_impugnacion)->diffInDays($hoy);
+            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO) {
                 $nivel = $dias >= self::MES_DIAS ? self::NIVEL_CRITICO : self::NIVEL_URGENTE;
                 $alertas[] = self::alerta(
                     $nivel,
@@ -229,7 +288,7 @@ class AlertaTemporalService
                     'Impugnación sin fallo de segunda instancia',
                     "Han pasado {$dias} días desde la impugnación sin fallo.",
                     $dias >= self::MES_DIAS
-                        ? 'El plazo esperado de 1 mes venció. Haz seguimiento con el tribunal.'
+                        ? 'El plazo esperado de 30 días venció. Haz seguimiento con el tribunal.'
                         : 'Haz seguimiento periódico con el tribunal.',
                     $dias
                 );
@@ -237,9 +296,11 @@ class AlertaTemporalService
         }
 
         // D2. Fallo segunda instancia registrado — seguimiento
-        if ($estado === 'Fallo de segunda instancia registrado' && $caso->fecha_fallo_segunda_instancia) {
-            $dias = Carbon::parse($caso->fecha_fallo_segunda_instancia)->diffInDays($hoy);
-            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO_DIAS) {
+        if ($estado === 'Fallo de segunda instancia registrado'
+            && $caso->fecha_fallo_segunda_instancia) {
+
+            $dias = (int) Carbon::parse($caso->fecha_fallo_segunda_instancia)->diffInDays($hoy);
+            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO) {
                 $alertas[] = self::alerta(
                     self::NIVEL_INFO,
                     '📋',
@@ -251,11 +312,12 @@ class AlertaTemporalService
             }
         }
 
-        // D3. Segunda instancia revoca — aseguradora debe calificar (1 mes)
+        // D3. Segunda instancia revoca — aseguradora debe calificar (30 días)
         if ($estado === 'Segunda instancia revoca - aseguradora debe calificar'
             && $caso->fecha_fallo_segunda_instancia) {
-            $dias = Carbon::parse($caso->fecha_fallo_segunda_instancia)->diffInDays($hoy);
-            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO_DIAS) {
+
+            $dias = (int) Carbon::parse($caso->fecha_fallo_segunda_instancia)->diffInDays($hoy);
+            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO) {
                 $nivel = $dias >= self::MES_DIAS ? self::NIVEL_CRITICO : self::NIVEL_URGENTE;
                 $alertas[] = self::alerta(
                     $nivel,
@@ -263,18 +325,19 @@ class AlertaTemporalService
                     'Segunda instancia revoca — aseguradora debe calificar',
                     "Han pasado {$dias} días desde que la segunda instancia revocó el fallo.",
                     $dias >= self::MES_DIAS
-                        ? 'El plazo de 1 mes venció. La aseguradora debe emitir calificación. Escala si no lo hace.'
-                        : 'Plazo de 1 mes para que la aseguradora califique.',
+                        ? 'El plazo de 30 días venció. Exige a la aseguradora que emita calificación.'
+                        : 'Plazo de 30 días para que la aseguradora califique.',
                     $dias
                 );
             }
         }
 
-        // D4. Segunda instancia revoca — aseguradora debe pagar honorarios (1 mes)
+        // D4. Segunda instancia revoca — aseguradora debe pagar honorarios (30 días)
         if ($estado === 'Segunda instancia revoca - aseguradora debe pagar honorarios'
             && $caso->fecha_fallo_segunda_instancia) {
-            $dias = Carbon::parse($caso->fecha_fallo_segunda_instancia)->diffInDays($hoy);
-            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO_DIAS) {
+
+            $dias = (int) Carbon::parse($caso->fecha_fallo_segunda_instancia)->diffInDays($hoy);
+            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO) {
                 $nivel = $dias >= self::MES_DIAS ? self::NIVEL_CRITICO : self::NIVEL_URGENTE;
                 $alertas[] = self::alerta(
                     $nivel,
@@ -282,22 +345,23 @@ class AlertaTemporalService
                     'Segunda instancia revoca — pendiente pago honorarios',
                     "Han pasado {$dias} días desde que la segunda instancia revocó el fallo.",
                     $dias >= self::MES_DIAS
-                        ? 'El plazo de 1 mes venció. Haz seguimiento urgente del pago de honorarios.'
-                        : 'Plazo de 1 mes para recibir pago de honorarios.',
+                        ? 'El plazo de 30 días venció. Haz seguimiento urgente del pago de honorarios.'
+                        : 'Plazo de 30 días para recibir pago de honorarios.',
                     $dias
                 );
             }
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // BLOQUE E — PENDIENTES DOCUMENTOS / ORTOPEDIA
+        // BLOQUE E — CUMPLIMIENTO TUTELA / ORTOPEDIA
         // ══════════════════════════════════════════════════════════════════════
 
-        // E1. Tutela cumplida — pendiente dictamen aseguradora (1 mes)
+        // E1. Tutela cumplida — pendiente dictamen aseguradora (30 días)
         if ($estado === 'Tutela cumplida - pendiente dictamen aseguradora'
             && $caso->fecha_cumplimiento_tutela) {
-            $dias = Carbon::parse($caso->fecha_cumplimiento_tutela)->diffInDays($hoy);
-            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO_DIAS) {
+
+            $dias = (int) Carbon::parse($caso->fecha_cumplimiento_tutela)->diffInDays($hoy);
+            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO) {
                 $nivel = $dias >= self::MES_DIAS ? self::NIVEL_CRITICO : self::NIVEL_URGENTE;
                 $alertas[] = self::alerta(
                     $nivel,
@@ -305,18 +369,19 @@ class AlertaTemporalService
                     'Cumplimiento tutela — pendiente dictamen aseguradora',
                     "Han pasado {$dias} días desde el cumplimiento de la tutela sin dictamen.",
                     $dias >= self::MES_DIAS
-                        ? 'El plazo de 1 mes venció. Exige a la aseguradora que emita el dictamen.'
-                        : 'El plazo esperado es de 1 mes para el dictamen.',
+                        ? 'El plazo de 30 días venció. Exige a la aseguradora que emita el dictamen.'
+                        : 'El plazo esperado es de 30 días para el dictamen.',
                     $dias
                 );
             }
         }
 
-        // E2. Tutela cumplida — pendiente pago honorarios (1 mes)
+        // E2. Tutela cumplida — pendiente pago honorarios (30 días)
         if ($estado === 'Tutela cumplida - pendiente pago honorarios'
             && $caso->fecha_cumplimiento_tutela) {
-            $dias = Carbon::parse($caso->fecha_cumplimiento_tutela)->diffInDays($hoy);
-            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO_DIAS) {
+
+            $dias = (int) Carbon::parse($caso->fecha_cumplimiento_tutela)->diffInDays($hoy);
+            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO) {
                 $nivel = $dias >= self::MES_DIAS ? self::NIVEL_CRITICO : self::NIVEL_URGENTE;
                 $alertas[] = self::alerta(
                     $nivel,
@@ -324,20 +389,19 @@ class AlertaTemporalService
                     'Cumplimiento tutela — pendiente pago honorarios a junta',
                     "Han pasado {$dias} días desde el cumplimiento de la tutela sin pago de honorarios.",
                     $dias >= self::MES_DIAS
-                        ? 'El plazo de 1 mes venció. Gestiona el pago de honorarios a la junta.'
-                        : 'El plazo esperado para el pago de honorarios es de 1 mes.',
+                        ? 'El plazo de 30 días venció. Gestiona el pago de honorarios a la junta.'
+                        : 'El plazo esperado para el pago de honorarios es de 30 días.',
                     $dias
                 );
             }
         }
 
-        // E3. Pendiente alta por ortopedia — 1 mes como referencia
+        // E3. Pendiente alta por ortopedia — 30 días de referencia
         if ($estado === 'Pendiente alta por ortopedia') {
-            // Usamos updated_at como proxy de cuándo entró a este estado
             $fechaRef = $caso->updated_at ?? $caso->created_at ?? null;
             if ($fechaRef) {
-                $dias = Carbon::parse($fechaRef)->diffInDays($hoy);
-                if ($dias >= self::MES_DIAS - self::AVISO_PREVIO_DIAS) {
+                $dias = (int) Carbon::parse($fechaRef)->diffInDays($hoy);
+                if ($dias >= self::MES_DIAS - self::AVISO_PREVIO) {
                     $nivel = $dias >= self::MES_DIAS ? self::NIVEL_URGENTE : self::NIVEL_INFO;
                     $alertas[] = self::alerta(
                         $nivel,
@@ -355,12 +419,12 @@ class AlertaTemporalService
         // BLOQUE F — FLUJO JUNTA
         // ══════════════════════════════════════════════════════════════════════
 
-        // F1. Listo para solicitud a junta — sin envío en 1 mes
+        // F1. Listo para solicitud a junta — sin envío en 30 días
         if ($estado === 'Listo para solicitud a junta') {
             $fechaRef = $caso->fecha_pago_honorarios ?? $caso->updated_at ?? null;
             if ($fechaRef) {
-                $dias = Carbon::parse($fechaRef)->diffInDays($hoy);
-                if ($dias >= self::MES_DIAS - self::AVISO_PREVIO_DIAS) {
+                $dias = (int) Carbon::parse($fechaRef)->diffInDays($hoy);
+                if ($dias >= self::MES_DIAS - self::AVISO_PREVIO) {
                     $nivel = $dias >= self::MES_DIAS ? self::NIVEL_URGENTE : self::NIVEL_INFO;
                     $alertas[] = self::alerta(
                         $nivel,
@@ -374,10 +438,10 @@ class AlertaTemporalService
             }
         }
 
-        // F2. Solicitud enviada a junta — sin dictamen en 1 mes
+        // F2. Solicitud enviada a junta — sin dictamen en 30 días
         if ($estado === 'Solicitud enviada a junta' && $caso->fecha_envio_junta) {
-            $dias = Carbon::parse($caso->fecha_envio_junta)->diffInDays($hoy);
-            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO_DIAS) {
+            $dias = (int) Carbon::parse($caso->fecha_envio_junta)->diffInDays($hoy);
+            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO) {
                 $nivel = $dias >= self::MES_DIAS ? self::NIVEL_CRITICO : self::NIVEL_URGENTE;
                 $alertas[] = self::alerta(
                     $nivel,
@@ -385,17 +449,17 @@ class AlertaTemporalService
                     'Junta médica sin emitir dictamen',
                     "Han pasado {$dias} días desde el envío de la solicitud a la junta sin dictamen.",
                     $dias >= self::MES_DIAS
-                        ? 'El plazo de 1 mes venció. Contacta la junta para exigir el dictamen.'
-                        : 'El plazo esperado es de 1 mes para el dictamen.',
+                        ? 'El plazo de 30 días venció. Contacta la junta para exigir el dictamen.'
+                        : 'El plazo esperado es de 30 días para el dictamen.',
                     $dias
                 );
             }
         }
 
-        // F3. Dictamen de junta recibido — sin cobro en 1 mes
+        // F3. Dictamen de junta recibido — sin cobro en 30 días
         if ($estado === 'Dictamen de junta recibido' && $caso->fecha_dictamen_junta) {
-            $dias = Carbon::parse($caso->fecha_dictamen_junta)->diffInDays($hoy);
-            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO_DIAS) {
+            $dias = (int) Carbon::parse($caso->fecha_dictamen_junta)->diffInDays($hoy);
+            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO) {
                 $nivel = $dias >= self::MES_DIAS ? self::NIVEL_URGENTE : self::NIVEL_INFO;
                 $alertas[] = self::alerta(
                     $nivel,
@@ -403,7 +467,7 @@ class AlertaTemporalService
                     'Dictamen recibido — enviar cobro a aseguradora',
                     "Han pasado {$dias} días desde el dictamen de la junta sin enviar el cobro.",
                     $dias >= self::MES_DIAS
-                        ? 'El plazo de 1 mes pasó. Prepara y envía el cobro a la aseguradora.'
+                        ? 'El plazo de 30 días pasó. Prepara y envía el cobro a la aseguradora.'
                         : 'Prepara el cobro para enviarlo a la aseguradora.',
                     $dias
                 );
@@ -414,12 +478,12 @@ class AlertaTemporalService
         // BLOQUE G — COBRO Y PAGO FINAL
         // ══════════════════════════════════════════════════════════════════════
 
-        // G1. Listo para cobro a aseguradora — sin envío en 1 mes
+        // G1. Listo para cobro a aseguradora — sin envío en 30 días
         if ($estado === 'Listo para cobro a aseguradora') {
             $fechaRef = $caso->fecha_dictamen_junta ?? $caso->updated_at ?? null;
             if ($fechaRef) {
-                $dias = Carbon::parse($fechaRef)->diffInDays($hoy);
-                if ($dias >= self::MES_DIAS - self::AVISO_PREVIO_DIAS) {
+                $dias = (int) Carbon::parse($fechaRef)->diffInDays($hoy);
+                if ($dias >= self::MES_DIAS - self::AVISO_PREVIO) {
                     $nivel = $dias >= self::MES_DIAS ? self::NIVEL_URGENTE : self::NIVEL_INFO;
                     $alertas[] = self::alerta(
                         $nivel,
@@ -433,10 +497,10 @@ class AlertaTemporalService
             }
         }
 
-        // G2. Cobro enviado sin pago — 1 mes
+        // G2. Cobro enviado sin pago — 30 días
         if ($estado === 'Cobro a aseguradora enviado' && $caso->fecha_reclamacion_final) {
-            $dias = Carbon::parse($caso->fecha_reclamacion_final)->diffInDays($hoy);
-            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO_DIAS) {
+            $dias = (int) Carbon::parse($caso->fecha_reclamacion_final)->diffInDays($hoy);
+            if ($dias >= self::MES_DIAS - self::AVISO_PREVIO) {
                 $nivel = $dias >= self::MES_DIAS ? self::NIVEL_CRITICO : self::NIVEL_URGENTE;
                 $alertas[] = self::alerta(
                     $nivel,
@@ -444,8 +508,8 @@ class AlertaTemporalService
                     'Cobro enviado — sin pago de la aseguradora',
                     "Han pasado {$dias} días desde el envío del cobro sin que la aseguradora pague.",
                     $dias >= self::MES_DIAS
-                        ? 'El plazo de 1 mes venció. Considera presentar queja ante la Superintendencia Financiera.'
-                        : 'El plazo esperado es de 1 mes para el pago.',
+                        ? 'El plazo de 30 días venció. Considera presentar queja ante la Superintendencia Financiera.'
+                        : 'El plazo esperado es de 30 días para el pago.',
                     $dias
                 );
             }
@@ -483,7 +547,8 @@ class AlertaTemporalService
     }
 
     /**
-     * Cuenta días hábiles (lunes a viernes) entre dos fechas, inclusive.
+     * Cuenta días hábiles (lunes a viernes) entre dos fechas.
+     * Usado sólo donde la ley mide en días hábiles (tutela, impugnación, desacato).
      */
     public static function diasHabiles(Carbon $desde, Carbon $hasta): int
     {
