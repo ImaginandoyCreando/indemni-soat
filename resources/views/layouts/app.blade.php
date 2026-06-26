@@ -5,6 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    {{-- ▸ Tema ANTES del CSS: evita el flash oscuro en cada carga ◂ --}}
+    <script>
+    (function(){
+        var t = localStorage.getItem('is_theme') ||
+                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', t);
+    })();
+    </script>
     <title>@yield('title', 'INDEMNISOAT') — Sistema Jurídico</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -455,9 +463,9 @@
                   (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     window.applyTheme(saved);
 
-    /* Fade-in stagger */
+    /* Fade-in stagger — capped at 0.3 s total para evitar "pegado" */
     document.querySelectorAll('.is-animate-rise').forEach(function (el, i) {
-        el.style.animationDelay = (i * 0.055) + 's';
+        el.style.animationDelay = Math.min(i * 0.04, 0.3) + 's';
     });
 
     /* Avatar dropdown */
