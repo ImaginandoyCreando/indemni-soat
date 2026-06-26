@@ -44,8 +44,9 @@ WORKDIR /var/www/html
 # Copiar archivos del proyecto
 COPY . .
 
-# Instalar dependencias PHP
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Instalar dependencias PHP (con fallback a --prefer-source si falla la descarga por dist)
+RUN composer install --no-dev --optimize-autoloader --no-interaction \
+    || composer install --no-dev --optimize-autoloader --no-interaction --prefer-source
 
 # ── VITE BUILD ── Compilar assets CSS/JS para producción
 RUN npm install && npm run build
