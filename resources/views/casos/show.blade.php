@@ -243,6 +243,17 @@
             <a href="{{ route('casos.edit', $caso) }}" class="is-btn-primary">
                 ✏️ Editar
             </a>
+            <a href="{{ route('casos.voucher', $caso) }}"
+               target="_blank"
+               style="display:inline-flex;align-items:center;gap:6px;
+                      padding:8px 14px;border-radius:8px;font-size:13px;
+                      font-weight:600;color:#1a1a2e;background:#f0c040;
+                      text-decoration:none;transition:opacity .2s,transform .15s;
+                      white-space:nowrap;border:none;"
+               onmouseover="this.style.opacity='.85';this.style.transform='translateY(-1px)'"
+               onmouseout="this.style.opacity='1';this.style.transform='translateY(0)'">
+                📄 Voucher PDF
+            </a>
         @endif
         <a href="{{ route('casos.documentos.index', $caso) }}" class="is-btn-ghost">
             Expediente
