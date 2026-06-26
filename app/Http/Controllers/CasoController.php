@@ -169,7 +169,7 @@ class CasoController extends Controller
         return redirect()->route('casos.index')->with('success', 'Caso creado correctamente.');
     }
 
-     public function show(Caso $caso)
+    public function show(Caso $caso)
     {
         $tiposDocumento = \App\Models\PlantillaDocumento::$tiposDisponibles;
         $plantillasActivas = \App\Models\PlantillaDocumento::select('tipo')
@@ -178,7 +178,6 @@ class CasoController extends Controller
 
         return view('casos.show', compact('caso', 'tiposDocumento', 'plantillasActivas'));
     }
-
 
     public function edit(Caso $caso)
     {
@@ -429,6 +428,23 @@ class CasoController extends Controller
     {
         $caso->delete();
         return redirect()->route('casos.index')->with('success', 'Caso eliminado correctamente.');
+    }
+
+    // =========================================================================
+    // VOUCHER PDF
+    // =========================================================================
+
+    /**
+     * Genera y descarga el voucher PDF de radicación del caso.
+     */
+    public function generarVoucherPdf(Caso $caso)
+    {
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('casos.voucher-pdf', compact('caso'));
+        $pdf->setPaper('A4', 'portrait');
+
+        $nombreArchivo = 'voucher-' . $caso->numero_caso . '-' . now()->format('Ymd') . '.pdf';
+
+        return $pdf->download($nombreArchivo);
     }
 
     // =========================================================================
@@ -693,7 +709,7 @@ class CasoController extends Controller
                 $caso,
                 'Impugnación registrada — pendiente segunda instancia',
                 "Fecha impugnación: {$fecha}. Pendiente fallo de segunda instancia.",
-                'urgente'
+                'info'
             );
         }
 
@@ -707,28 +723,22 @@ class CasoController extends Controller
             'resultado_fallo_segunda_instancia' => 'required|string|in:confirma,revoca',
         ]);
 
-        if (!empty($caso->fecha_fallo_segunda_instancia)) {
-            return redirect()->route('casos.index')->with('info', 'El fallo de segunda instancia ya fue registrado.');
-        }
+        if (empty($caso->fecha_fallo_segunda_instancia)) {
+            $fecha     = $request->fecha_fallo_segunda_instancia;
+            $resultado = $request->resultado_fallo_segunda_instancia;
 
-        $fecha     = $request->fecha_fallo_segunda_instancia;
-        $resultado = $request->resultado_fallo_segunda_instancia;
-
-        $caso->update([
-            'fecha_fallo_segunda_instancia'     => $fecha,
-            'resultado_fallo_segunda_instancia' => $resultado,
-            'estado'                            => $this->resolverEstadoDesde($caso, [
+            $caso->update([
                 'fecha_fallo_segunda_instancia'     => $fecha,
                 'resultado_fallo_segunda_instancia' => $resultado,
-            ]),
-        ]);
+                'estado'                            => $this->resolverEstadoDesde($caso, [
+                    'fecha_fallo_segunda_instancia'     => $fecha,
+                    'resultado_fallo_segunda_instancia' => $resultado,
+                ]),
+            ]);
 
-        $textoResultado = $resultado === 'confirma'
-            ? 'CONFIRMA el fallo negado — el caso queda cerrado desfavorablemente.'
-            : 'REVOCA el fallo negado — la aseguradora debe cumplir lo ordenado.';
-
-        $this->registrarBitacora($caso->id, 'Se registró fallo de segunda instancia',
-            'La segunda instancia ' . $textoResultado, $fecha);
+            $this->registrarBitacora($caso->id, 'Se registró fallo de segunda instancia',
+                'Fallo de segunda instancia con resultado: ' . $resultado . '.', $fecha);
+        }
 
         $nivelSegunda = $resultado === 'confirma' ? 'critico' : 'urgente';
         $textoSegunda = match($resultado) {
