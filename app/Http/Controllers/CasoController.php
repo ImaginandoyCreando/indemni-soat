@@ -11,7 +11,7 @@ use App\Services\NotificacionService;
 class CasoController extends Controller
 {
     // =========================================================================
-    // INDEX / CRUD BÁSICO
+    // INDEX / CRUD BASICO
     // =========================================================================
 
     public function index(Request $request)
@@ -49,7 +49,27 @@ class CasoController extends Controller
         if ($request->filled('alta_ortopedia')) $query->where('alta_ortopedia', $request->alta_ortopedia === '1');
         if ($request->filled('furpen_completo')) $query->where('furpen_completo', $request->furpen_completo === '1');
 
-        $casos = $query->orderBy($sort, $direction)->paginate(10)->withQueryString();
+        // Solo traemos las columnas necesarias para la vista de lista
+        $casos = $query
+            ->select([
+                'id', 'numero_caso', 'nombres', 'apellidos', 'cedula',
+                'aseguradora', 'estado', 'valor_estimado', 'valor_pagado',
+                'porcentaje_pcl', 'ganancia_equipo', 'porcentaje_honorarios',
+                'tiene_poder', 'tiene_contrato', 'alta_ortopedia', 'furpen_completo',
+                'fecha_accidente', 'fecha_solicitud_aseguradora', 'fecha_respuesta_aseguradora',
+                'tipo_respuesta_aseguradora', 'fecha_apelacion', 'fecha_tutela',
+                'tipo_tutela', 'fecha_pago_honorarios', 'fecha_envio_junta',
+                'fecha_dictamen_junta', 'fecha_reclamacion_final', 'fecha_pago_final',
+                'fecha_prescripcion', 'fecha_entrega_poder', 'fecha_poder_firmado',
+                'fecha_entrega_contrato', 'fecha_contrato_firmado',
+                'fecha_fallo_tutela', 'resultado_fallo_tutela',
+                'fecha_incidente_desacato', 'fecha_cumplimiento_tutela', 'tipo_cumplimiento_tutela',
+                'fecha_impugnacion', 'fecha_fallo_segunda_instancia', 'resultado_fallo_segunda_instancia',
+                'fecha_alta_ortopedia', 'fecha_furpen_recibido', 'created_at',
+            ])
+            ->orderBy($sort, $direction)
+            ->paginate(10)
+            ->withQueryString();
 
         $aseguradoras = Caso::query()
             ->whereNotNull('aseguradora')->where('aseguradora', '!=', '')
@@ -60,57 +80,38 @@ class CasoController extends Controller
             ->select('estado')->distinct()->orderBy('estado')->pluck('estado');
 
         $alertasDisponibles = collect([
-
-    // ── DOCUMENTACIÓN ────────────────────────────────────────────────────────
-    ['valor' => 'documentacion_inicial',      'texto' => '📄 Falta poder / contrato'],
-    ['valor' => 'poder_pendiente',            'texto' => '📄 Poder pendiente'],
-    ['valor' => 'contrato_pendiente',         'texto' => '📄 Contrato pendiente'],
-    ['valor' => 'furpen_pendiente',           'texto' => '📄 FURPEN pendiente'],
-
-    // ── ASEGURADORA ──────────────────────────────────────────────────────────
-    ['valor' => 'sin_respuesta',              'texto' => '⏰ Sin respuesta de aseguradora'],
-    ['valor' => 'aseguradora_nego',           'texto' => '🚫 Aseguradora negó — presentar tutela'],
-    ['valor' => 'aseguradora_no_respondio',   'texto' => '⚠️ Aseguradora no respondió — presentar tutela'],
-    ['valor' => 'dictamen_aseguradora',       'texto' => '📝 Dictamen aseguradora — manifestar inconformidad'],
-    ['valor' => 'apelar_dictamen',            'texto' => '🏛️ Apelar dictamen'],
-
-    // ── TUTELA ───────────────────────────────────────────────────────────────
-    ['valor' => 'tutela',                     'texto' => '📋 Tutela presentada — espera fallo'],
-    ['valor' => 'impugnar_fallo',             'texto' => '🚨 Fallo negado — impugnar (3 días hábiles)'],
-    ['valor' => 'cumplimiento_tutela',        'texto' => '⚖️ Fallo concedido — esperando cumplimiento'],
-    ['valor' => 'fallo_tutela_registrado',    'texto' => '📋 Fallo de tutela registrado — definir resultado'],
-    ['valor' => 'cumplimiento_segunda_instancia', 'texto' => '🏥 Tutela cumplida — pendiente dictamen / honorarios'],
-
-    // ── DESACATO ─────────────────────────────────────────────────────────────
-    ['valor' => 'desacato',                   'texto' => '🚨 Incidente de desacato presentado'],
-
-    // ── SEGUNDA INSTANCIA ────────────────────────────────────────────────────
-    ['valor' => 'impugnacion',                'texto' => '🏛️ Impugnación presentada — espera fallo 2ª inst.'],
-    ['valor' => 'segunda_instancia',          'texto' => '📋 Esperando fallo de segunda instancia'],
-    ['valor' => 'segunda_revoca_calificar',   'texto' => '⚖️ 2ª instancia revoca — aseg. debe calificar'],
-    ['valor' => 'segunda_revoca_honorarios',  'texto' => '💰 2ª instancia revoca — aseg. debe pagar honorarios'],
-    ['valor' => 'caso_cerrado',               'texto' => '✅ Caso cerrado en segunda instancia'],
-
-    // ── ORTOPEDIA Y JUNTA ────────────────────────────────────────────────────
-    ['valor' => 'alta_ortopedia_pendiente',   'texto' => '🩺 Alta ortopedia pendiente'],
-    ['valor' => 'honorarios_junta',           'texto' => '💰 Pagar honorarios junta'],
-    ['valor' => 'solicitud_junta',            'texto' => '📬 Solicitar / seguimiento a junta'],
-    ['valor' => 'dictamen_junta',             'texto' => '🏥 Dictamen junta recibido — pendiente FURPEN / cobro'],
-
-    // ── COBRO Y PAGO ─────────────────────────────────────────────────────────
-    ['valor' => 'reclamacion',                'texto' => '💼 Listo para cobrar a aseguradora'],
-    ['valor' => 'pago_pendiente',             'texto' => '💳 Cobro enviado — pago pendiente'],
-    ['valor' => 'queja',                      'texto' => '📢 Queja por no pago (30+ días)'],
-
-    // ── PRESCRIPCIÓN ─────────────────────────────────────────────────────────
-    ['valor' => 'prescripcion_critica',       'texto' => '⏳ Prescripción próxima (≤ 90 días)'],
-    ['valor' => 'prescrito',                  'texto' => '🔴 Caso prescrito'],
-
-    // ── ESTADOS FINALES ──────────────────────────────────────────────────────
-    ['valor' => 'pagado',                     'texto' => '✅ Pagado'],
-    ['valor' => 'normal',                     'texto' => '🟢 Normal / sin alertas críticas'],
-]);
-
+            ['valor' => 'documentacion_inicial',      'texto' => 'Falta poder / contrato'],
+            ['valor' => 'poder_pendiente',            'texto' => 'Poder pendiente'],
+            ['valor' => 'contrato_pendiente',         'texto' => 'Contrato pendiente'],
+            ['valor' => 'furpen_pendiente',           'texto' => 'FURPEN pendiente'],
+            ['valor' => 'sin_respuesta',              'texto' => 'Sin respuesta de aseguradora'],
+            ['valor' => 'aseguradora_nego',           'texto' => 'Aseguradora nego - presentar tutela'],
+            ['valor' => 'aseguradora_no_respondio',   'texto' => 'Aseguradora no respondio - presentar tutela'],
+            ['valor' => 'dictamen_aseguradora',       'texto' => 'Dictamen aseguradora - manifestar inconformidad'],
+            ['valor' => 'apelar_dictamen',            'texto' => 'Apelar dictamen'],
+            ['valor' => 'tutela',                     'texto' => 'Tutela presentada - espera fallo'],
+            ['valor' => 'impugnar_fallo',             'texto' => 'Fallo negado - impugnar (3 dias habiles)'],
+            ['valor' => 'cumplimiento_tutela',        'texto' => 'Fallo concedido - esperando cumplimiento'],
+            ['valor' => 'fallo_tutela_registrado',    'texto' => 'Fallo de tutela registrado - definir resultado'],
+            ['valor' => 'cumplimiento_segunda_instancia', 'texto' => 'Tutela cumplida - pendiente dictamen / honorarios'],
+            ['valor' => 'desacato',                   'texto' => 'Incidente de desacato presentado'],
+            ['valor' => 'impugnacion',                'texto' => 'Impugnacion presentada - espera fallo 2a inst.'],
+            ['valor' => 'segunda_instancia',          'texto' => 'Esperando fallo de segunda instancia'],
+            ['valor' => 'segunda_revoca_calificar',   'texto' => '2a instancia revoca - aseg. debe calificar'],
+            ['valor' => 'segunda_revoca_honorarios',  'texto' => '2a instancia revoca - aseg. debe pagar honorarios'],
+            ['valor' => 'caso_cerrado',               'texto' => 'Caso cerrado en segunda instancia'],
+            ['valor' => 'alta_ortopedia_pendiente',   'texto' => 'Alta ortopedia pendiente'],
+            ['valor' => 'honorarios_junta',           'texto' => 'Pagar honorarios junta'],
+            ['valor' => 'solicitud_junta',            'texto' => 'Solicitar / seguimiento a junta'],
+            ['valor' => 'dictamen_junta',             'texto' => 'Dictamen junta recibido - pendiente FURPEN / cobro'],
+            ['valor' => 'reclamacion',                'texto' => 'Listo para cobrar a aseguradora'],
+            ['valor' => 'pago_pendiente',             'texto' => 'Cobro enviado - pago pendiente'],
+            ['valor' => 'queja',                      'texto' => 'Queja por no pago (30+ dias)'],
+            ['valor' => 'prescripcion_critica',       'texto' => 'Prescripcion proxima (90 dias)'],
+            ['valor' => 'prescrito',                  'texto' => 'Caso prescrito'],
+            ['valor' => 'pagado',                     'texto' => 'Pagado'],
+            ['valor' => 'normal',                     'texto' => 'Normal / sin alertas criticas'],
+        ]);
 
         return view('casos.index', compact(
             'casos', 'aseguradoras', 'estados',
@@ -178,17 +179,17 @@ class CasoController extends Controller
         ]);
 
         $this->registrarBitacora($caso->id, 'Caso creado',
-            'Se creó el caso ' . $caso->numero_caso . ' para ' . $caso->nombre_completo . '.');
+            'Se creo el caso ' . $caso->numero_caso . ' para ' . $caso->nombre_completo . '.');
 
         if ($caso->tiene_poder) {
             $this->registrarBitacora($caso->id, 'Poder registrado',
-                'Se registró que la víctima entregó poder firmado.',
+                'Se registro que la victima entrego poder firmado.',
                 $caso->fecha_poder_firmado ?: now()->toDateString());
         }
 
         if ($caso->tiene_contrato) {
             $this->registrarBitacora($caso->id, 'Contrato registrado',
-                'Se registró que la víctima entregó contrato firmado.',
+                'Se registro que la victima entrego contrato firmado.',
                 $caso->fecha_contrato_firmado ?: now()->toDateString());
         }
 
@@ -355,24 +356,24 @@ class CasoController extends Controller
         ]);
 
         $eventos = [
-            'fecha_solicitud_aseguradora'   => 'Se registró solicitud de calificación a aseguradora',
-            'fecha_respuesta_aseguradora'   => 'Se registró respuesta o dictamen de aseguradora',
-            'fecha_apelacion'               => 'Se registró apelación del dictamen de aseguradora',
-            'fecha_tutela'                  => 'Se registró tutela',
-            'fecha_pago_honorarios'         => 'Se registró pago de honorarios a junta',
-            'fecha_envio_junta'             => 'Se registró solicitud o envío a junta',
-            'fecha_dictamen_junta'          => 'Se registró dictamen de junta',
-            'fecha_reclamacion_final'       => 'Se registró cobro a aseguradora',
-            'fecha_pago_final'              => 'Se registró pago final',
-            'fecha_fallo_tutela'            => 'Se registró fallo de tutela',
-            'fecha_incidente_desacato'      => 'Se registró incidente de desacato',
-            'fecha_cumplimiento_tutela'     => 'Se registró cumplimiento del fallo de tutela',
-            'fecha_impugnacion'             => 'Se registró impugnación',
-            'fecha_fallo_segunda_instancia' => 'Se registró fallo de segunda instancia',
-            'fecha_alta_ortopedia'          => 'Se registró alta por ortopedia',
-            'fecha_furpen_recibido'         => 'Se registró recepción de FURPEN',
-            'fecha_poder_firmado'           => 'Se registró poder firmado',
-            'fecha_contrato_firmado'        => 'Se registró contrato firmado',
+            'fecha_solicitud_aseguradora'   => 'Se registro solicitud de calificacion a aseguradora',
+            'fecha_respuesta_aseguradora'   => 'Se registro respuesta o dictamen de aseguradora',
+            'fecha_apelacion'               => 'Se registro apelacion del dictamen de aseguradora',
+            'fecha_tutela'                  => 'Se registro tutela',
+            'fecha_pago_honorarios'         => 'Se registro pago de honorarios a junta',
+            'fecha_envio_junta'             => 'Se registro solicitud o envio a junta',
+            'fecha_dictamen_junta'          => 'Se registro dictamen de junta',
+            'fecha_reclamacion_final'       => 'Se registro cobro a aseguradora',
+            'fecha_pago_final'              => 'Se registro pago final',
+            'fecha_fallo_tutela'            => 'Se registro fallo de tutela',
+            'fecha_incidente_desacato'      => 'Se registro incidente de desacato',
+            'fecha_cumplimiento_tutela'     => 'Se registro cumplimiento del fallo de tutela',
+            'fecha_impugnacion'             => 'Se registro impugnacion',
+            'fecha_fallo_segunda_instancia' => 'Se registro fallo de segunda instancia',
+            'fecha_alta_ortopedia'          => 'Se registro alta por ortopedia',
+            'fecha_furpen_recibido'         => 'Se registro recepcion de FURPEN',
+            'fecha_poder_firmado'           => 'Se registro poder firmado',
+            'fecha_contrato_firmado'        => 'Se registro contrato firmado',
         ];
 
         foreach ($eventos as $campo => $titulo) {
@@ -383,14 +384,14 @@ class CasoController extends Controller
         }
 
         foreach ([
-            'tiene_poder'    => ['Cambio en poder',           'víctima ya tiene poder firmado.',      'víctima aún no tiene poder firmado.'],
-            'tiene_contrato' => ['Cambio en contrato',        'víctima ya tiene contrato firmado.',   'víctima aún no tiene contrato firmado.'],
-            'alta_ortopedia' => ['Cambio en alta ortopedia',  'víctima ya tiene alta por ortopedia.', 'víctima aún no tiene alta.'],
+            'tiene_poder'    => ['Cambio en poder',           'victima ya tiene poder firmado.',      'victima aun no tiene poder firmado.'],
+            'tiene_contrato' => ['Cambio en contrato',        'victima ya tiene contrato firmado.',   'victima aun no tiene contrato firmado.'],
+            'alta_ortopedia' => ['Cambio en alta ortopedia',  'victima ya tiene alta por ortopedia.', 'victima aun no tiene alta.'],
             'furpen_completo'=> ['Cambio en FURPEN',          'FURPEN marcado como completo.',        'FURPEN marcado como pendiente.'],
         ] as $campo => [$titulo, $textoTrue, $textoFalse]) {
             if ((bool) $anterior->$campo !== (bool) $caso->$campo) {
                 $this->registrarBitacora($caso->id, $titulo,
-                    'Se marcó que la ' . ($caso->$campo ? $textoTrue : $textoFalse));
+                    'Se marco que la ' . ($caso->$campo ? $textoTrue : $textoFalse));
             }
         }
 
@@ -408,37 +409,37 @@ class CasoController extends Controller
         if ($anterior->tipo_respuesta_aseguradora !== $caso->tipo_respuesta_aseguradora
             && !empty($caso->tipo_respuesta_aseguradora)) {
             $textos = [
-                'emitio_dictamen' => 'emitió dictamen',
-                'nego'            => 'negó la solicitud',
-                'no_respondio'    => 'no respondió (confirmado)',
+                'emitio_dictamen' => 'emitio dictamen',
+                'nego'            => 'nego la solicitud',
+                'no_respondio'    => 'no respondio (confirmado)',
             ];
             $this->registrarBitacora($caso->id, 'Tipo de respuesta de aseguradora',
-                'Se registró que la aseguradora ' . ($textos[$caso->tipo_respuesta_aseguradora] ?? $caso->tipo_respuesta_aseguradora) . '.');
+                'Se registro que la aseguradora ' . ($textos[$caso->tipo_respuesta_aseguradora] ?? $caso->tipo_respuesta_aseguradora) . '.');
         }
 
         if ($anterior->tipo_tutela !== $caso->tipo_tutela && !empty($caso->tipo_tutela)) {
             $textos = [
-                'tutela_calificacion'   => 'tutela para calificación',
+                'tutela_calificacion'   => 'tutela para calificacion',
                 'tutela_debido_proceso' => 'tutela por debido proceso',
             ];
             $this->registrarBitacora($caso->id, 'Tipo de tutela registrado',
-                'Se clasificó la tutela como: ' . ($textos[$caso->tipo_tutela] ?? $caso->tipo_tutela) . '.');
+                'Se clasifico la tutela como: ' . ($textos[$caso->tipo_tutela] ?? $caso->tipo_tutela) . '.');
         }
 
         if ($anterior->estado !== $caso->estado) {
             $this->registrarBitacora($caso->id, 'Cambio de estado',
-                'El estado cambió de "' . ($anterior->estado ?? 'N/A') . '" a "' . ($caso->estado ?? 'N/A') . '".');
+                'El estado cambio de "' . ($anterior->estado ?? 'N/A') . '" a "' . ($caso->estado ?? 'N/A') . '".');
         }
 
         if ($anterior->porcentaje_pcl != $caso->porcentaje_pcl || $anterior->valor_estimado != $caso->valor_estimado) {
-            $this->registrarBitacora($caso->id, 'Actualización de cálculo legal',
+            $this->registrarBitacora($caso->id, 'Actualizacion de calculo legal',
                 'PCL: ' . ($caso->porcentaje_pcl ?? 'N/A') . ', valor estimado: ' . ($caso->valor_estimado ?? 'N/A') . '.');
         }
 
         if ($anterior->valor_pagado != $caso->valor_pagado ||
             $anterior->porcentaje_honorarios != $caso->porcentaje_honorarios ||
             $anterior->ganancia_equipo != $caso->ganancia_equipo) {
-            $this->registrarBitacora($caso->id, 'Actualización financiera',
+            $this->registrarBitacora($caso->id, 'Actualizacion financiera',
                 'Honorarios: ' . ($caso->porcentaje_honorarios ?? 'N/A') . '%, ganancia equipo: $' .
                 number_format($caso->ganancia_equipo ?? 0, 0, ',', '.') . ', neto cliente: $' .
                 number_format($caso->valor_neto_cliente ?? 0, 0, ',', '.') . '.');
@@ -457,12 +458,9 @@ class CasoController extends Controller
     }
 
     // =========================================================================
-    // VOUCHER PDF — CORREGIDO
+    // VOUCHER PDF
     // =========================================================================
 
-    /**
-     * Genera y descarga el voucher PDF de radicación del caso.
-     */
     public function generarVoucherPdf(Caso $caso)
     {
         try {
@@ -505,7 +503,7 @@ class CasoController extends Controller
     }
 
     // =========================================================================
-    // ACCIONES RÁPIDAS — FLUJO JURÍDICO
+    // ACCIONES RAPIDAS — FLUJO JURIDICO
     // =========================================================================
 
     public function marcarSolicitudAseguradora(Request $request, Caso $caso)
@@ -519,13 +517,13 @@ class CasoController extends Controller
                 'estado' => $this->resolverEstadoDesde($caso, ['fecha_solicitud_aseguradora' => $fecha]),
             ]);
             $this->registrarBitacora($caso->id,
-                'Se registró solicitud de calificación a aseguradora',
-                'Se registró solicitud desde acciones rápidas.', $fecha);
+                'Se registro solicitud de calificacion a aseguradora',
+                'Se registro solicitud desde acciones rapidas.', $fecha);
 
             NotificacionService::enviarAlertaFlujo(
                 $caso,
                 'Solicitud enviada a aseguradora',
-                "Fecha de solicitud: {$fecha}. Pendiente respuesta en máximo 30 días.",
+                "Fecha de solicitud: {$fecha}. Pendiente respuesta en maximo 30 dias.",
                 'info'
             );
         }
@@ -555,20 +553,20 @@ class CasoController extends Controller
         $caso->update($datos);
 
         $textos = [
-            'emitio_dictamen' => 'emitió dictamen — flujo de apelación iniciado.',
-            'nego'            => 'negó la solicitud — proceder con tutela para calificación.',
-            'no_respondio'    => 'no respondió en el plazo — proceder con tutela para calificación.',
+            'emitio_dictamen' => 'emitio dictamen — flujo de apelacion iniciado.',
+            'nego'            => 'nego la solicitud — proceder con tutela para calificacion.',
+            'no_respondio'    => 'no respondio en el plazo — proceder con tutela para calificacion.',
         ];
 
         $this->registrarBitacora($caso->id, 'Respuesta de aseguradora registrada',
-            'Se registró que la aseguradora ' . ($textos[$tipo] ?? $tipo),
+            'Se registro que la aseguradora ' . ($textos[$tipo] ?? $tipo),
             $fecha ?? now()->toDateString());
 
         $nivelResp  = ($tipo === 'nego' || $tipo === 'no_respondio') ? 'urgente' : 'info';
         $textoNotif = match($tipo) {
-            'emitio_dictamen' => 'Aseguradora emitió dictamen — procede apelación',
-            'nego'            => 'Aseguradora NEGÓ la solicitud — presentar tutela para calificación',
-            'no_respondio'    => 'Aseguradora NO respondió (1 mes) — presentar tutela para calificación',
+            'emitio_dictamen' => 'Aseguradora emitio dictamen — procede apelacion',
+            'nego'            => 'Aseguradora NEGO la solicitud — presentar tutela para calificacion',
+            'no_respondio'    => 'Aseguradora NO respondio (1 mes) — presentar tutela para calificacion',
             default           => 'Respuesta de aseguradora registrada',
         };
         NotificacionService::enviarAlertaFlujo($caso, $textoNotif, '', $nivelResp);
@@ -586,18 +584,18 @@ class CasoController extends Controller
                 'fecha_apelacion' => $fecha,
                 'estado'          => $this->resolverEstadoDesde($caso, ['fecha_apelacion' => $fecha]),
             ]);
-            $this->registrarBitacora($caso->id, 'Se registró apelación del dictamen',
-                'Se marcó apelación desde acciones rápidas.', $fecha);
+            $this->registrarBitacora($caso->id, 'Se registro apelacion del dictamen',
+                'Se marco apelacion desde acciones rapidas.', $fecha);
 
             NotificacionService::enviarAlertaFlujo(
                 $caso,
-                'Apelación del dictamen registrada',
-                "Fecha apelación: {$fecha}. Siguiente paso: pagar honorarios a la junta.",
+                'Apelacion del dictamen registrada',
+                "Fecha apelacion: {$fecha}. Siguiente paso: pagar honorarios a la junta.",
                 'info'
             );
         }
 
-        return redirect()->route('casos.index')->with('success', 'Apelación registrada.');
+        return redirect()->route('casos.index')->with('success', 'Apelacion registrada.');
     }
 
     public function marcarTutela(Request $request, Caso $caso)
@@ -621,12 +619,12 @@ class CasoController extends Controller
             ]);
 
             $textos = [
-                'tutela_calificacion'   => 'tutela para calificación',
+                'tutela_calificacion'   => 'tutela para calificacion',
                 'tutela_debido_proceso' => 'tutela por debido proceso',
             ];
 
-            $this->registrarBitacora($caso->id, 'Se registró tutela',
-                'Se presentó ' . ($textos[$tipo] ?? $tipo) . ' desde acciones rápidas.', $fecha);
+            $this->registrarBitacora($caso->id, 'Se registro tutela',
+                'Se presento ' . ($textos[$tipo] ?? $tipo) . ' desde acciones rapidas.', $fecha);
 
             NotificacionService::enviarAlertaFlujo(
                 $caso,
@@ -659,14 +657,14 @@ class CasoController extends Controller
                 ]),
             ]);
 
-            $this->registrarBitacora($caso->id, 'Se registró fallo de tutela',
+            $this->registrarBitacora($caso->id, 'Se registro fallo de tutela',
                 'Fallo de tutela registrado con resultado: ' . $resultado . '.', $fecha);
 
             $nivelFallo = $resultado === 'negado' ? 'critico' : 'urgente';
             $textoFallo = match($resultado) {
-                'concedido' => 'Fallo de tutela CONCEDIDO — aseguradora tiene 14 días para cumplir',
+                'concedido' => 'Fallo de tutela CONCEDIDO — aseguradora tiene 14 dias para cumplir',
                 'negado'    => 'Fallo de tutela NEGADO — debe impugnarse',
-                'parcial'   => 'Fallo de tutela PARCIAL — revisar siguiente acción',
+                'parcial'   => 'Fallo de tutela PARCIAL — revisar siguiente accion',
                 default     => 'Fallo de tutela registrado',
             };
             NotificacionService::enviarAlertaFlujo($caso, $textoFallo, '', $nivelFallo);
@@ -703,8 +701,8 @@ class CasoController extends Controller
             'desacato'   => 'tras incidente de desacato',
         ];
 
-        $this->registrarBitacora($caso->id, 'Se registró cumplimiento del fallo de tutela',
-            'La aseguradora cumplió el fallo de tutela ' . ($textos[$tipo] ?? $tipo) .
+        $this->registrarBitacora($caso->id, 'Se registro cumplimiento del fallo de tutela',
+            'La aseguradora cumplio el fallo de tutela ' . ($textos[$tipo] ?? $tipo) .
             '. Proceder con el flujo correspondiente al tipo de tutela.', $fecha);
 
         NotificacionService::enviarAlertaFlujo(
@@ -735,13 +733,13 @@ class CasoController extends Controller
                 'fecha_incidente_desacato' => $fecha,
                 'estado'                   => $this->resolverEstadoDesde($caso, ['fecha_incidente_desacato' => $fecha]),
             ]);
-            $this->registrarBitacora($caso->id, 'Se registró incidente de desacato',
-                'Se registró incidente de desacato desde acciones rápidas.', $fecha);
+            $this->registrarBitacora($caso->id, 'Se registro incidente de desacato',
+                'Se registro incidente de desacato desde acciones rapidas.', $fecha);
 
             NotificacionService::enviarAlertaFlujo(
                 $caso,
                 'Incidente de desacato registrado',
-                "La aseguradora no cumplió el fallo en el plazo legal. Fecha desacato: {$fecha}.",
+                "La aseguradora no cumplio el fallo en el plazo legal. Fecha desacato: {$fecha}.",
                 'critico'
             );
         }
@@ -759,18 +757,18 @@ class CasoController extends Controller
                 'fecha_impugnacion' => $fecha,
                 'estado'            => $this->resolverEstadoDesde($caso, ['fecha_impugnacion' => $fecha]),
             ]);
-            $this->registrarBitacora($caso->id, 'Se registró impugnación',
-                'Se registró impugnación desde acciones rápidas.', $fecha);
+            $this->registrarBitacora($caso->id, 'Se registro impugnacion',
+                'Se registro impugnacion desde acciones rapidas.', $fecha);
 
             NotificacionService::enviarAlertaFlujo(
                 $caso,
-                'Impugnación registrada — pendiente segunda instancia',
-                "Fecha impugnación: {$fecha}. Pendiente fallo de segunda instancia.",
+                'Impugnacion registrada — pendiente segunda instancia',
+                "Fecha impugnacion: {$fecha}. Pendiente fallo de segunda instancia.",
                 'info'
             );
         }
 
-        return redirect()->route('casos.index')->with('success', 'Impugnación registrada.');
+        return redirect()->route('casos.index')->with('success', 'Impugnacion registrada.');
     }
 
     public function marcarFalloSegundaInstancia(Request $request, Caso $caso)
@@ -793,7 +791,7 @@ class CasoController extends Controller
                 ]),
             ]);
 
-            $this->registrarBitacora($caso->id, 'Se registró fallo de segunda instancia',
+            $this->registrarBitacora($caso->id, 'Se registro fallo de segunda instancia',
                 'Fallo de segunda instancia con resultado: ' . $resultado . '.', $fecha);
         }
 
@@ -823,8 +821,8 @@ class CasoController extends Controller
                 'fecha_pago_honorarios' => $fecha,
                 'estado'                => $this->resolverEstadoDesde($caso, ['fecha_pago_honorarios' => $fecha]),
             ]);
-            $this->registrarBitacora($caso->id, 'Se registró pago de honorarios a junta',
-                'Se marcó el pago de honorarios desde acciones rápidas.', $fecha);
+            $this->registrarBitacora($caso->id, 'Se registro pago de honorarios a junta',
+                'Se marco el pago de honorarios desde acciones rapidas.', $fecha);
 
             NotificacionService::enviarAlertaFlujo(
                 $caso,
@@ -855,9 +853,9 @@ class CasoController extends Controller
                 'estado'                     => $this->resolverEstadoDesde($caso, ['alta_ortopedia' => true]),
             ]);
 
-            $desc = 'Se registró alta por ortopedia desde acciones rápidas.';
+            $desc = 'Se registro alta por ortopedia desde acciones rapidas.';
             if (!empty($observacion)) $desc .= ' Obs: ' . $observacion;
-            $this->registrarBitacora($caso->id, 'Se registró alta por ortopedia', $desc, $fecha);
+            $this->registrarBitacora($caso->id, 'Se registro alta por ortopedia', $desc, $fecha);
 
             NotificacionService::enviarAlertaFlujo(
                 $caso,
@@ -880,13 +878,13 @@ class CasoController extends Controller
                 'fecha_envio_junta' => $fecha,
                 'estado'            => $this->resolverEstadoDesde($caso, ['fecha_envio_junta' => $fecha]),
             ]);
-            $this->registrarBitacora($caso->id, 'Se registró solicitud a junta',
-                'Se marcó solicitud a junta desde acciones rápidas.', $fecha);
+            $this->registrarBitacora($caso->id, 'Se registro solicitud a junta',
+                'Se marco solicitud a junta desde acciones rapidas.', $fecha);
 
             NotificacionService::enviarAlertaFlujo(
                 $caso,
                 'Solicitud enviada a la junta',
-                "Fecha envío: {$fecha}. Pendiente dictamen.",
+                "Fecha envio: {$fecha}. Pendiente dictamen.",
                 'info'
             );
         }
@@ -904,8 +902,8 @@ class CasoController extends Controller
                 'fecha_dictamen_junta' => $fecha,
                 'estado'               => $this->resolverEstadoDesde($caso, ['fecha_dictamen_junta' => $fecha]),
             ]);
-            $this->registrarBitacora($caso->id, 'Se registró dictamen de junta',
-                'Se registró dictamen de junta desde acciones rápidas.', $fecha);
+            $this->registrarBitacora($caso->id, 'Se registro dictamen de junta',
+                'Se registro dictamen de junta desde acciones rapidas.', $fecha);
 
             NotificacionService::enviarAlertaFlujo(
                 $caso,
@@ -936,9 +934,9 @@ class CasoController extends Controller
                 'estado'                => $this->resolverEstadoDesde($caso, ['furpen_completo' => true]),
             ]);
 
-            $desc = 'Se registró FURPEN completo desde acciones rápidas.';
+            $desc = 'Se registro FURPEN completo desde acciones rapidas.';
             if (!empty($observacion)) $desc .= ' Obs: ' . $observacion;
-            $this->registrarBitacora($caso->id, 'Se registró recepción de FURPEN', $desc, $fecha);
+            $this->registrarBitacora($caso->id, 'Se registro recepcion de FURPEN', $desc, $fecha);
 
             NotificacionService::enviarAlertaFlujo(
                 $caso,
@@ -971,12 +969,12 @@ class CasoController extends Controller
 
             $desc = 'Cobro registrado. Valor: $' . number_format($request->valor_reclamado, 0, ',', '.');
             if (!empty($request->observacion_reclamacion)) $desc .= '. Obs: ' . $request->observacion_reclamacion;
-            $this->registrarBitacora($caso->id, 'Se registró cobro a aseguradora',
+            $this->registrarBitacora($caso->id, 'Se registro cobro a aseguradora',
                 $desc, $request->fecha_reclamacion_final);
 
             NotificacionService::enviarAlertaFlujo(
                 $caso,
-                'Reclamación final enviada a aseguradora',
+                'Reclamacion final enviada a aseguradora',
                 'Valor reclamado: $' . number_format($request->valor_reclamado, 0, ',', '.') .
                 '. Fecha: ' . $request->fecha_reclamacion_final . '. Pendiente pago.',
                 'urgente'
@@ -1016,11 +1014,11 @@ class CasoController extends Controller
             if ($porcentajeHonorarios) $desc .= ' Honorarios: ' . $porcentajeHonorarios . '%.';
             if ($finanzas['ganancia_equipo']) $desc .= ' Ganancia equipo: $' . number_format($finanzas['ganancia_equipo'], 0, ',', '.') . '.';
             if (!empty($request->observacion_pago)) $desc .= ' Obs: ' . $request->observacion_pago;
-            $this->registrarBitacora($caso->id, 'Se registró pago final', $desc, $request->fecha_pago_final);
+            $this->registrarBitacora($caso->id, 'Se registro pago final', $desc, $request->fecha_pago_final);
 
             NotificacionService::enviarAlertaFlujo(
                 $caso,
-                'CASO PAGADO — Gestión completada',
+                'CASO PAGADO — Gestion completada',
                 'Valor pagado: $' . number_format($request->valor_pagado, 0, ',', '.') .
                 '. Honorarios: ' . $porcentajeHonorarios . '%.' .
                 ' Ganancia equipo: $' . number_format($finanzas['ganancia_equipo'] ?? 0, 0, ',', '.') . '.',
@@ -1105,7 +1103,7 @@ class CasoController extends Controller
             return 'Fallo de segunda instancia registrado';
         }
 
-        if (!empty($fechaImpugnacion)) return 'Impugnación presentada';
+        if (!empty($fechaImpugnacion)) return 'Impugnacion presentada';
 
         if (!empty($fechaFalloTutela)) {
             if ($resultadoFalloTutela === 'concedido') {
@@ -1117,29 +1115,29 @@ class CasoController extends Controller
                 if (!empty($fechaIncidenteDesacato)) return 'Incidente de desacato presentado';
                 return 'Fallo tutela concedido - esperando cumplimiento';
             }
-            if ($resultadoFalloTutela === 'negado') return 'Fallo tutela negado - pendiente impugnación';
+            if ($resultadoFalloTutela === 'negado') return 'Fallo tutela negado - pendiente impugnacion';
             return 'Fallo de tutela registrado';
         }
 
         if (!empty($fechaTutela)) {
             return $tipoTutela === 'tutela_calificacion'
-                ? 'Tutela para calificación presentada'
+                ? 'Tutela para calificacion presentada'
                 : 'Tutela por debido proceso presentada';
         }
 
-        if (!empty($fechaApelacion)) return 'Apelación de dictamen presentada';
+        if (!empty($fechaApelacion)) return 'Apelacion de dictamen presentada';
 
         if (!empty($tipoRespuestaAseguradora)) {
             return match ($tipoRespuestaAseguradora) {
                 'emitio_dictamen' => 'Dictamen de aseguradora recibido',
-                'nego'            => 'Aseguradora negó - presentar tutela para calificación',
-                'no_respondio'    => 'Aseguradora no respondió - presentar tutela para calificación',
+                'nego'            => 'Aseguradora nego - presentar tutela para calificacion',
+                'no_respondio'    => 'Aseguradora no respondio - presentar tutela para calificacion',
                 default           => 'Respuesta de aseguradora registrada',
             };
         }
 
         if (!empty($fechaRespuestaAseguradora)) return 'Dictamen de aseguradora recibido';
-        if (!empty($fechaSolicitudAseguradora)) return 'Solicitud de calificación enviada';
+        if (!empty($fechaSolicitudAseguradora)) return 'Solicitud de calificacion enviada';
 
         return $estadoManual;
     }
@@ -1170,8 +1168,8 @@ class CasoController extends Controller
         return [
             'Seguros del Estado',
             'Seguros Mundial',
-            'Seguros Bolívar',
-            'Previsora Compañía de Seguros',
+            'Seguros Bolivar',
+            'Previsora Compania de Seguros',
             'AXA Colpatria',
             'Suramericana',
             'MAPFRE',
@@ -1182,8 +1180,8 @@ class CasoController extends Controller
     private function getJuntas(): array
     {
         return [
-            'Junta Regional de Calificación de Invalidez del Cesar',
-            'Junta Regional de Calificación de Invalidez del Magdalena',
+            'Junta Regional de Calificacion de Invalidez del Cesar',
+            'Junta Regional de Calificacion de Invalidez del Magdalena',
         ];
     }
 
@@ -1191,20 +1189,20 @@ class CasoController extends Controller
     {
         return [
             'Nuevo',
-            'Solicitud de calificación enviada',
+            'Solicitud de calificacion enviada',
             'Dictamen de aseguradora recibido',
-            'Aseguradora negó - presentar tutela para calificación',
-            'Aseguradora no respondió - presentar tutela para calificación',
-            'Apelación de dictamen presentada',
-            'Tutela para calificación presentada',
+            'Aseguradora nego - presentar tutela para calificacion',
+            'Aseguradora no respondio - presentar tutela para calificacion',
+            'Apelacion de dictamen presentada',
+            'Tutela para calificacion presentada',
             'Tutela por debido proceso presentada',
             'Fallo tutela concedido - esperando cumplimiento',
-            'Fallo tutela negado - pendiente impugnación',
+            'Fallo tutela negado - pendiente impugnacion',
             'Fallo de tutela registrado',
             'Tutela cumplida - pendiente dictamen aseguradora',
             'Tutela cumplida - pendiente pago honorarios',
             'Incidente de desacato presentado',
-            'Impugnación presentada',
+            'Impugnacion presentada',
             'Fallo de segunda instancia registrado',
             'Segunda instancia revoca - aseguradora debe calificar',
             'Segunda instancia revoca - aseguradora debe pagar honorarios',
