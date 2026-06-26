@@ -61,6 +61,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/casos/{caso}/edit', [CasoController::class, 'edit'])->name('casos.edit');
         Route::put('/casos/{caso}',      [CasoController::class, 'update'])->name('casos.update');
         Route::patch('/casos/{caso}',    [CasoController::class, 'update']);
+
+        // ── Voucher PDF ───────────────────────────────────────────────────────
+        Route::get('/casos/{caso}/voucher-pdf', [CasoController::class, 'generarVoucherPdf'])->name('casos.voucher');
     });
 
     // ── Esta va DESPUÉS del /create ───────────────────────────────────────────
@@ -117,8 +120,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/usuarios/{user}/editar', [UserController::class, 'edit'])->name('users.edit');
         Route::put('/usuarios/{user}',        [UserController::class, 'update'])->name('users.update');
         Route::delete('/usuarios/{user}',     [UserController::class, 'destroy'])->name('users.destroy');
-
-        
     });
 
     // ── Plantillas de documentos (solo admin) ─────────────────────────────
@@ -135,5 +136,5 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/descarga/{documento}',    [DocumentoGeneradoController::class, 'descargar'])->name('descargar');
         Route::delete('/eliminar/{documento}', [DocumentoGeneradoController::class, 'destroy'])->name('destroy');
     });
-    
+
 });
