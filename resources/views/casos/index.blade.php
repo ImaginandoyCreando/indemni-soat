@@ -498,6 +498,8 @@ form.inline { display:inline; }
                             <span class="mini mini-muted">{{ $textoTipoResp }}</span>
                         </div>
                     @endif
+                    {{-- ALERTAS TEMPORALES --}}
+                    @include('casos._alertas-temporales', ['caso' => $caso, 'compacto' => true])
                     @if(!empty($caso->tipo_tutela))
                         <div style="margin-top:2px;">
                             <span class="mini mini-purple">
