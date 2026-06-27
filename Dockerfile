@@ -38,6 +38,12 @@ RUN echo "memory_limit=512M" > /usr/local/etc/php/conf.d/custom.ini \
  && echo "zlib.output_compression=Off" >> /usr/local/etc/php/conf.d/custom.ini \
  && echo "implicit_flush=Off" >> /usr/local/etc/php/conf.d/custom.ini
 
+# Aplicar memory_limit en el pool de PHP-FPM (www.conf) para que no sea
+# anulado por la configuracion del pool que sobreescribe el php.ini global.
+RUN sed -i '/^php_value\[memory_limit\]/d' /usr/local/etc/php-fpm.d/www.conf 2>/dev/null || true \
+ && echo "php_value[memory_limit] = 512M" >> /usr/local/etc/php-fpm.d/www.conf \
+ && echo "php_value[max_execution_time] = 120" >> /usr/local/etc/php-fpm.d/www.conf
+
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
