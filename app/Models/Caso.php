@@ -117,21 +117,19 @@ class Caso extends Model
         'porcentaje_avance'                 => 'integer',
     ];
 
-    // $appends vacio: los getters siguen funcionando en Blade normalmente.
-    // Tenerlos en $appends los calculaba automaticamente al serializar cada
-    // modelo, causando trabajo innecesario y corte de respuesta HTTP.
+    // No incluir accessors en $appends para evitar calculos automaticos en serialización
     protected $appends = [];
 
     // -------------------------------------------------------------------------
-    // CACHE INTERNO — evita recalcular en cada acceso de Blade
+    // CACHE INTERNO POR INSTANCIA (memoización)
+    // Evita recalcular el mismo valor varias veces por fila en Blade
     // -------------------------------------------------------------------------
-
-    private string  $_alertaValor    = '';
-    private ?bool   $_pagado         = null;
-    private ?bool   $_prescrito      = null;
-    private bool    $_diasCalculados = false;
-    private ?int    $_diasPrescripcion = null;
-    private array   $_limiteCache    = [];
+    private string  $_alertaValor       = '';
+    private ?bool   $_pagado            = null;
+    private ?bool   $_prescrito         = null;
+    private ?bool   $_prescripcionCrit  = null;
+    private ?int    $_diasPrescripcion  = null;
+    private array   $_limiteCache       = [];
 
     // -------------------------------------------------------------------------
     // RELACIONES
@@ -158,44 +156,63 @@ class Caso extends Model
 
     /**
      * Devuelve el codigo de alerta de mayor prioridad para este caso.
-     * Resultado cacheado en $_alertaValor para evitar recalculo en cada
-     * acceso de Blade (color_alerta, texto_alerta, acciones del flujo).
+     *
+     * OPTIMIZACION POSTGRESQL:
+     * Cuando se llama desde la vista de lista (index), CasoController inyecta
+     * el valor calculado en SQL como columna "alerta_codigo". En ese caso se
+     * devuelve directamente sin ningun calculo PHP — esto hace que la lista
+     * escale a miles de casos sin degradacion.
+     *
+     * Cuando se llama desde show/edit (un solo caso), se calcula en PHP como
+     * siempre. Tambien se aplica memoizacion para que color_alerta y
+     * texto_alerta no recalculen el mismo valor.
      */
     public function getAlertaValorAttribute(): string
     {
-        if ($this->_alertaValor !== '') {
+        // ── Camino rapido: valor precomputado por PostgreSQL en la query ──
+        // CasoController::index() agrega "alerta_codigo" via selectRaw().
+        // Para la lista de casos este es el unico camino que se ejecuta.
+        if ($this->_alertaValor === ''
+            && array_key_exists('alerta_codigo', $this->attributes)
+            && $this->attributes['alerta_codigo'] !== null
+            && $this->attributes['alerta_codigo'] !== '') {
+            $this->_alertaValor = (string) $this->attributes['alerta_codigo'];
             return $this->_alertaValor;
         }
 
-        if ($this->estaPagado())            $this->_alertaValor = 'pagado';
-        elseif ($this->estaPrescrito())     $this->_alertaValor = 'prescrito';
-        elseif ($this->prescripcionCritica()) $this->_alertaValor = 'prescripcion_critica';
-        elseif ($this->requierePoderContrato())  $this->_alertaValor = 'documentacion_inicial';
-        elseif ($this->requiereFirmaPoder())     $this->_alertaValor = 'poder_pendiente';
-        elseif ($this->requiereFirmaContrato())  $this->_alertaValor = 'contrato_pendiente';
-        elseif ($this->casoCerradoSegundaInstancia()) $this->_alertaValor = 'caso_cerrado';
-        elseif ($this->requiereCumplimientoSegundaInstancia()) $this->_alertaValor = 'cumplimiento_segunda_instancia';
-        elseif ($this->requiereIncidenteDesacato()) $this->_alertaValor = 'desacato';
-        elseif ($this->requiereCumplimientoTutela())  $this->_alertaValor = 'cumplimiento_tutela';
-        elseif ($this->requiereImpugnacion())         $this->_alertaValor = 'impugnacion';
-        elseif ($this->requiereSegundaInstancia())    $this->_alertaValor = 'segunda_instancia';
-        elseif ($this->requiereQuejaNoPago())         $this->_alertaValor = 'queja';
-        elseif ($this->requiereSeguimientoTutela())   $this->_alertaValor = 'seguimiento_tutela';
-        elseif ($this->requiereTutela())              $this->_alertaValor = 'tutela';
-        elseif ($this->requierePagoPendiente())       $this->_alertaValor = 'pago_pendiente';
-        elseif ($this->requiereFurpen())              $this->_alertaValor = 'furpen_pendiente';
-        elseif ($this->requiereCobroAseguradora())    $this->_alertaValor = 'reclamacion';
-        elseif ($this->requiereAltaOrtopedia())       $this->_alertaValor = 'alta_ortopedia_pendiente';
-        elseif ($this->requiereSolicitudJunta())      $this->_alertaValor = 'solicitud_junta';
-        elseif ($this->requierePagoHonorariosJunta()) $this->_alertaValor = 'honorarios_junta';
-        elseif ($this->requiereApelacion())           $this->_alertaValor = 'apelar_dictamen';
-        elseif ($this->requiereRespuestaAseguradora()) $this->_alertaValor = 'sin_respuesta';
-        else                                          $this->_alertaValor = 'normal';
+        // ── Memoizacion PHP: evita recalcular en color_alerta / texto_alerta ──
+        if ($this->_alertaValor !== '') return $this->_alertaValor;
 
-        return $this->_alertaValor;
+        // ── Calculo PHP (fallback para show, edit, notificaciones, etc.) ──
+        if ($this->estaPagado())            return $this->_alertaValor = 'pagado';
+        if ($this->estaPrescrito())         return $this->_alertaValor = 'prescrito';
+        if ($this->prescripcionCritica())   return $this->_alertaValor = 'prescripcion_critica';
+        if ($this->requierePoderContrato()) return $this->_alertaValor = 'documentacion_inicial';
+        if ($this->requiereFirmaPoder())    return $this->_alertaValor = 'poder_pendiente';
+        if ($this->requiereFirmaContrato()) return $this->_alertaValor = 'contrato_pendiente';
+
+        if ($this->casoCerradoSegundaInstancia())           return $this->_alertaValor = 'caso_cerrado';
+        if ($this->requiereCumplimientoSegundaInstancia())  return $this->_alertaValor = 'cumplimiento_segunda_instancia';
+        if ($this->requiereIncidenteDesacato())             return $this->_alertaValor = 'desacato';
+        if ($this->requiereCumplimientoTutela())            return $this->_alertaValor = 'cumplimiento_tutela';
+        if ($this->requiereImpugnacion())                   return $this->_alertaValor = 'impugnacion';
+        if ($this->requiereSegundaInstancia())              return $this->_alertaValor = 'segunda_instancia';
+        if ($this->requiereQuejaNoPago())                   return $this->_alertaValor = 'queja';
+        if ($this->requiereSeguimientoTutela())             return $this->_alertaValor = 'seguimiento_tutela';
+        if ($this->requiereTutela())                        return $this->_alertaValor = 'tutela';
+        if ($this->requierePagoPendiente())                 return $this->_alertaValor = 'pago_pendiente';
+        if ($this->requiereFurpen())                        return $this->_alertaValor = 'furpen_pendiente';
+        if ($this->requiereCobroAseguradora())              return $this->_alertaValor = 'reclamacion';
+        if ($this->requiereAltaOrtopedia())                 return $this->_alertaValor = 'alta_ortopedia_pendiente';
+        if ($this->requiereSolicitudJunta())                return $this->_alertaValor = 'solicitud_junta';
+        if ($this->requierePagoHonorariosJunta())           return $this->_alertaValor = 'honorarios_junta';
+        if ($this->requiereApelacion())                     return $this->_alertaValor = 'apelar_dictamen';
+        if ($this->requiereRespuestaAseguradora())          return $this->_alertaValor = 'sin_respuesta';
+
+        return $this->_alertaValor = 'normal';
     }
 
-    public function getTextoAlertaAttribute(): string
+    public function getTextoAlertaAttribute()
     {
         return match ($this->alerta_valor) {
             'pagado'                        => 'Pagado',
@@ -225,7 +242,7 @@ class Caso extends Model
         };
     }
 
-    public function getColorAlertaAttribute(): string
+    public function getColorAlertaAttribute()
     {
         return match ($this->alerta_valor) {
             'pagado'                                                         => 'green',
@@ -243,7 +260,7 @@ class Caso extends Model
     }
 
     // -------------------------------------------------------------------------
-    // ESTADO — resultados cacheados para no repetir Carbon::parse por fila
+    // ESTADO
     // -------------------------------------------------------------------------
 
     public function estaPagado(): bool
@@ -261,11 +278,8 @@ class Caso extends Model
 
     public function diasParaPrescripcion(): ?int
     {
-        if ($this->_diasCalculados) return $this->_diasPrescripcion;
-        $this->_diasCalculados = true;
-        if (empty($this->fecha_prescripcion)) {
-            return $this->_diasPrescripcion = null;
-        }
+        if ($this->_diasPrescripcion !== null) return $this->_diasPrescripcion;
+        if (empty($this->fecha_prescripcion)) return $this->_diasPrescripcion = 0;
         return $this->_diasPrescripcion = Carbon::today()->diffInDays(
             Carbon::parse($this->fecha_prescripcion), false
         );
@@ -273,11 +287,12 @@ class Caso extends Model
 
     public function prescripcionCritica(): bool
     {
+        if ($this->_prescripcionCrit !== null) return $this->_prescripcionCrit;
         if ($this->estaPagado() || $this->estaPrescrito() || empty($this->fecha_prescripcion)) {
-            return false;
+            return $this->_prescripcionCrit = false;
         }
         $dias = $this->diasParaPrescripcion();
-        return $dias !== null && $dias <= 90;
+        return $this->_prescripcionCrit = ($dias !== null && $dias <= 90);
     }
 
     // -------------------------------------------------------------------------
@@ -306,9 +321,8 @@ class Caso extends Model
     {
         if ($this->estaPagado() || $this->requierePoderContrato()) return false;
         if (empty($this->fecha_solicitud_aseguradora) || !empty($this->tipo_respuesta_aseguradora)) return false;
-        return $this->fecha_limite_respuesta_aseguradora
-            ? Carbon::today()->gt($this->fecha_limite_respuesta_aseguradora)
-            : false;
+        $limite = $this->_getLimite('respuesta_aseguradora', $this->fecha_solicitud_aseguradora, 30);
+        return $limite ? Carbon::today()->gt($limite) : false;
     }
 
     public function requiereApelacion(): bool
@@ -328,7 +342,7 @@ class Caso extends Model
         }
 
         if (!empty($this->fecha_apelacion) && empty($this->fecha_pago_honorarios)) {
-            $limite = Carbon::parse($this->fecha_apelacion)->addDays(30);
+            $limite = $this->_getLimite('tutela_apelacion', $this->fecha_apelacion, 30);
             return Carbon::today()->gt($limite);
         }
 
@@ -338,22 +352,18 @@ class Caso extends Model
     public function requiereSeguimientoTutela(): bool
     {
         if ($this->estaPagado() || empty($this->fecha_tutela) || !empty($this->fecha_fallo_tutela)) return false;
-        return $this->fecha_limite_seguimiento_tutela
-            ? Carbon::today()->gt($this->fecha_limite_seguimiento_tutela)
-            : false;
+        $limite = $this->_getLimite('seguimiento_tutela', $this->fecha_tutela, 30);
+        return $limite ? Carbon::today()->gt($limite) : false;
     }
 
     public function requiereCumplimientoTutela(): bool
     {
         if ($this->estaPagado()) return false;
         if (empty($this->fecha_fallo_tutela) || $this->resultado_fallo_tutela !== 'concedido') return false;
-        if (!empty($this->fecha_cumplimiento_tutela)) return false;
-        if (!empty($this->fecha_incidente_desacato)) return false;
+        if (!empty($this->fecha_cumplimiento_tutela) || !empty($this->fecha_incidente_desacato)) return false;
         if ($this->cumplioFalloTutela()) return false;
-
-        return $this->fecha_limite_cumplimiento_fallo
-            ? !Carbon::today()->gt($this->fecha_limite_cumplimiento_fallo)
-            : true;
+        $limite = $this->_getLimite('cumplimiento_fallo', $this->fecha_fallo_tutela, 14);
+        return $limite ? !Carbon::today()->gt($limite) : true;
     }
 
     public function requiereImpugnacion(): bool
@@ -367,8 +377,7 @@ class Caso extends Model
     public function requiereSegundaInstancia(): bool
     {
         if ($this->estaPagado()) return false;
-        return !empty($this->fecha_impugnacion)
-            && empty($this->fecha_fallo_segunda_instancia);
+        return !empty($this->fecha_impugnacion) && empty($this->fecha_fallo_segunda_instancia);
     }
 
     public function requiereCumplimientoSegundaInstancia(): bool
@@ -390,16 +399,14 @@ class Caso extends Model
     {
         if ($this->estaPagado()) return false;
         if (empty($this->fecha_fallo_tutela) || $this->resultado_fallo_tutela !== 'concedido') return false;
-        if (!empty($this->fecha_incidente_desacato)) return false;
-        if ($this->cumplioFalloTutela()) return false;
-        if (!empty($this->fecha_fallo_segunda_instancia) &&
-            $this->resultado_fallo_segunda_instancia === 'revoca' &&
-            !$this->cumplioFalloTutela()) {
+        if (!empty($this->fecha_incidente_desacato) || $this->cumplioFalloTutela()) return false;
+        if (!empty($this->fecha_fallo_segunda_instancia)
+            && $this->resultado_fallo_segunda_instancia === 'revoca'
+            && !$this->cumplioFalloTutela()) {
             return true;
         }
-        return $this->fecha_limite_cumplimiento_fallo
-            ? Carbon::today()->gt($this->fecha_limite_cumplimiento_fallo)
-            : false;
+        $limite = $this->_getLimite('cumplimiento_fallo', $this->fecha_fallo_tutela, 14);
+        return $limite ? Carbon::today()->gt($limite) : false;
     }
 
     public function cumplioFalloTutela(): bool
@@ -419,33 +426,25 @@ class Caso extends Model
     public function requiereAltaOrtopedia(): bool
     {
         if ($this->estaPagado()) return false;
-        return !empty($this->fecha_pago_honorarios)
-            && !$this->alta_ortopedia
-            && empty($this->fecha_envio_junta);
+        return !empty($this->fecha_pago_honorarios) && !$this->alta_ortopedia && empty($this->fecha_envio_junta);
     }
 
     public function requiereSolicitudJunta(): bool
     {
         if ($this->estaPagado()) return false;
-        return !empty($this->fecha_pago_honorarios)
-            && $this->alta_ortopedia
-            && empty($this->fecha_envio_junta);
+        return !empty($this->fecha_pago_honorarios) && $this->alta_ortopedia && empty($this->fecha_envio_junta);
     }
 
     public function requiereCobroAseguradora(): bool
     {
         if ($this->estaPagado()) return false;
-        return !empty($this->fecha_dictamen_junta)
-            && $this->furpen_completo
-            && empty($this->fecha_reclamacion_final);
+        return !empty($this->fecha_dictamen_junta) && $this->furpen_completo && empty($this->fecha_reclamacion_final);
     }
 
     public function requiereFurpen(): bool
     {
         if ($this->estaPagado()) return false;
-        return !empty($this->fecha_dictamen_junta)
-            && !$this->furpen_completo
-            && empty($this->fecha_reclamacion_final);
+        return !empty($this->fecha_dictamen_junta) && !$this->furpen_completo && empty($this->fecha_reclamacion_final);
     }
 
     public function requierePagoPendiente(): bool
@@ -458,53 +457,45 @@ class Caso extends Model
     {
         if ($this->estaPagado()) return false;
         if (empty($this->fecha_reclamacion_final) || !empty($this->fecha_pago_final)) return false;
-        return $this->fecha_limite_pago_final
-            ? Carbon::today()->gt($this->fecha_limite_pago_final)
-            : false;
+        $limite = $this->_getLimite('pago_final', $this->fecha_reclamacion_final, 30);
+        return $limite ? Carbon::today()->gt($limite) : false;
     }
 
     // -------------------------------------------------------------------------
-    // FECHA LIMITE ATTRIBUTES — cacheados para no crear Carbon en cada acceso
+    // HELPER PRIVADO: cache de fechas limite para evitar Carbon::parse repetidos
+    // -------------------------------------------------------------------------
+
+    private function _getLimite(string $key, $fecha, int $dias): ?Carbon
+    {
+        if (array_key_exists($key, $this->_limiteCache)) return $this->_limiteCache[$key];
+        $this->_limiteCache[$key] = empty($fecha)
+            ? null
+            : Carbon::parse($fecha)->copy()->addDays($dias);
+        return $this->_limiteCache[$key];
+    }
+
+    // -------------------------------------------------------------------------
+    // FECHA LIMITE ATTRIBUTES (compatibilidad con vistas existentes)
     // -------------------------------------------------------------------------
 
     public function getFechaLimiteRespuestaAseguradoraAttribute()
     {
-        if (!array_key_exists('resp_aseg', $this->_limiteCache)) {
-            $this->_limiteCache['resp_aseg'] = !empty($this->fecha_solicitud_aseguradora)
-                ? Carbon::parse($this->fecha_solicitud_aseguradora)->copy()->addDays(30)
-                : null;
-        }
-        return $this->_limiteCache['resp_aseg'];
+        return $this->_getLimite('respuesta_aseguradora', $this->fecha_solicitud_aseguradora, 30);
     }
 
     public function getFechaLimitePagoFinalAttribute()
     {
-        if (!array_key_exists('pago_final', $this->_limiteCache)) {
-            $this->_limiteCache['pago_final'] = !empty($this->fecha_reclamacion_final)
-                ? Carbon::parse($this->fecha_reclamacion_final)->copy()->addDays(30)
-                : null;
-        }
-        return $this->_limiteCache['pago_final'];
+        return $this->_getLimite('pago_final', $this->fecha_reclamacion_final, 30);
     }
 
     public function getFechaLimiteSeguimientoTutelaAttribute()
     {
-        if (!array_key_exists('seg_tutela', $this->_limiteCache)) {
-            $this->_limiteCache['seg_tutela'] = !empty($this->fecha_tutela)
-                ? Carbon::parse($this->fecha_tutela)->copy()->addDays(30)
-                : null;
-        }
-        return $this->_limiteCache['seg_tutela'];
+        return $this->_getLimite('seguimiento_tutela', $this->fecha_tutela, 30);
     }
 
     public function getFechaLimiteCumplimientoFalloAttribute()
     {
-        if (!array_key_exists('cumpl_fallo', $this->_limiteCache)) {
-            $this->_limiteCache['cumpl_fallo'] = !empty($this->fecha_fallo_tutela)
-                ? Carbon::parse($this->fecha_fallo_tutela)->copy()->addDays(14)
-                : null;
-        }
-        return $this->_limiteCache['cumpl_fallo'];
+        return $this->_getLimite('cumplimiento_fallo', $this->fecha_fallo_tutela, 14);
     }
 
     // -------------------------------------------------------------------------
@@ -601,200 +592,100 @@ class Caso extends Model
                 ->where('resultado_fallo_tutela', 'concedido')
                 ->whereNull('fecha_cumplimiento_tutela')
                 ->whereNull('fecha_incidente_desacato')
-                ->whereNull('fecha_pago_honorarios')
                 ->whereDate('fecha_fallo_tutela', '>=', $fechaLimite14Dias),
-
-            'fallo_tutela_registrado' => $query
-                ->whereNotNull('fecha_fallo_tutela')
-                ->where(function ($q) {
-                    $q->whereNull('resultado_fallo_tutela')
-                      ->orWhere('resultado_fallo_tutela', '');
-                })
-                ->where(function ($q) {
-                    $q->whereNull('estado')->orWhereNotIn('estado', ['Pagado', 'Cerrado']);
-                }),
-
-            'cumplimiento_segunda_instancia' => $query->where(function ($q) {
-                $q->where(function ($sub) {
-                    $sub->whereNotNull('fecha_cumplimiento_tutela')
-                        ->where('tipo_tutela', 'tutela_calificacion')
-                        ->whereNull('fecha_pago_honorarios');
-                })->orWhere(function ($sub) {
-                    $sub->whereNotNull('fecha_cumplimiento_tutela')
-                        ->where('tipo_tutela', 'tutela_debido_proceso')
-                        ->whereNull('fecha_pago_honorarios');
-                })->orWhere(function ($sub) {
-                    $sub->whereNotNull('fecha_fallo_segunda_instancia')
-                        ->where('resultado_fallo_segunda_instancia', 'revoca')
-                        ->whereNull('fecha_cumplimiento_tutela')
-                        ->whereNull('fecha_pago_honorarios');
-                });
-            }),
 
             'desacato' => $query
                 ->whereNotNull('fecha_fallo_tutela')
                 ->where('resultado_fallo_tutela', 'concedido')
                 ->whereNull('fecha_incidente_desacato')
-                ->whereNull('fecha_pago_honorarios')
                 ->whereNull('fecha_cumplimiento_tutela')
                 ->whereDate('fecha_fallo_tutela', '<', $fechaLimite14Dias),
 
-            'impugnacion' => $query
-                ->whereNotNull('fecha_fallo_tutela')
-                ->whereIn('resultado_fallo_tutela', ['negado', 'parcial'])
-                ->whereNull('fecha_impugnacion'),
-
-            'segunda_instancia' => $query
-                ->whereNotNull('fecha_impugnacion')
-                ->whereNull('fecha_fallo_segunda_instancia'),
-
-            'fallo_segunda_instancia' => $query
-                ->whereNotNull('fecha_fallo_segunda_instancia')
+            'prescripcion_critica' => $query
+                ->whereNotNull('fecha_prescripcion')
+                ->whereDate('fecha_prescripcion', '>=', $hoy)
+                ->whereDate('fecha_prescripcion', '<=', $fechaPrescripcionMax)
                 ->where(function ($q) {
-                    $q->whereNull('resultado_fallo_segunda_instancia')
-                      ->orWhere('resultado_fallo_segunda_instancia', '');
+                    $q->whereNull('estado')->orWhereNotIn('estado', ['Pagado', 'Cerrado']);
                 }),
 
-            'segunda_revoca_calificar' => $query
-                ->whereNotNull('fecha_fallo_segunda_instancia')
-                ->where('resultado_fallo_segunda_instancia', 'revoca')
-                ->where('tipo_tutela', 'tutela_calificacion')
-                ->whereNull('fecha_pago_honorarios'),
-
-            'segunda_revoca_honorarios' => $query
-                ->whereNotNull('fecha_fallo_segunda_instancia')
-                ->where('resultado_fallo_segunda_instancia', 'revoca')
-                ->where('tipo_tutela', 'tutela_debido_proceso')
-                ->whereNull('fecha_pago_honorarios'),
-
-            'caso_cerrado' => $query
-                ->whereNotNull('fecha_fallo_segunda_instancia')
-                ->where('resultado_fallo_segunda_instancia', 'confirma'),
-
-            'alta_ortopedia_pendiente' => $query
-                ->whereNotNull('fecha_pago_honorarios')
-                ->where('alta_ortopedia', false)
-                ->whereNull('fecha_envio_junta'),
-
-            'honorarios_junta' => $query
-                ->whereNotNull('fecha_apelacion')
-                ->whereNull('fecha_pago_honorarios'),
-
-            'solicitud_junta' => $query->where(function ($q) {
-                $q->where(function ($sub) {
-                    $sub->whereNotNull('fecha_pago_honorarios')
-                        ->where('alta_ortopedia', true)
-                        ->whereNull('fecha_envio_junta');
-                })->orWhere(function ($sub) {
-                    $sub->whereNotNull('fecha_envio_junta')
-                        ->whereNull('fecha_dictamen_junta');
-                });
-            }),
-
-            'dictamen_junta' => $query
-                ->whereNotNull('fecha_dictamen_junta')
-                ->whereNull('fecha_reclamacion_final'),
-
-            'reclamacion' => $query->where(function ($q) {
-                $q->where(function ($sub) {
-                    $sub->whereNotNull('fecha_dictamen_junta')
-                        ->where('furpen_completo', true)
-                        ->whereNull('fecha_reclamacion_final');
-                })->orWhere(function ($sub) {
-                    $sub->whereNotNull('fecha_reclamacion_final')
-                        ->whereNull('fecha_pago_final');
-                });
-            }),
+            'prescrito' => $query
+                ->whereNotNull('fecha_prescripcion')
+                ->whereDate('fecha_prescripcion', '<', $hoy),
 
             'pago_pendiente' => $query
                 ->whereNotNull('fecha_reclamacion_final')
-                ->whereNull('fecha_pago_final'),
+                ->whereNull('fecha_pago_final')
+                ->where(function ($q) {
+                    $q->whereNull('estado')->orWhere('estado', '!=', 'Pagado');
+                }),
 
             'queja' => $query
                 ->whereNotNull('fecha_reclamacion_final')
                 ->whereNull('fecha_pago_final')
                 ->whereDate('fecha_reclamacion_final', '<', $fechaLimite30Dias),
 
-            'prescripcion_critica' => $query
-                ->whereNotNull('fecha_prescripcion')
-                ->whereDate('fecha_prescripcion', '<=', $fechaPrescripcionMax)
-                ->whereDate('fecha_prescripcion', '>=', $hoy),
+            'reclamacion' => $query
+                ->whereNotNull('fecha_dictamen_junta')
+                ->where('furpen_completo', true)
+                ->whereNull('fecha_reclamacion_final'),
 
-            'prescrito' => $query
-                ->whereNotNull('fecha_prescripcion')
-                ->whereDate('fecha_prescripcion', '<', $hoy),
+            'solicitud_junta' => $query
+                ->whereNotNull('fecha_pago_honorarios')
+                ->where('alta_ortopedia', true)
+                ->whereNull('fecha_envio_junta'),
 
-            'pagado' => $query->where(function ($q) {
-                $q->where('estado', 'Pagado')->orWhereNotNull('fecha_pago_final');
-            }),
+            'honorarios_junta' => $query
+                ->whereNotNull('fecha_apelacion')
+                ->whereNull('fecha_pago_honorarios'),
 
-            'normal' => $query
+            'pagado' => $query
                 ->where(function ($q) {
-                    $q->whereNull('estado')->orWhere('estado', '!=', 'Pagado');
-                })
-                ->where(function ($q) {
-                    $q->where('tiene_poder', true)->where('tiene_contrato', true);
-                })
-                ->whereNull('fecha_tutela')
-                ->whereNull('fecha_incidente_desacato')
-                ->whereNull('fecha_impugnacion')
-                ->whereNull('fecha_fallo_segunda_instancia'),
+                    $q->where('estado', 'Pagado')->orWhereNotNull('fecha_pago_final');
+                }),
+
+            'fallo_segunda_instancia' => $query
+                ->whereNotNull('fecha_fallo_segunda_instancia'),
+
+            'seguimiento_tutela' => $query
+                ->whereNotNull('fecha_tutela')
+                ->whereNull('fecha_fallo_tutela')
+                ->whereDate('fecha_tutela', '<', $fechaLimite30Dias),
+
+            'fallo_segunda_instancia' => $query
+                ->whereNotNull('fecha_fallo_segunda_instancia'),
 
             default => $query,
         };
     }
 
     // -------------------------------------------------------------------------
-    // BOOTED / CALCULOS AUTOMATICOS
+    // BOOTED (porcentaje_avance calculado al guardar)
     // -------------------------------------------------------------------------
 
     protected static function booted()
     {
         static::saving(function ($caso) {
-            $valorPagado = is_numeric($caso->valor_pagado) ? (float) $caso->valor_pagado : 0;
-            $honorarios  = is_numeric($caso->porcentaje_honorarios) ? (float) $caso->porcentaje_honorarios : 0;
+            $campos = [
+                'fecha_accidente', 'fecha_solicitud_aseguradora', 'fecha_respuesta_aseguradora',
+                'fecha_apelacion', 'fecha_tutela', 'fecha_pago_honorarios', 'fecha_envio_junta',
+                'fecha_dictamen_junta', 'fecha_reclamacion_final', 'fecha_pago_final',
+                'tiene_poder', 'tiene_contrato', 'alta_ortopedia', 'furpen_completo',
+                'fecha_fallo_tutela', 'fecha_cumplimiento_tutela', 'fecha_incidente_desacato',
+                'fecha_impugnacion', 'fecha_fallo_segunda_instancia',
+            ];
 
-            if ($valorPagado > 0 && $honorarios > 0) {
-                $caso->ganancia_equipo    = round($valorPagado * ($honorarios / 100), 2);
-                $caso->valor_neto_cliente = round($valorPagado - $caso->ganancia_equipo, 2);
-            } else {
-                $caso->ganancia_equipo    = 0;
-                $caso->valor_neto_cliente = $valorPagado > 0 ? $valorPagado : 0;
+            $total    = count($campos);
+            $rellenos = 0;
+
+            foreach ($campos as $campo) {
+                $valor = $caso->$campo ?? null;
+                if ($valor !== null && $valor !== '' && $valor !== false) {
+                    $rellenos++;
+                }
             }
 
-            if (!empty($caso->fecha_accidente)) {
-                $caso->fecha_prescripcion = Carbon::parse($caso->fecha_accidente)->copy()->addMonths(18);
-            }
-
-            $caso->porcentaje_avance = self::calcularAvance($caso);
-
-            if (!empty($caso->fecha_pago_final)) {
-                $caso->estado = 'Pagado';
-            }
+            $caso->porcentaje_avance = $total > 0 ? (int) round(($rellenos / $total) * 100) : 0;
         });
-    }
-
-    public static function calcularAvance($caso): int
-    {
-        $pasos = [
-            (bool) $caso->tiene_poder,
-            (bool) $caso->tiene_contrato,
-            !empty($caso->fecha_solicitud_aseguradora),
-            !empty($caso->tipo_respuesta_aseguradora),
-            !empty($caso->fecha_apelacion) || !empty($caso->fecha_tutela),
-            !empty($caso->fecha_fallo_tutela),
-            !empty($caso->fecha_pago_honorarios),
-            (bool) $caso->alta_ortopedia,
-            !empty($caso->fecha_envio_junta),
-            !empty($caso->fecha_dictamen_junta),
-            (bool) $caso->furpen_completo,
-            !empty($caso->fecha_reclamacion_final),
-            !empty($caso->fecha_pago_final),
-        ];
-
-        $completados = count(array_filter($pasos));
-        $total       = count($pasos);
-
-        return $total > 0 ? (int) round(($completados / $total) * 100) : 0;
     }
 }
