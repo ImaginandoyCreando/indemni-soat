@@ -27,7 +27,172 @@ class CasoController extends Controller
         if (!in_array($sort, $columnasPermitidas))  $sort      = 'id';
         if (!in_array($direction, ['asc', 'desc'])) $direction = 'desc';
 
-        $query = Caso::query();
+        // ── CASE WHEN en PostgreSQL ──────────────────────────────────────────
+        // Delegamos el calculo de alerta_valor al motor de base de datos.
+        // Esto escala a miles de casos sin degradacion porque:
+        //   • PostgreSQL evalua columnas de fecha directamente, sin Carbon.
+        //   • Solo procesa las filas de la pagina actual (paginate).
+        //   • Caso::getAlertaValorAttribute() detecta "alerta_codigo" y lo
+        //     devuelve sin ningun calculo PHP adicional.
+        $alertaSQL = <<<'SQL'
+            CASE
+              WHEN (estado = 'Pagado' OR fecha_pago_final IS NOT NULL)
+                THEN 'pagado'
+
+              WHEN (fecha_prescripcion IS NOT NULL
+                    AND fecha_prescripcion < CURRENT_DATE)
+                THEN 'prescrito'
+
+              WHEN (fecha_prescripcion IS NOT NULL
+                    AND fecha_prescripcion >= CURRENT_DATE
+                    AND fecha_prescripcion <= CURRENT_DATE + INTERVAL '90 days'
+                    AND estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL)
+                THEN 'prescripcion_critica'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND (tiene_poder = false OR tiene_contrato = false))
+                THEN 'documentacion_inicial'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND fecha_entrega_poder IS NOT NULL
+                    AND fecha_poder_firmado IS NULL)
+                THEN 'poder_pendiente'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND fecha_entrega_contrato IS NOT NULL
+                    AND fecha_contrato_firmado IS NULL)
+                THEN 'contrato_pendiente'
+
+              WHEN (fecha_fallo_segunda_instancia IS NOT NULL
+                    AND resultado_fallo_segunda_instancia = 'confirma')
+                THEN 'caso_cerrado'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND fecha_fallo_segunda_instancia IS NOT NULL
+                    AND resultado_fallo_segunda_instancia = 'revoca'
+                    AND fecha_cumplimiento_tutela IS NULL)
+                THEN 'cumplimiento_segunda_instancia'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND fecha_fallo_tutela IS NOT NULL
+                    AND resultado_fallo_tutela = 'concedido'
+                    AND fecha_incidente_desacato IS NULL
+                    AND fecha_cumplimiento_tutela IS NULL
+                    AND fecha_pago_honorarios IS NULL
+                    AND fecha_fallo_tutela < CURRENT_DATE - INTERVAL '14 days')
+                THEN 'desacato'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND fecha_fallo_tutela IS NOT NULL
+                    AND resultado_fallo_tutela = 'concedido'
+                    AND fecha_cumplimiento_tutela IS NULL
+                    AND fecha_incidente_desacato IS NULL
+                    AND fecha_pago_honorarios IS NULL
+                    AND fecha_fallo_tutela >= CURRENT_DATE - INTERVAL '14 days')
+                THEN 'cumplimiento_tutela'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND fecha_fallo_tutela IS NOT NULL
+                    AND resultado_fallo_tutela IN ('negado', 'parcial')
+                    AND fecha_impugnacion IS NULL)
+                THEN 'impugnacion'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND fecha_impugnacion IS NOT NULL
+                    AND fecha_fallo_segunda_instancia IS NULL)
+                THEN 'segunda_instancia'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_reclamacion_final IS NOT NULL
+                    AND fecha_pago_final IS NULL
+                    AND fecha_reclamacion_final < CURRENT_DATE - INTERVAL '30 days')
+                THEN 'queja'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND fecha_tutela IS NOT NULL
+                    AND fecha_fallo_tutela IS NULL
+                    AND fecha_tutela < CURRENT_DATE - INTERVAL '30 days')
+                THEN 'seguimiento_tutela'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND fecha_tutela IS NOT NULL
+                    AND fecha_fallo_tutela IS NULL)
+                THEN 'tutela'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_reclamacion_final IS NOT NULL
+                    AND fecha_pago_final IS NULL)
+                THEN 'pago_pendiente'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND fecha_dictamen_junta IS NOT NULL
+                    AND furpen_completo = false
+                    AND fecha_reclamacion_final IS NULL)
+                THEN 'furpen_pendiente'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND fecha_dictamen_junta IS NOT NULL
+                    AND furpen_completo = true
+                    AND fecha_reclamacion_final IS NULL)
+                THEN 'reclamacion'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND fecha_pago_honorarios IS NOT NULL
+                    AND alta_ortopedia = false
+                    AND fecha_envio_junta IS NULL)
+                THEN 'alta_ortopedia_pendiente'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND ((fecha_pago_honorarios IS NOT NULL AND alta_ortopedia = true AND fecha_envio_junta IS NULL)
+                         OR (fecha_envio_junta IS NOT NULL AND fecha_dictamen_junta IS NULL)))
+                THEN 'solicitud_junta'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND fecha_apelacion IS NOT NULL
+                    AND fecha_pago_honorarios IS NULL)
+                THEN 'honorarios_junta'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND tipo_respuesta_aseguradora = 'emitio_dictamen'
+                    AND fecha_respuesta_aseguradora IS NOT NULL
+                    AND fecha_apelacion IS NULL)
+                THEN 'apelar_dictamen'
+
+              WHEN (estado IS DISTINCT FROM 'Pagado'
+                    AND fecha_pago_final IS NULL
+                    AND fecha_solicitud_aseguradora IS NOT NULL
+                    AND tipo_respuesta_aseguradora IS NULL
+                    AND fecha_solicitud_aseguradora < CURRENT_DATE - INTERVAL '30 days')
+                THEN 'sin_respuesta'
+
+              ELSE 'normal'
+            END
+SQL;
+
+        $query = Caso::query()
+            // Eager loading: previene N+1 queries al renderizar cada fila en Blade.
+            // Sin esto, cada include de _alertas-temporales lanza queries adicionales.
+            // Con esto son exactamente 2 queries extra sin importar cuantos casos haya.
+            ->with(['bitacoras', 'documentos'])
+            // Agrega alerta_codigo calculado por PostgreSQL como columna virtual.
+            ->selectRaw("casos.*, ({$alertaSQL}) AS alerta_codigo");
 
         if ($request->filled('buscar')) {
             $buscar = trim($request->buscar);
