@@ -13,6 +13,7 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\PlantillaDocumentoController;
 use App\Http\Controllers\DocumentoGeneradoController;
+use App\Http\Controllers\WhatsappController;
 
 // ── Rutas públicas ────────────────────────────────────────────────────────────
 Route::get('/login',  [LoginController::class, 'showLogin'])->name('login');
@@ -122,7 +123,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/usuarios/{user}',     [UserController::class, 'destroy'])->name('users.destroy');
     });
 
-    // ── Plantillas de documentos (solo admin) ─────────────────────────────
+    // ── Plantillas de documentos (solo admin) ─────────────────────────
     Route::middleware('role:admin')->prefix('plantillas')->name('plantillas.')->group(function () {
         Route::get('/',             [PlantillaDocumentoController::class, 'index'])->name('index');
         Route::post('/',            [PlantillaDocumentoController::class, 'store'])->name('store');
@@ -135,6 +136,15 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{tipo}',                 [DocumentoGeneradoController::class, 'generar'])->name('generar');
         Route::get('/descarga/{documento}',    [DocumentoGeneradoController::class, 'descargar'])->name('descargar');
         Route::delete('/eliminar/{documento}', [DocumentoGeneradoController::class, 'destroy'])->name('destroy');
+    });
+
+    // ── WhatsApp — solo admin ─────────────────────────────────────────────────
+    Route::middleware('role:admin')->prefix('whatsapp')->name('whatsapp.')->group(function () {
+        Route::get('/',                          [WhatsappController::class, 'index'])->name('index');
+        Route::post('/',                         [WhatsappController::class, 'store'])->name('store');
+        Route::delete('/{contacto}',             [WhatsappController::class, 'destroy'])->name('destroy');
+        Route::patch('/{contacto}/toggle',       [WhatsappController::class, 'toggleActivo'])->name('toggle');
+        Route::post('/{contacto}/probar',        [WhatsappController::class, 'probar'])->name('probar');
     });
 
 });
