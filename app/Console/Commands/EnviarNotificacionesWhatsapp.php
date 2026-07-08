@@ -29,6 +29,7 @@ class EnviarNotificacionesWhatsapp extends Command
         'prescripcion_critica'           => 7,
         'sin_respuesta'                  => 7,
         'seguimiento_tutela'             => 7,
+        'tutela'                         => 7,  // alias real que usa el sistema
         'queja'                          => 7,
         'desacato'                       => 7,
         'cumplimiento_segunda_instancia' => 7,
@@ -154,7 +155,8 @@ class EnviarNotificacionesWhatsapp extends Command
                     continue;
                 }
 
-                $mensaje = WhatsappService::construirMensaje($caso, $alertaCodigo);
+                // Llamada de instancia (compatible con static y non-static en el servidor)
+                $mensaje = $servicio->construirMensaje($caso, $alertaCodigo);
 
                 if ($dryRun) {
                     $this->line("  [DRY-RUN] → {$contacto->nombre} ({$contacto->numero}) | Caso {$caso->numero_caso} | {$alertaCodigo}");
