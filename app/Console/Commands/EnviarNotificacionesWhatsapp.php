@@ -6,237 +6,324 @@ use App\Models\Caso;
 use App\Models\WhatsappContacto;
 use App\Models\WhatsappNotificacionEnviada;
 use App\Services\WhatsappService;
-use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class EnviarNotificacionesWhatsapp extends Command
 {
     protected $signature = 'whatsapp:notificar
-                            {--dry-run : Solo muestra lo que se enviaria, sin enviar}
-                            {--caso=   : Procesa solo el caso con este ID}';
+                            {--dry-run : Simula el envío sin enviar mensajes reales}
+                            {--caso= : Procesa solo un caso específico por ID}
+                            {--debug : Muestra información detallada de cada caso procesado}';
 
-    protected $description = 'Envia notificaciones WhatsApp de alertas activas a todos los contactos activos';
+    protected $description = 'Revisa todos los casos activos y envía notificaciones de WhatsApp según su estado jurídico.';
 
-    private WhatsappService $servicio;
+    /**
+     * Alertas que disparan notificación y cuántos días esperar antes del siguiente recordatorio.
+     *   - 0  = solo se envía UNA vez mientras siga la misma alerta
+     *   - N  = se reenvía cada N días mientras la alerta persista
+     */
+    private array $alertasActivas = [
+        // Críticas — recordatorio semanal
+        'prescripcion_critica'           => 7,
+        'sin_respuesta'                  => 7,
+        'seguimiento_tutela'             => 7,
+        'queja'                          => 7,
+        'desacato'                       => 7,
+        'cumplimiento_segunda_instancia' => 7,
 
-    public function __construct(WhatsappService $servicio)
-    {
-        parent::__construct();
-        $this->servicio = $servicio;
-    }
+        // Urgentes — recordatorio cada 3 días
+        'prescrito'                      => 3,
+        'impugnacion'                    => 3,
+        'segunda_instancia'              => 3,
+        'cumplimiento_tutela'            => 3,
+
+        // Pendientes — solo una notificación inicial
+        'documentacion_inicial'          => 0,
+        'poder_pendiente'                => 0,
+        'contrato_pendiente'             => 0,
+        'apelar_dictamen'                => 0,
+        'honorarios_junta'               => 0,
+        'alta_ortopedia_pendiente'       => 0,
+        'solicitud_junta'                => 0,
+        'reclamacion'                    => 0,
+        'pago_pendiente'                 => 0,
+    ];
 
     public function handle(): int
     {
         $dryRun = $this->option('dry-run');
-        $soloId = $this->option('caso');
+        $casoId = $this->option('caso');
+        $debug  = $this->option('debug');
 
-        $this->info($dryRun ? '[DRY-RUN] Simulando envios...' : 'Iniciando notificaciones WhatsApp...');
+        $this->info('=== INDEMNI-SOAT: Notificaciones WhatsApp ===');
 
-        // ── 1. Contactos activos ──────────────────────────────────────────────
-        $contactos = WhatsappContacto::where('activo', true)->get();
-
-        if ($contactos->isEmpty()) {
-            $this->warn('No hay contactos activos. Registra al menos uno en la seccion WhatsApp.');
-            return Command::SUCCESS;
+        if ($dryRun) {
+            $this->warn('⚠️  MODO DRY-RUN — no se enviarán mensajes reales.');
         }
 
-        // ── 2. Casos con alerta activa ────────────────────────────────────────
-        $alertaSQL = <<<'SQL'
-            CASE
-              WHEN (estado = 'Pagado' OR fecha_pago_final IS NOT NULL)
-                THEN 'pagado'
-              WHEN (fecha_prescripcion IS NOT NULL AND fecha_prescripcion < CURRENT_DATE)
-                THEN 'prescrito'
-              WHEN (fecha_prescripcion IS NOT NULL
-                    AND fecha_prescripcion >= CURRENT_DATE
-                    AND fecha_prescripcion <= CURRENT_DATE + INTERVAL '90 days'
-                    AND estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL)
-                THEN 'prescripcion_critica'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND (tiene_poder = false OR tiene_contrato = false))
-                THEN 'documentacion_inicial'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND fecha_entrega_poder IS NOT NULL AND fecha_poder_firmado IS NULL)
-                THEN 'poder_pendiente'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND fecha_entrega_contrato IS NOT NULL AND fecha_contrato_firmado IS NULL)
-                THEN 'contrato_pendiente'
-              WHEN (fecha_fallo_segunda_instancia IS NOT NULL
-                    AND resultado_fallo_segunda_instancia = 'confirma')
-                THEN 'caso_cerrado'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND fecha_fallo_segunda_instancia IS NOT NULL
-                    AND resultado_fallo_segunda_instancia = 'revoca'
-                    AND fecha_cumplimiento_tutela IS NULL)
-                THEN 'cumplimiento_segunda_instancia'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND fecha_fallo_tutela IS NOT NULL AND resultado_fallo_tutela = 'concedido'
-                    AND fecha_incidente_desacato IS NULL AND fecha_cumplimiento_tutela IS NULL
-                    AND fecha_pago_honorarios IS NULL
-                    AND fecha_fallo_tutela < CURRENT_DATE - INTERVAL '14 days')
-                THEN 'desacato'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND fecha_fallo_tutela IS NOT NULL AND resultado_fallo_tutela = 'concedido'
-                    AND fecha_cumplimiento_tutela IS NULL AND fecha_incidente_desacato IS NULL
-                    AND fecha_pago_honorarios IS NULL
-                    AND fecha_fallo_tutela >= CURRENT_DATE - INTERVAL '14 days')
-                THEN 'cumplimiento_tutela'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND fecha_fallo_tutela IS NOT NULL
-                    AND resultado_fallo_tutela IN ('negado', 'parcial')
-                    AND fecha_impugnacion IS NULL)
-                THEN 'impugnacion'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND fecha_impugnacion IS NOT NULL AND fecha_fallo_segunda_instancia IS NULL)
-                THEN 'segunda_instancia'
-              WHEN (estado IS DISTINCT FROM 'Pagado'
-                    AND fecha_reclamacion_final IS NOT NULL AND fecha_pago_final IS NULL
-                    AND fecha_reclamacion_final < CURRENT_DATE - INTERVAL '30 days')
-                THEN 'queja'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND fecha_tutela IS NOT NULL AND fecha_fallo_tutela IS NULL
-                    AND fecha_tutela < CURRENT_DATE - INTERVAL '30 days')
-                THEN 'seguimiento_tutela'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND fecha_tutela IS NOT NULL AND fecha_fallo_tutela IS NULL)
-                THEN 'tutela'
-              WHEN (estado IS DISTINCT FROM 'Pagado'
-                    AND fecha_reclamacion_final IS NOT NULL AND fecha_pago_final IS NULL)
-                THEN 'pago_pendiente'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND fecha_dictamen_junta IS NOT NULL AND furpen_completo = false
-                    AND fecha_reclamacion_final IS NULL)
-                THEN 'furpen_pendiente'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND fecha_dictamen_junta IS NOT NULL AND furpen_completo = true
-                    AND fecha_reclamacion_final IS NULL)
-                THEN 'reclamacion'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND fecha_pago_honorarios IS NOT NULL AND alta_ortopedia = false
-                    AND fecha_envio_junta IS NULL)
-                THEN 'alta_ortopedia_pendiente'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND fecha_pago_honorarios IS NOT NULL AND alta_ortopedia = true
-                    AND fecha_envio_junta IS NULL)
-                THEN 'solicitud_junta'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND fecha_apelacion IS NOT NULL AND fecha_pago_honorarios IS NULL)
-                THEN 'honorarios_junta'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND tipo_respuesta_aseguradora = 'emitio_dictamen'
-                    AND fecha_respuesta_aseguradora IS NOT NULL AND fecha_apelacion IS NULL)
-                THEN 'apelar_dictamen'
-              WHEN (estado IS DISTINCT FROM 'Pagado' AND fecha_pago_final IS NULL
-                    AND fecha_solicitud_aseguradora IS NOT NULL
-                    AND tipo_respuesta_aseguradora IS NULL
-                    AND fecha_solicitud_aseguradora < CURRENT_DATE - INTERVAL '30 days')
-                THEN 'sin_respuesta'
-              ELSE 'normal'
-            END
-        SQL;
+        // ── Verificar tablas necesarias ──────────────────────────────────────
+        if (!Schema::hasTable('whatsapp_contactos') || !Schema::hasTable('whatsapp_notificaciones_enviadas')) {
+            $this->error('❌ Las tablas de WhatsApp no existen. Ejecuta: php artisan migrate');
+            Log::error('WhatsApp scheduler: tablas no encontradas. Ejecutar php artisan migrate.');
+            return Command::FAILURE;
+        }
 
-        $query = Caso::selectRaw("casos.id, casos.numero_caso, casos.nombres, casos.apellidos, ({$alertaSQL}) AS alerta_codigo")
-            ->having(DB::raw("({$alertaSQL})"), '!=', 'pagado')
-            ->having(DB::raw("({$alertaSQL})"), '!=', 'normal')
-            ->having(DB::raw("({$alertaSQL})"), '!=', 'caso_cerrado');
+        // ── 1. Cargar contactos activos ──────────────────────────────────────
+        $contactos = WhatsappContacto::where('activo', true)->get();
+        if ($contactos->isEmpty()) {
+            $this->warn('⚠️  Sin contactos de WhatsApp activos. Agrega al menos uno en el módulo WhatsApp.');
+            return Command::SUCCESS;
+        }
+        $this->info("📱 Contactos activos: {$contactos->count()}");
 
-        if ($soloId) {
-            $query->where('casos.id', (int) $soloId);
+        // ── 2. Cargar casos activos ──────────────────────────────────────────
+        $query = Caso::query()
+            ->where(function ($q) {
+                $q->where('estado', '!=', 'Pagado')
+                  ->orWhereNull('estado');
+            })
+            ->whereNull('fecha_pago_final');
+
+        if ($casoId) {
+            $query->where('id', $casoId);
         }
 
         $casos = $query->get();
+        $this->info("📂 Casos activos encontrados: {$casos->count()}");
 
         if ($casos->isEmpty()) {
-            $this->info('No hay casos con alertas activas hoy.');
+            $this->info('Sin casos activos para procesar.');
             return Command::SUCCESS;
         }
 
-        $this->info("Casos con alertas activas: {$casos->count()}");
+        // ── 3. Resolver alertas de todos los casos de una vez ────────────────
+        // Indexamos: caso_id => codigo_alerta_resuelto
+        // Usamos este mapa tanto para decidir el envío como para la limpieza,
+        // garantizando consistencia entre ambas operaciones.
+        $alertaResueltaPorCaso = $casos->mapWithKeys(
+            fn($caso) => [$caso->id => $this->resolverAlertaCodigo($caso)]
+        );
 
-        // ── 3. Pre-cargar log de notificaciones enviadas ──────────────────────
-        // Una sola query en lugar de N×M queries individuales
-        $casosIds    = $casos->pluck('id')->toArray();
-        $numerosWa   = $contactos->map(fn($c) => $c->numero_limpio)->toArray();
+        // ── 4. Pre-cargar notificaciones ya enviadas (una sola query) ────────
+        $casoIds        = $casos->pluck('id')->toArray();
+        $numerosActivos = $contactos->pluck('numero')->toArray();
 
-        $yaEnviadas = WhatsappNotificacionEnviada::whereIn('caso_id', $casosIds)
-            ->whereIn('numero_whatsapp', $numerosWa)
+        // Índice: "casoId|alertaCodigo|numero" => modelo WhatsappNotificacionEnviada (último)
+        $enviadas = WhatsappNotificacionEnviada::whereIn('caso_id', $casoIds)
+            ->whereIn('numero_whatsapp', $numerosActivos)
             ->get()
-            ->groupBy(fn($r) => "{$r->caso_id}|{$r->alerta_codigo}|{$r->numero_whatsapp}");
+            ->groupBy(fn($r) => "{$r->caso_id}|{$r->alerta_codigo}|{$r->numero_whatsapp}")
+            ->map(fn($group) => $group->sortByDesc('enviada_at')->first());
 
-        // ── 4. Enviar / decidir ───────────────────────────────────────────────
-        $enviados = 0;
-        $omitidos = 0;
+        $servicio  = new WhatsappService();
+        $enviados  = 0;
+        $omitidos  = 0;
+        $sinAlerta = 0;
 
         foreach ($casos as $caso) {
-            $alertaCodigo = $caso->alerta_codigo;
-            $prioridad    = $this->servicio->prioridadAlerta($alertaCodigo);
-            $diasReenvio  = $this->servicio->diasReenvio($prioridad);
-            $mensaje      = $this->servicio->construirMensaje($caso, $alertaCodigo);
+            $alertaCodigo = $alertaResueltaPorCaso->get($caso->id);
+
+            if ($debug) {
+                $this->line("  [DEBUG] Caso {$caso->numero_caso} → alerta = " . ($alertaCodigo ?? 'null'));
+            }
+
+            if (!$alertaCodigo || !array_key_exists($alertaCodigo, $this->alertasActivas)) {
+                $sinAlerta++;
+                if ($debug && $alertaCodigo) {
+                    $this->line("  [SKIP] Caso {$caso->numero_caso} | alerta '{$alertaCodigo}' no está en lista de alertas activas");
+                }
+                continue;
+            }
+
+            $diasRecordatorio = $this->alertasActivas[$alertaCodigo];
 
             foreach ($contactos as $contacto) {
-                $numero = $contacto->numero_limpio;
-                $clave  = "{$caso->id}|{$alertaCodigo}|{$numero}";
+                $clave              = "{$caso->id}|{$alertaCodigo}|{$contacto->numero}";
+                $ultimaNotificacion = $enviadas->get($clave);
 
-                $registro = $yaEnviadas->get($clave)?->first();
-
-                // Verificar si debe enviar
-                $debeEnviar = false;
-                if (!$registro) {
-                    $debeEnviar = true;
-                } elseif ($diasReenvio !== null) {
-                    $diasDesde = Carbon::parse($registro->enviado_en)->diffInDays(now());
-                    $debeEnviar = $diasDesde >= $diasReenvio;
-                }
-
-                if (!$debeEnviar) {
+                if (!$this->debeEnviar($ultimaNotificacion, $diasRecordatorio)) {
                     $omitidos++;
+                    if ($debug) {
+                        $ultimoStr = $ultimaNotificacion
+                            ? $ultimaNotificacion->enviada_at->format('d/m/Y')
+                            : '-';
+                        $this->line("  [SKIP] → {$contacto->nombre} | Caso {$caso->numero_caso} | último envío: {$ultimoStr}");
+                    }
                     continue;
                 }
+
+                $mensaje = WhatsappService::construirMensaje($caso, $alertaCodigo);
 
                 if ($dryRun) {
-                    $this->line("[DRY-RUN] Caso {$caso->numero_caso} → {$contacto->nombre} ({$numero}) | {$alertaCodigo}");
+                    $this->line("  [DRY-RUN] → {$contacto->nombre} ({$contacto->numero}) | Caso {$caso->numero_caso} | {$alertaCodigo}");
                     $enviados++;
                     continue;
                 }
 
-                $resultado = $this->servicio->enviar($numero, $mensaje);
+                $ok = $servicio->enviar($contacto->numero, $mensaje);
 
-                if ($resultado['ok']) {
-                    // Upsert: si ya existe actualiza enviado_en; si no, crea
-                    WhatsappNotificacionEnviada::updateOrCreate(
-                        [
-                            'caso_id'         => $caso->id,
-                            'alerta_codigo'   => $alertaCodigo,
-                            'numero_whatsapp' => $numero,
-                        ],
-                        ['enviado_en' => now()]
-                    );
-                    $this->line("✅ Caso {$caso->numero_caso} → {$contacto->nombre} ({$alertaCodigo})");
+                if ($ok) {
+                    $nuevaNotif = WhatsappNotificacionEnviada::create([
+                        'caso_id'         => $caso->id,
+                        'alerta_codigo'   => $alertaCodigo,
+                        'numero_whatsapp' => $contacto->numero,
+                        'enviada_at'      => now(),
+                    ]);
+                    $enviadas->put($clave, $nuevaNotif);
                     $enviados++;
+                    $this->line("  ✅ Enviado → {$contacto->nombre} | Caso {$caso->numero_caso} | {$alertaCodigo}");
+                    Log::info('WhatsApp: notificación enviada', [
+                        'caso'   => $caso->numero_caso,
+                        'numero' => $contacto->numero,
+                        'alerta' => $alertaCodigo,
+                    ]);
                 } else {
-                    $this->warn("❌ Fallo caso {$caso->numero_caso} → {$contacto->nombre}: " . json_encode($resultado['respuesta']));
+                    $this->error("  ❌ Error → {$contacto->nombre} ({$contacto->numero}) | Caso {$caso->numero_caso}");
+                    Log::error('WhatsApp scheduler: fallo al enviar', [
+                        'caso_id' => $caso->id,
+                        'numero'  => $contacto->numero,
+                        'alerta'  => $alertaCodigo,
+                    ]);
                 }
 
-                // Respetar rate limit de UltraMsg (evitar bloqueos)
-                usleep(500_000); // 0.5 segundos entre mensajes
+                usleep(700000); // 0.7 s entre mensajes para no saturar UltraMsg
             }
         }
 
-        // ── 5. Limpiar log de alertas que ya no aplican ───────────────────────
-        if (!$dryRun) {
-            $codigosActivos = $casos->pluck('alerta_codigo', 'id')->toArray();
+        $this->info('─────────────────────────────────────────');
+        $this->info("✅ Enviados    : {$enviados}");
+        $this->info("⏭️  Omitidos   : {$omitidos}  (ya notificados, aún en espera)");
+        $this->info("⚪ Sin alerta  : {$sinAlerta} (casos sin alerta activa mapeada)");
+        $this->info('─────────────────────────────────────────');
 
-            $registros = WhatsappNotificacionEnviada::whereIn('caso_id', $casosIds)->get();
-            foreach ($registros as $reg) {
-                $alertaActual = $codigosActivos[$reg->caso_id] ?? null;
-                if ($alertaActual !== $reg->alerta_codigo) {
-                    $reg->delete();
-                }
-            }
-        }
+        Log::info('WhatsApp scheduler: ciclo completado', [
+            'enviados'   => $enviados,
+            'omitidos'   => $omitidos,
+            'sin_alerta' => $sinAlerta,
+        ]);
 
-        $this->info("Listo. Enviados: {$enviados} | Omitidos (ya notificados): {$omitidos}");
+        // Limpieza usando el MISMO mapa de alertas resueltas → sin inconsistencias
+        $this->limpiarNotificacionesObsoletas($alertaResueltaPorCaso);
+
         return Command::SUCCESS;
+    }
+
+    /**
+     * Resuelve el código de alerta de un caso probando distintos atributos/métodos.
+     * El orden de prioridad va de más específico a más genérico para evitar falsos positivos.
+     */
+    private function resolverAlertaCodigo(Caso $caso): ?string
+    {
+        // Opción 1: accessor alerta_valor definido en el modelo Caso
+        $valor = $caso->alerta_valor ?? null;
+        if (!empty($valor)) {
+            return (string) $valor;
+        }
+
+        // Opción 2: columna alerta_codigo directa en la tabla casos
+        $codigo = $caso->alerta_codigo ?? null;
+        if (!empty($codigo)) {
+            return (string) $codigo;
+        }
+
+        // Opción 3: inferir desde el estado/sub-estado del caso
+        // (fallback para cuando el modelo no expone un atributo de alerta normalizado)
+        $estado    = strtolower((string)($caso->estado ?? ''));
+        $subestado = strtolower((string)($caso->sub_estado ?? $caso->subestado ?? ''));
+        $textoRef  = $estado . ' ' . $subestado;
+
+        if (str_contains($textoRef, 'sin respuesta')) {
+            return 'sin_respuesta';
+        }
+        if (str_contains($textoRef, 'desacato')) {
+            return 'desacato';
+        }
+        if (str_contains($textoRef, 'tutela')) {
+            return 'seguimiento_tutela';
+        }
+        if (str_contains($textoRef, 'prescri')) {
+            return 'prescripcion_critica';
+        }
+        if (str_contains($textoRef, 'queja')) {
+            return 'queja';
+        }
+        if (str_contains($textoRef, 'impugna')) {
+            return 'impugnacion';
+        }
+
+        return null;
+    }
+
+    /**
+     * Determina si hay que enviar la notificación.
+     *
+     * @param  WhatsappNotificacionEnviada|null $ultimaNotificacion  Último registro guardado (o null si nunca se envió)
+     * @param  int                              $diasRecordatorio     0 = solo una vez; N = reenviar cada N días
+     */
+    private function debeEnviar(?WhatsappNotificacionEnviada $ultimaNotificacion, int $diasRecordatorio): bool
+    {
+        if ($ultimaNotificacion === null) {
+            return true; // Nunca se envió → enviar
+        }
+        if ($diasRecordatorio === 0) {
+            return false; // Política "una sola vez" → no reenviar
+        }
+
+        // copy() garantiza que no mutamos el Carbon original del modelo
+        return $ultimaNotificacion->enviada_at->copy()->addDays($diasRecordatorio)->isPast();
+    }
+
+    /**
+     * Elimina en lote los registros de notificaciones cuya alerta ya cambió.
+     * Recibe el mapa ya calculado (caso_id => alerta_resuelta) para ser
+     * consistente con la lógica de envío — evita borrar historia válida.
+     *
+     * Usa una sola query SET-based por lote en lugar de un delete por caso.
+     */
+    private function limpiarNotificacionesObsoletas(\Illuminate\Support\Collection $alertaResueltaPorCaso): void
+    {
+        // Casos que tienen notificaciones registradas
+        $casoIdsConHistoria = WhatsappNotificacionEnviada::select('caso_id')
+            ->distinct()
+            ->pluck('caso_id');
+
+        if ($casoIdsConHistoria->isEmpty()) {
+            return;
+        }
+
+        // Agrupar por tipo de limpieza
+        $sinAlerta    = [];  // caso ya no tiene alerta activa → borrar todo
+        $cambioAlerta = [];  // caso cambió de alerta → [caso_id => nueva_alerta]
+
+        foreach ($casoIdsConHistoria as $cid) {
+            if (!$alertaResueltaPorCaso->has($cid)) {
+                // Caso ya no está en la lista activa (eliminado o pagado)
+                $sinAlerta[] = $cid;
+                continue;
+            }
+
+            $alertaActual = $alertaResueltaPorCaso->get($cid);
+
+            if (empty($alertaActual)) {
+                $sinAlerta[] = $cid;
+            } else {
+                $cambioAlerta[$cid] = $alertaActual;
+            }
+        }
+
+        // Borrar todo para casos sin alerta activa (una sola query)
+        if (!empty($sinAlerta)) {
+            WhatsappNotificacionEnviada::whereIn('caso_id', $sinAlerta)->delete();
+        }
+
+        // Borrar solo las filas de alertas anteriores (una query por caso con alerta diferente)
+        // En la práctica son pocos casos los que cambian de alerta en un día
+        foreach ($cambioAlerta as $cid => $alertaActual) {
+            WhatsappNotificacionEnviada::where('caso_id', $cid)
+                ->where('alerta_codigo', '!=', $alertaActual)
+                ->delete();
+        }
     }
 }
