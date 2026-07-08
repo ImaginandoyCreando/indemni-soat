@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Caso;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -16,112 +15,100 @@ class WhatsappService
     {
         $this->instanceId = config('whatsapp.instance_id', '');
         $this->token      = config('whatsapp.token', '');
-        $this->baseUrl    = config('whatsapp.base_url', 'https://api.ultramsg.com');
+        $this->baseUrl    = 'https://api.ultramsg.com';
     }
 
-    // -------------------------------------------------------------------------
-    // ENVIO HTTP
-    // -------------------------------------------------------------------------
-
     /**
-     * Envia un mensaje de texto a un numero de WhatsApp.
+     * Envía un mensaje de WhatsApp a un número.
      *
-     * @param  string $numero  Numero destino con codigo de pais (ej: 573001234567)
+     * @param  string $numero  Número con código de país. Ej: 573001234567
      * @param  string $mensaje Texto del mensaje
-     * @return array{ok: bool, respuesta: mixed}
+     * @return bool
      */
-    public function enviar(string $numero, string $mensaje): array
+    public function enviar(string $numero, string $mensaje): bool
     {
         if (empty($this->instanceId) || empty($this->token)) {
-            Log::warning('WhatsApp: WHATSAPP_INSTANCE_ID o WHATSAPP_TOKEN no configurados.');
-            return ['ok' => false, 'respuesta' => 'Credenciales no configuradas'];
+            Log::warning('WhatsApp no configurado: faltan WHATSAPP_INSTANCE_ID o WHATSAPP_TOKEN en .env');
+            return false;
         }
+
+        // UltraMsg requiere el número con el signo + delante
+        $numeroDest = '+' . ltrim(preg_replace('/[^0-9]/', '', $numero), '+');
 
         try {
-            $url = "{$this->baseUrl}/{$this->instanceId}/messages/chat";
+            $response = Http::timeout(15)
+                ->asForm()
+                ->post("{$this->baseUrl}/{$this->instanceId}/messages/chat", [
+                    'token' => $this->token,
+                    'to'    => $numeroDest,
+                    'body'  => $mensaje,
+                ]);
 
-            $response = Http::timeout(15)->post($url, [
-                'token'  => $this->token,
-                'to'     => $numero,
-                'body'   => $mensaje,
-            ]);
+            $body = $response->json();
 
-            $datos = $response->json();
-            $ok    = $response->successful() && isset($datos['sent']) && $datos['sent'] === 'true';
-
-            if (!$ok) {
-                Log::warning("WhatsApp: envio fallido a {$numero}", ['respuesta' => $datos]);
+            if ($response->successful() && isset($body['sent']) && $body['sent'] === 'true') {
+                return true;
             }
 
-            return ['ok' => $ok, 'respuesta' => $datos];
+            Log::error('WhatsApp: respuesta inesperada de UltraMsg', [
+                'numero'   => $numeroDest,
+                'status'   => $response->status(),
+                'response' => $body,
+            ]);
+            return false;
 
         } catch (\Throwable $e) {
-            Log::error("WhatsApp: excepcion al enviar a {$numero} — {$e->getMessage()}");
-            return ['ok' => false, 'respuesta' => $e->getMessage()];
+            Log::error('WhatsApp: excepción al enviar mensaje', [
+                'numero'  => $numeroDest,
+                'error'   => $e->getMessage(),
+            ]);
+            return false;
         }
     }
 
-    // -------------------------------------------------------------------------
-    // CONSTRUCCION DE MENSAJE
-    // -------------------------------------------------------------------------
-
     /**
-     * Construye el texto del mensaje segun la alerta del caso.
+     * Construye el texto de notificación para un caso y su alerta.
      */
-    public function construirMensaje(Caso $caso, string $alertaCodigo): string
+    public function construirMensaje(\App\Models\Caso $caso, string $alertaCodigo): string
     {
-        $nombre = $caso->nombre_completo;
-        $num    = $caso->numero_caso ?? "ID {$caso->id}";
-
         $textos = [
-            'prescripcion_critica' => "⚠️ *PRESCRIPCION CRITICA*\nCaso: {$num} — {$nombre}\nLa fecha de prescripcion esta dentro de los proximos 90 dias. Actuar de inmediato.",
-            'prescrito'            => "🔴 *CASO PRESCRITO*\nCaso: {$num} — {$nombre}\nEl caso ha prescrito. Revisar urgentemente.",
-            'desacato'             => "🚨 *DESACATO REQUERIDO*\nCaso: {$num} — {$nombre}\nHan pasado mas de 14 dias desde el fallo de tutela concedido sin cumplimiento. Interponer incidente de desacato.",
-            'sin_respuesta'        => "⏰ *SIN RESPUESTA ASEGURADORA*\nCaso: {$num} — {$nombre}\nHan pasado mas de 30 dias sin respuesta de la aseguradora. Verificar estado.",
-            'seguimiento_tutela'   => "📋 *SEGUIMIENTO TUTELA*\nCaso: {$num} — {$nombre}\nLa tutela lleva mas de 30 dias sin fallo. Hacer seguimiento.",
-            'queja'                => "📢 *QUEJA POR NO PAGO*\nCaso: {$num} — {$nombre}\nHan pasado mas de 30 dias desde la reclamacion sin pago. Presentar queja.",
-            'cumplimiento_tutela'  => "⚖️ *CUMPLIMIENTO DE TUTELA*\nCaso: {$num} — {$nombre}\nFallo concedido, esperando cumplimiento voluntario (primeros 14 dias).",
-            'impugnacion'          => "📝 *IMPUGNACION PENDIENTE*\nCaso: {$num} — {$nombre}\nFallo negado/parcial. Impugnar dentro de los 3 dias habiles.",
-            'segunda_instancia'    => "⏳ *SEGUNDA INSTANCIA*\nCaso: {$num} — {$nombre}\nEsperando fallo de segunda instancia.",
-            'cumplimiento_segunda_instancia' => "🔄 *CUMPLIMIENTO 2A INSTANCIA*\nCaso: {$num} — {$nombre}\nFallo de segunda instancia revoca. Pendiente cumplimiento.",
-            'documentacion_inicial'=> "📄 *DOCUMENTACION INCOMPLETA*\nCaso: {$num} — {$nombre}\nFalta poder o contrato firmado.",
-            'poder_pendiente'      => "✍️ *PODER PENDIENTE*\nCaso: {$num} — {$nombre}\nPoder enviado, pendiente firma del cliente.",
-            'contrato_pendiente'   => "✍️ *CONTRATO PENDIENTE*\nCaso: {$num} — {$nombre}\nContrato enviado, pendiente firma del cliente.",
-            'apelar_dictamen'      => "⚖️ *APELAR DICTAMEN*\nCaso: {$num} — {$nombre}\nAseguradora emitio dictamen. Presentar apelacion.",
-            'honorarios_junta'     => "💰 *HONORARIOS JUNTA*\nCaso: {$num} — {$nombre}\nPendiente pago de honorarios para la junta.",
-            'alta_ortopedia_pendiente' => "🏥 *ALTA ORTOPEDIA PENDIENTE*\nCaso: {$num} — {$nombre}\nSe requiere el alta de ortopedia antes de enviar a junta.",
-            'solicitud_junta'      => "📤 *SOLICITUD A JUNTA*\nCaso: {$num} — {$nombre}\nListo para enviar solicitud a la junta medica.",
-            'furpen_pendiente'     => "📋 *FURPEN PENDIENTE*\nCaso: {$num} — {$nombre}\nDictamen recibido, pendiente completar FURPEN.",
-            'reclamacion'          => "💼 *LISTA PARA COBRAR*\nCaso: {$num} — {$nombre}\nFURPEN completo. Listo para reclamar a la aseguradora.",
-            'pago_pendiente'       => "💳 *PAGO PENDIENTE*\nCaso: {$num} — {$nombre}\nReclamacion enviada, esperando pago de la aseguradora.",
+            'sin_respuesta'                  => "⚠️ *SIN RESPUESTA ASEGURADORA*\nHan pasado más de 30 días hábiles desde la solicitud de calificación a {$caso->aseguradora}. Considerar acciones legales.",
+            'tutela'                         => "⚠️ *SEGUIMIENTO TUTELA*\nLa tutela lleva más de 30 días sin fallo. Verificar estado en el despacho judicial.",
+            'seguimiento_tutela'             => "⚠️ *SEGUIMIENTO TUTELA*\nLa tutela lleva más de 30 días sin fallo. Verificar estado en el despacho judicial.",
+            'queja'                          => "🔴 *QUEJA POR NO PAGO*\nHan pasado más de 30 días desde la reclamación final sin pago. Proceder con queja ante Superintendencia.",
+            'desacato'                       => "🔴 *INCIDENTE DE DESACATO*\nEl fallo de tutela fue concedido hace más de 14 días y la aseguradora no ha cumplido. Presentar incidente de desacato.",
+            'prescripcion_critica'           => "🚨 *PRESCRIPCIÓN PRÓXIMA*\nEl caso prescribe en menos de 90 días. Actuar con urgencia.",
+            'prescrito'                      => "🔴 *CASO PRESCRITO*\nEl caso ya superó su fecha de prescripción.",
+            'documentacion_inicial'          => "📋 *FALTA DOCUMENTACIÓN*\nEl caso no tiene poder y/o contrato firmado.",
+            'poder_pendiente'                => "📋 *PODER PENDIENTE DE FIRMA*\nSe entregó poder pero aún no se registra firma del cliente.",
+            'contrato_pendiente'             => "📋 *CONTRATO PENDIENTE DE FIRMA*\nSe entregó contrato pero aún no se registra firma del cliente.",
+            'apelar_dictamen'                => "⚠️ *APELAR DICTAMEN*\nLa aseguradora emitió dictamen. Pendiente presentar apelación.",
+            'impugnacion'                    => "⚠️ *IMPUGNACIÓN PENDIENTE*\nFallo de tutela negado. Pendiente presentar impugnación.",
+            'honorarios_junta'               => "💰 *HONORARIOS JUNTA PENDIENTES*\nHay apelación registrada y aún no se pagan honorarios de junta.",
+            'alta_ortopedia_pendiente'       => "🏥 *ALTA ORTOPEDIA PENDIENTE*\nPagados honorarios de junta. Pendiente alta de ortopedia.",
+            'solicitud_junta'                => "📝 *SOLICITUD JUNTA*\nCliente con alta ortopedia. Pendiente enviar solicitud a junta.",
+            'reclamacion'                    => "💼 *LISTO PARA COBRAR*\nDictamen de junta recibido y FURPEN completo. Proceder con reclamación final.",
+            'pago_pendiente'                 => "💰 *PAGO PENDIENTE*\nReclamación final enviada. Esperando pago de la aseguradora.",
+            'cumplimiento_tutela'            => "⚖️ *CUMPLIMIENTO TUTELA*\nFallo concedido. La aseguradora tiene 14 días para cumplir.",
+            'cumplimiento_segunda_instancia' => "⚖️ *CUMPLIMIENTO 2a INSTANCIA*\nSegunda instancia revoca. Pendiente cumplimiento de la aseguradora.",
+            'segunda_instancia'              => "⚖️ *SEGUNDA INSTANCIA*\nImpugnación presentada. Esperando fallo de segunda instancia.",
         ];
 
-        return $textos[$alertaCodigo]
-            ?? "📌 *ALERTA CASO*\nCaso: {$num} — {$nombre}\nAlerta: {$alertaCodigo}. Revisar en el sistema.";
-    }
+        $textoPredeterminado = "📌 *ALERTA JURÍDICA*\nEl caso requiere atención en el estado: {$alertaCodigo}.";
+        $cuerpo = $textos[$alertaCodigo] ?? $textoPredeterminado;
 
-    // -------------------------------------------------------------------------
-    // CLASIFICACION DE ALERTA
-    // -------------------------------------------------------------------------
-
-    /**
-     * Retorna la prioridad de una alerta: 'critica', 'urgente' o 'normal'.
-     */
-    public function prioridadAlerta(string $alertaCodigo): string
-    {
-        $criticas = ['prescripcion_critica', 'prescrito', 'desacato'];
-        $urgentes = ['sin_respuesta', 'seguimiento_tutela', 'queja', 'impugnacion', 'cumplimiento_tutela'];
-
-        if (in_array($alertaCodigo, $criticas)) return 'critica';
-        if (in_array($alertaCodigo, $urgentes)) return 'urgente';
-        return 'normal';
-    }
-
-    /**
-     * Dias de reenvio segun prioridad. null = no reenviar.
-     */
-    public function diasReenvio(string $prioridad): ?int
-    {
-        return config("whatsapp.reenvio_dias.{$prioridad}");
+        return implode("\n", [
+            "━━━━━━━━━━━━━━━━━━━━━",
+            "🗂️ *INDEMNI-SOAT*",
+            "━━━━━━━━━━━━━━━━━━━━━",
+            "📁 Caso: *{$caso->numero_caso}*",
+            "👤 Cliente: *{$caso->nombre_completo}*",
+            "🏢 Aseguradora: *{$caso->aseguradora}*",
+            "",
+            $cuerpo,
+            "",
+            "📅 " . now()->format('d/m/Y H:i'),
+            "━━━━━━━━━━━━━━━━━━━━━",
+        ]);
     }
 }
