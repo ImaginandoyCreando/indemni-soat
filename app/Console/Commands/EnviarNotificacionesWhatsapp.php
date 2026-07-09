@@ -193,9 +193,9 @@ class EnviarNotificacionesWhatsapp extends Command
                 if (!$this->debeEnviar($ultimaNotificacion, $diasRecordatorio)) {
                     $omitidos++;
                     if ($debug) {
-                        $ultimoStr = $ultimaNotificacion
+                        $ultimoStr = ($ultimaNotificacion && $ultimaNotificacion->enviada_at !== null)
                             ? $ultimaNotificacion->enviada_at->format('d/m/Y')
-                            : '-';
+                            : ($ultimaNotificacion ? 'fecha-null' : '-');
                         $this->line("  [SKIP] → {$contacto->nombre} | Caso {$caso->numero_caso} | último: {$ultimoStr}");
                     }
                     continue;
@@ -262,117 +262,176 @@ class EnviarNotificacionesWhatsapp extends Command
      * Resuelve el código de alerta de un caso.
      *
      * Estrategia en orden de prioridad:
-     *   1. alerta_valor del modelo (lógica temporal ya calculada por el sistema)
-     *   2. Mapeo directo por texto del estado (para estados que siempre requieren acción)
+     *   1. Escanear TODOS los atributos de alerta del modelo buscando un código exacto conocido.
+     *   2. Fuzzy-match sobre todos los valores raw recogidos (cubre variantes como
+     *      "sin_respuesta_aseguradora", "prescripcion_proxima", etc.).
+     *   3. Mapeo por texto del campo `estado` en BD (para estados de acción estructural).
      */
     private function resolverAlertaCodigo(Caso $caso): ?string
     {
-        // ── Prioridad 1: alerta_valor del modelo ──────────────────────────────
-        // El sistema ya calcula esto basado en fechas (sin_respuesta, prescripcion_critica, etc.)
-        // Solo descartamos 'normal' porque significa "sin alerta temporal urgente aún"
-        foreach (['alerta_valor', 'alerta_codigo'] as $atributo) {
-            $valor = $caso->{$atributo} ?? null;
-            if (!empty($valor) && $valor !== 'normal') {
-                return (string) $valor;
+        // ── Prioridad 1: código exacto en cualquier atributo de alerta ────────
+        // Recorremos TODOS los candidatos sin hacer break prematuro, para que un
+        // atributo con valor desconocido no bloquee a los demás.
+        $valoresRaw = [];
+        foreach (['alerta_valor', 'alerta_codigo', 'alerta', 'estado_alerta', 'codigo_alerta'] as $attr) {
+            $val = $caso->{$attr} ?? null;
+            if (empty($val) || $val === 'normal' || $val === 'sin_alerta') {
+                continue;
+            }
+            $v = (string) $val;
+            if (array_key_exists($v, $this->alertasActivas)) {
+                return $v;   // coincidencia exacta → salir de inmediato
+            }
+            $valoresRaw[] = $v;   // guardar para fuzzy abajo
+        }
+
+        // ── Prioridad 2: fuzzy-match sobre los valores raw recogidos ──────────
+        // Cubre variantes con sufijos, separadores distintos y tildes.
+        foreach ($valoresRaw as $raw) {
+            $n = strtolower(
+                str_replace(
+                    ['á','é','í','ó','ú','ü','ñ','-',' '],
+                    ['a','e','i','o','u','u','n','_','_'],
+                    $raw
+                )
+            );
+
+            if (str_contains($n, 'prescrito') && !str_contains($n, 'prescripcion')) {
+                return 'prescrito';
+            }
+            if (str_contains($n, 'prescripcion')) {
+                return 'prescripcion_critica';
+            }
+            if (str_contains($n, 'impugnacion') && str_contains($n, 'urgente')) {
+                return 'impugnacion_urgente';
+            }
+            if (str_contains($n, 'presentar_tutela') || (str_contains($n, 'presentar') && str_contains($n, 'tutela'))) {
+                return 'presentar_tutela';
+            }
+            if (str_contains($n, 'sin_respuesta') || str_contains($n, 'sinrespuesta')) {
+                return 'sin_respuesta';
+            }
+            if (str_contains($n, 'desacato') && str_contains($n, 'posible')) {
+                return 'desacato_posible';
+            }
+            if (str_contains($n, 'desacato') && str_contains($n, 'seguimiento')) {
+                return 'desacato_seguimiento';
+            }
+            if (str_contains($n, 'desacato')) {
+                return 'desacato';
+            }
+            if (str_contains($n, 'impugnacion') && str_contains($n, 'presentada')) {
+                return 'impugnacion_presentada';
+            }
+            if (str_contains($n, 'impugnacion')) {
+                return 'impugnacion';
+            }
+            if (str_contains($n, 'fallo_tutela') || (str_contains($n, 'tutela') && str_contains($n, 'fallo'))) {
+                return 'fallo_tutela_pendiente';
+            }
+            if (str_contains($n, 'seguimiento_tutela') || (str_contains($n, 'tutela') && str_contains($n, 'seguimiento'))) {
+                return 'seguimiento_tutela';
+            }
+            if (str_contains($n, 'tutela')) {
+                return 'tutela';
+            }
+            if (str_contains($n, 'segunda_instancia')) {
+                return 'segunda_instancia';
+            }
+            if (str_contains($n, 'pago_final') || str_contains($n, 'pagofinal')) {
+                return 'pago_final_pendiente';
+            }
+            if (str_contains($n, 'cobro')) {
+                return 'pago_final_pendiente';
             }
         }
 
-        // ── Prioridad 2: Mapeo por estado del caso ────────────────────────────
-        // Para estados donde la acción es requerida por el estado mismo,
-        // independientemente de cuántos días han pasado.
-        $estado = strtolower(trim((string)($caso->estado ?? '')));
+        // ── Prioridad 3: Mapeo por texto del campo `estado` en BD ─────────────
+        // Solo para estados donde la acción es estructural (no depende de días).
+        $estado = strtolower(
+            str_replace(
+                ['á','é','í','ó','ú','ü','ñ'],
+                ['a','e','i','o','u','u','n'],
+                trim((string)($caso->estado ?? ''))
+            )
+        );
 
         if (empty($estado)) {
             return null;
         }
 
-        // ── URGENCIA EXTREMA: Impugnación (3 días hábiles por ley) ───────────
+        // URGENCIA EXTREMA: impugnación (3 días hábiles)
         if (str_contains($estado, 'negado') && str_contains($estado, 'impugnacion')) {
             return 'impugnacion_urgente';
         }
-
-        // ── URGENTE: Aseguradora negó o no respondió → presentar tutela ──────
-        if (str_contains($estado, 'aseguradora nego')) {
+        // Aseguradora negó / no respondió → tutela
+        if (str_contains($estado, 'aseguradora nego') || str_contains($estado, 'aseguradora no respondio')) {
             return 'presentar_tutela';
         }
-        if (str_contains($estado, 'aseguradora no respondio')) {
+        if (str_contains($estado, 'no respondio') && str_contains($estado, 'tutela')) {
             return 'presentar_tutela';
         }
-        if (str_contains($estado, 'no respondio') && str_contains($estado, 'presentar tutela')) {
-            return 'presentar_tutela';
-        }
-
-        // ── URGENTE: Fallo concedido, aseguradora debe cumplir (14 días) ─────
+        // Fallo concedido sin cumplimiento
         if (str_contains($estado, 'concedido') && str_contains($estado, 'cumplimiento')) {
             return 'desacato_posible';
         }
-
-        // ── Segunda instancia revoca: acción inmediata ────────────────────────
+        // Segunda instancia revoca
         if (str_contains($estado, 'segunda instancia revoca')) {
-            if (str_contains($estado, 'calificar')) {
-                return 'segunda_instancia_calificar';
-            }
-            if (str_contains($estado, 'honorarios')) {
-                return 'segunda_instancia_honorarios';
-            }
+            if (str_contains($estado, 'calificar')) return 'segunda_instancia_calificar';
+            if (str_contains($estado, 'honorarios')) return 'segunda_instancia_honorarios';
         }
-
-        // ── Desacato presentado: seguimiento ─────────────────────────────────
+        // Desacato presentado
         if (str_contains($estado, 'desacato presentado')) {
             return 'desacato_seguimiento';
         }
-
-        // ── Impugnación presentada: seguimiento segunda instancia ─────────────
+        // Impugnación presentada
         if (str_contains($estado, 'impugnacion presentada')) {
             return 'impugnacion_presentada';
         }
-
-        // ── Tutela presentada sin fallo: seguimiento ─────────────────────────
-        if (str_contains($estado, 'tutela para calificacion presentada')) {
+        // Tutela presentada sin fallo
+        if (str_contains($estado, 'tutela') && str_contains($estado, 'presentada')) {
             return 'fallo_tutela_pendiente';
         }
-        if (str_contains($estado, 'tutela por debido proceso presentada')) {
-            return 'fallo_tutela_pendiente';
-        }
-
-        // ── Tutela cumplida pero esperando acción aseguradora ────────────────
+        // Tutela cumplida
         if (str_contains($estado, 'tutela cumplida') && str_contains($estado, 'dictamen aseguradora')) {
             return 'dictamen_aseguradora_pendiente';
         }
         if (str_contains($estado, 'tutela cumplida') && str_contains($estado, 'pago honorarios')) {
             return 'pago_honorarios_junta';
         }
-
-        // ── Apelación de dictamen pendiente ──────────────────────────────────
+        // Apelación dictamen
         if (str_contains($estado, 'apelacion de dictamen')) {
             return 'apelacion_dictamen_pendiente';
         }
-
-        // ── Alta ortopedia pendiente ──────────────────────────────────────────
-        if (str_contains($estado, 'pendiente alta por ortopedia')) {
+        // Alta ortopedia
+        if (str_contains($estado, 'pendiente alta') && str_contains($estado, 'ortopedia')) {
             return 'alta_ortopedia_pendiente';
         }
-
-        // ── Solicitud a junta médica: acción inmediata ───────────────────────
-        if (str_contains($estado, 'listo para solicitud a junta')) {
+        // Solicitud a junta
+        if (str_contains($estado, 'listo para solicitud') && str_contains($estado, 'junta')) {
             return 'solicitud_junta_urgente';
         }
-
-        // ── Dictamen de junta recibido: proceder con cobro ───────────────────
-        if (str_contains($estado, 'dictamen de junta recibido')) {
+        // Dictamen junta recibido
+        if (str_contains($estado, 'dictamen') && str_contains($estado, 'junta') && str_contains($estado, 'recibido')) {
             return 'dictamen_junta_recibido';
         }
-
-        // ── Listo para cobrar a aseguradora: acción inmediata ────────────────
+        // Listo para cobro
         if (str_contains($estado, 'listo para cobro')) {
             return 'cobro_listo';
         }
-
-        // ── Cobro enviado: seguimiento pago (30 días) ─────────────────────────
-        if (str_contains($estado, 'cobro a aseguradora enviado')) {
+        // Cobro enviado
+        if (str_contains($estado, 'cobro') && str_contains($estado, 'aseguradora') && str_contains($estado, 'enviado')) {
             return 'pago_final_pendiente';
         }
+        // Sin respuesta explícita en el estado
+        if (str_contains($estado, 'sin respuesta') || str_contains($estado, 'sin_respuesta')) {
+            return 'sin_respuesta';
+        }
 
+        // Nota: "solicitud de calificacion enviada" NO se mapea automáticamente.
+        // El tiempo de espera (> 30 días) lo calcula el sistema y lo expone como
+        // alerta_valor = sin_respuesta. Si no llegó por Prioridad 1/2, ejecutar
+        // con --debug para ver el valor real de alerta_valor en ese caso.
         return null;
     }
 
