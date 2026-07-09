@@ -385,6 +385,10 @@ class EnviarNotificacionesWhatsapp extends Command
         if ($diasRecordatorio === 0) {
             return false;
         }
+        // enviada_at puede ser null en filas antiguas o si el cast falló
+        if ($ultimaNotificacion->enviada_at === null) {
+            return true;
+        }
 
         return $ultimaNotificacion->enviada_at->copy()->addDays($diasRecordatorio)->isPast();
     }
