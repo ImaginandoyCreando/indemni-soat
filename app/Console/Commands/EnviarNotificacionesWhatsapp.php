@@ -212,12 +212,14 @@ class EnviarNotificacionesWhatsapp extends Command
                 $ok = $servicio->enviar($contacto->numero, $mensaje);
 
                 if ($ok) {
-                    $nuevaNotif = WhatsappNotificacionEnviada::create([
-                        'caso_id'         => $caso->id,
-                        'alerta_codigo'   => $alertaCodigo,
-                        'numero_whatsapp' => $contacto->numero,
-                        'enviada_at'      => now(),
-                    ]);
+                    $nuevaNotif = WhatsappNotificacionEnviada::updateOrCreate(
+                        [
+                            'caso_id'         => $caso->id,
+                            'alerta_codigo'   => $alertaCodigo,
+                            'numero_whatsapp' => $contacto->numero,
+                        ],
+                        ['enviada_at' => now()]
+                    );
                     $enviadas->put($clave, $nuevaNotif);
                     $enviados++;
                     $this->line("  ✅ Enviado → {$contacto->nombre} | Caso {$caso->numero_caso} | {$alertaCodigo}");
@@ -385,9 +387,9 @@ class EnviarNotificacionesWhatsapp extends Command
         if ($diasRecordatorio === 0) {
             return false;
         }
-        // enviada_at puede ser null en filas antiguas o si el cast falló
+        // enviada_at null en filas antiguas → asumir que se envió hoy y no reenviar
         if ($ultimaNotificacion->enviada_at === null) {
-            return true;
+            return false;
         }
 
         return $ultimaNotificacion->enviada_at->copy()->addDays($diasRecordatorio)->isPast();
