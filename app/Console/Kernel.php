@@ -42,10 +42,12 @@ class Kernel extends ConsoleKernel
         ])->daily()
           ->description('Limpiar logs de correos antiguos');
 
-        // Notificaciones WhatsApp — 08:00 AM Colombia (13:00 UTC)
-        // withoutOverlapping() evita doble ejecucion si el comando tarda mas de 1 minuto
+        // Notificaciones WhatsApp — 08:00 AM Colombia.
+        // La zona explícita evita depender de la timezone del contenedor de Koyeb.
+        // withoutOverlapping() evita doble ejecución si el comando tarda más de 1 minuto.
         $schedule->command('whatsapp:notificar')
-            ->dailyAt('13:00')
+            ->dailyAt('08:00')
+            ->timezone('America/Bogota')
             ->withoutOverlapping()
             ->appendOutputTo(storage_path('logs/whatsapp-scheduler.log'))
             ->description('Enviar alertas de casos por WhatsApp');

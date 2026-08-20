@@ -155,13 +155,18 @@ class EnviarNotificacionesWhatsapp extends Command
 
         // ── 4. Pre-cargar notificaciones ya enviadas (una sola query) ────────
         $casoIds        = $casos->pluck('id')->toArray();
-        $numerosActivos = $contactos->pluck('numero')->toArray();
+        $numerosActivos = $contactos
+            ->map(fn (WhatsappContacto $contacto) => $contacto->numero_limpio)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
 
         $enviadas = WhatsappNotificacionEnviada::whereIn('caso_id', $casoIds)
             ->whereIn('numero_whatsapp', $numerosActivos)
             ->get()
             ->groupBy(fn($r) => "{$r->caso_id}|{$r->alerta_codigo}|{$r->numero_whatsapp}")
-            ->map(fn($group) => $group->sortByDesc('enviada_at')->first());
+            ->map(fn($group) => $group->sortByDesc('enviado_en')->first());
 
         $servicio  = new WhatsappService();
         $enviados  = 0;
@@ -187,14 +192,15 @@ class EnviarNotificacionesWhatsapp extends Command
             $diasRecordatorio = $this->alertasActivas[$alertaCodigo];
 
             foreach ($contactos as $contacto) {
-                $clave              = "{$caso->id}|{$alertaCodigo}|{$contacto->numero}";
+                $numero             = $contacto->numero_limpio;
+                $clave              = "{$caso->id}|{$alertaCodigo}|{$numero}";
                 $ultimaNotificacion = $enviadas->get($clave);
 
                 if (!$this->debeEnviar($ultimaNotificacion, $diasRecordatorio)) {
                     $omitidos++;
                     if ($debug) {
-                        $ultimoStr = ($ultimaNotificacion && $ultimaNotificacion->enviada_at !== null)
-                            ? $ultimaNotificacion->enviada_at->format('d/m/Y')
+                        $ultimoStr = ($ultimaNotificacion && $ultimaNotificacion->enviado_en !== null)
+                            ? $ultimaNotificacion->enviado_en->format('d/m/Y')
                             : ($ultimaNotificacion ? 'fecha-null' : '-');
                         $this->line("  [SKIP] → {$contacto->nombre} | Caso {$caso->numero_caso} | último: {$ultimoStr}");
                     }
@@ -209,30 +215,31 @@ class EnviarNotificacionesWhatsapp extends Command
                     continue;
                 }
 
-                $ok = $servicio->enviar($contacto->numero, $mensaje);
+                $ok = $servicio->enviar($numero, $mensaje);
 
                 if ($ok) {
                     $nuevaNotif = WhatsappNotificacionEnviada::updateOrCreate(
                         [
                             'caso_id'         => $caso->id,
                             'alerta_codigo'   => $alertaCodigo,
-                            'numero_whatsapp' => $contacto->numero,
+                            'numero_whatsapp' => $numero,
                         ],
-                        ['enviada_at' => now()]
+                        ['enviado_en' => now()]
                     );
                     $enviadas->put($clave, $nuevaNotif);
                     $enviados++;
                     $this->line("  ✅ Enviado → {$contacto->nombre} | Caso {$caso->numero_caso} | {$alertaCodigo}");
+
                     Log::info('WhatsApp: notificación enviada', [
                         'caso'   => $caso->numero_caso,
-                        'numero' => $contacto->numero,
+                        'numero' => $numero,
                         'alerta' => $alertaCodigo,
                     ]);
                 } else {
-                    $this->error("  ❌ Error → {$contacto->nombre} ({$contacto->numero}) | Caso {$caso->numero_caso}");
+                    $this->error("  ❌ Error → {$contacto->nombre} ({$numero}) | Caso {$caso->numero_caso}");
                     Log::error('WhatsApp scheduler: fallo al enviar', [
                         'caso_id' => $caso->id,
-                        'numero'  => $contacto->numero,
+                        'numero'  => $numero,
                         'alerta'  => $alertaCodigo,
                     ]);
                 }
@@ -446,12 +453,12 @@ class EnviarNotificacionesWhatsapp extends Command
         if ($diasRecordatorio === 0) {
             return false;
         }
-        // enviada_at null en filas antiguas → asumir que se envió hoy y no reenviar
-        if ($ultimaNotificacion->enviada_at === null) {
+        // enviado_en null en filas antiguas → asumir que se envió hoy y no reenviar.
+        if ($ultimaNotificacion->enviado_en === null) {
             return false;
         }
 
-        return $ultimaNotificacion->enviada_at->copy()->addDays($diasRecordatorio)->isPast();
+        return $ultimaNotificacion->enviado_en->copy()->addDays($diasRecordatorio)->isPast();
     }
 
     /**

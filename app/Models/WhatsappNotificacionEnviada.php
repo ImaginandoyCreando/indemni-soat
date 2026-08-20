@@ -8,7 +8,7 @@ class WhatsappNotificacionEnviada extends Model
 {
     protected $table = 'whatsapp_notificaciones_enviadas';
 
-    // Sin created_at / updated_at; usamos enviado_en
+    // La tabla no tiene created_at / updated_at; usa enviado_en como fecha de envío.
     public $timestamps = false;
 
     protected $fillable = [

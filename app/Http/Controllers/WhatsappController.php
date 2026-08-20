@@ -92,12 +92,12 @@ class WhatsappController extends Controller
     {
         $mensaje = "✅ *Prueba indemni-soat*\nEste es un mensaje de prueba del sistema de notificaciones.\nFecha: " . now()->format('d/m/Y H:i');
 
-        $resultado = $this->servicio->enviar($contacto->numero_limpio, $mensaje);
+        $enviado = $this->servicio->enviar($contacto->numero_limpio, $mensaje);
 
-        if ($resultado['ok']) {
+        if ($enviado) {
             return back()->with('success', "Mensaje de prueba enviado a {$contacto->nombre} ({$contacto->numero}).");
         }
 
-        return back()->with('error', "Error al enviar a {$contacto->nombre}: " . json_encode($resultado['respuesta']));
+        return back()->with('error', "No fue posible enviar el mensaje a {$contacto->nombre}. Revisa los logs de la aplicación y la configuración de UltraMsg.");
     }
 }

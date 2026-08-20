@@ -15,7 +15,7 @@ class WhatsappService
     {
         $this->instanceId = config('whatsapp.instance_id', '');
         $this->token      = config('whatsapp.token', '');
-        $this->baseUrl    = 'https://api.ultramsg.com';
+        $this->baseUrl    = rtrim((string) config('whatsapp.base_url', 'https://api.ultramsg.com'), '/');
     }
 
     /**
@@ -31,10 +31,19 @@ class WhatsappService
             return false;
         }
 
-        $numeroDest = '+' . ltrim(preg_replace('/[^0-9]/', '', $numero), '+');
+        $numeroDest = $this->normalizarNumero($numero);
+
+        if ($numeroDest === null) {
+            Log::warning('WhatsApp: número de destino inválido', [
+                'numero_original' => $numero,
+            ]);
+            return false;
+        }
 
         try {
             $response = Http::timeout(15)
+                ->connectTimeout(10)
+                ->acceptJson()
                 ->asForm()
                 ->post("{$this->baseUrl}/{$this->instanceId}/messages/chat", [
                     'token' => $this->token,
@@ -43,15 +52,17 @@ class WhatsappService
                 ]);
 
             $body = $response->json();
+            $sent = is_array($body) ? ($body['sent'] ?? null) : null;
+            $accepted = in_array($sent, [true, 'true', 1, '1'], true);
 
-            if ($response->successful() && isset($body['sent']) && $body['sent'] === 'true') {
+            if ($response->successful() && $accepted) {
                 return true;
             }
 
             Log::error('WhatsApp: respuesta inesperada de UltraMsg', [
                 'numero'   => $numeroDest,
                 'status'   => $response->status(),
-                'response' => $body,
+                'response' => $body ?? $response->body(),
             ]);
             return false;
 
@@ -62,6 +73,30 @@ class WhatsappService
             ]);
             return false;
         }
+    }
+
+    /**
+     * Convierte un número local colombiano o internacional a formato E.164.
+     * UltraMsg documenta el destino con prefijo internacional y signo +.
+     */
+    private function normalizarNumero(string $numero): ?string
+    {
+        $digitos = preg_replace('/\\D+/', '', trim($numero));
+
+        if (!is_string($digitos) || $digitos === '') {
+            return null;
+        }
+
+        // Los contactos de la aplicación se registran normalmente como celulares colombianos.
+        if (strlen($digitos) === 10) {
+            $digitos = '57' . $digitos;
+        }
+
+        if (strlen($digitos) < 11 || strlen($digitos) > 15) {
+            return null;
+        }
+
+        return '+' . $digitos;
     }
 
     /**
