@@ -67,13 +67,13 @@ Agrega estas variables exactas en el panel de Koyeb:
 MICROSOFT_GRAPH_CLIENT_ID=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
 MICROSOFT_GRAPH_CLIENT_SECRET=LA_CLAVE_SECRETA_GENERADA_EN_AZURE
 MICROSOFT_GRAPH_TENANT_ID=consumers
-MICROSOFT_GRAPH_REDIRECT_URI=https://conscious-cassandra-indemni-soat-6d20a413.koyeb.app/auth/callback
+MICROSOFT_GRAPH_REDIRECT_URI=https://{{ KOYEB_PUBLIC_DOMAIN }}/outlook/callback
 
 # Cuentas de correo (sin cambios)
 GESTION_EMAIL=gestionsoat365@outlook.com
-GESTION_PASSWORD=nbwvvzqhetsvrtug
+GESTION_PASSWORD=coloca_aqui_la_clave_de_aplicacion
 RECLAMACIONES_EMAIL=reclamacionessoat@hotmail.com
-RECLAMACIONES_PASSWORD=tcqwucljosshibse
+RECLAMACIONES_PASSWORD=coloca_aqui_la_clave_de_aplicacion
 ```
 
 ### 4.2 Puntos Clave
@@ -90,7 +90,7 @@ RECLAMACIONES_PASSWORD=tcqwucljosshibse
 - **Tiempo:** 2-3 minutos después de configurar Koyeb
 
 ### 5.2 Probar Sistema
-- **URL:** https://conscious-cassandra-indemni-soat-6d20a413.koyeb.app/emails
+- **URL:** https://{{ KOYEB_PUBLIC_DOMAIN }}/emails
 - **Click:** "Sincronizar correos"
 
 ### 5.3 Resultado Esperado

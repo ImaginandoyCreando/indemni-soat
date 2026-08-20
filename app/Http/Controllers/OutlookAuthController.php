@@ -18,7 +18,7 @@ class OutlookAuthController extends Controller
     {
         $this->clientId = env('OUTLOOK_CLIENT_ID');
         $this->clientSecret = env('OUTLOOK_CLIENT_SECRET');
-        $this->redirectUri = env('APP_URL') . '/outlook/callback';
+        $this->redirectUri = rtrim((string) env('APP_URL'), '/') . '/outlook/callback';
         $this->scope = 'https://graph.microsoft.com/Mail.Read offline_access';
     }
 

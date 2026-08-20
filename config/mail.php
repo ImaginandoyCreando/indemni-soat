@@ -1,5 +1,7 @@
 <?php
 
+$mailScheme = strtolower((string) (env('MAIL_SCHEME') ?: env('MAIL_ENCRYPTION', '')));
+
 return [
 
     /*
@@ -39,7 +41,13 @@ return [
 
         'smtp' => [
             'transport' => 'smtp',
-            'scheme' => env('MAIL_SCHEME'),
+            // Laravel 12 usa MAIL_SCHEME; se conserva compatibilidad con MAIL_ENCRYPTION legado.
+            'scheme' => match ($mailScheme) {
+                'ssl' => 'smtps',
+                'tls', 'starttls' => 'smtp',
+                '', 'null' => null,
+                default => $mailScheme,
+            },
             'url' => env('MAIL_URL'),
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),
