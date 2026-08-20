@@ -15,7 +15,8 @@ class EnviarNotificacionesWhatsapp extends Command
     protected $signature = 'whatsapp:notificar
                             {--dry-run : Simula el envío sin enviar mensajes reales}
                             {--caso= : Procesa solo un caso específico por ID}
-                            {--debug : Muestra información detallada de cada caso procesado}';
+                            {--debug : Muestra información detallada de cada caso procesado}
+                            {console-suffix? : Sufijo final opcional agregado por algunas consolas; se ignora}';
 
     protected $description = 'Revisa todos los casos activos y envía notificaciones de WhatsApp según su estado jurídico.';
 

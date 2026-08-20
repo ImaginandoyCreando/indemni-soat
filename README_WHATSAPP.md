@@ -57,10 +57,10 @@ Las alertas de recordatorio se vuelven a enviar según los días definidos en `c
 Desde la pantalla administrativa de WhatsApp, registra un contacto con número colombiano de 10 dígitos o con prefijo `57`, activa el contacto y usa la acción de prueba. Para una comprobación sin envío real, ejecuta en el contenedor:
 
 ```bash
-php artisan whatsapp:notificar --dry-run --debug
+php artisan whatsapp:notificar --dry-run --debug koyeb
 ```
 
-Para revisar el scheduler, consulta los logs de Koyeb y el archivo `storage/logs/whatsapp-scheduler.log`. Los errores de autenticación, respuesta inesperada, número inválido o excepción de red se registran sin incluir el token de UltraMsg.
+El argumento final `koyeb` es intencional: la consola web de Koyeb puede adjuntar un retorno de carro al final de la línea y Symfony Console lo interpretaba como un argumento inesperado. La aplicación ahora acepta y descarta ese sufijo. Para revisar el scheduler, consulta los logs de Koyeb y el archivo `storage/logs/whatsapp-scheduler.log`. Los errores de autenticación, respuesta inesperada, número inválido o excepción de red se registran sin incluir el token de UltraMsg.
 
 Si el envío manual falla, verifica en este orden: que las dos credenciales estén configuradas en el servicio correcto de Koyeb; que la instancia esté conectada en UltraMsg; que el número incluya el código de país; y que el despliegue haya reconstruido la caché de configuración después de modificar los Secrets.
 
